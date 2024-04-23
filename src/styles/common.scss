@@ -1,0 +1,21 @@
+@mixin scrollBar {
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #dfdede;
+    border-radius: 4px;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background: rgb(194, 193, 193);
+  }
+}
+@mixin multiTextEllipsis($lineCount) {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: $lineCount;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+$color: #ec0fec;
