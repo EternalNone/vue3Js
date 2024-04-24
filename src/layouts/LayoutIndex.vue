@@ -5,7 +5,7 @@ import CockpitMenu from './CockpitMenu.vue'
 <template>
   <div class="common-layout">
     <el-container>
-      <el-header height="60px">
+      <el-header height="70px">
         <h1>集中控制数字驾驶舱</h1>
       </el-header>
       <el-main>
@@ -38,11 +38,12 @@ import CockpitMenu from './CockpitMenu.vue'
       justify-content: center;
       align-items: flex-start;
       h1 {
-        font-size: 28px;
+        font-size: 32px;
         color: #fff;
         font-weight: 600;
         letter-spacing: 4px;
         margin: 0;
+        line-height: 65px;
       }
     }
     .el-footer {
