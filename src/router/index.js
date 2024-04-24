@@ -1,21 +1,70 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import HomeView from '../views/HomeView.vue'
+
+const Layouts = () => import('@/layouts/LayoutIndex.vue')
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/',
-      name: 'home',
-      component: HomeView
+      component: Layouts,
+      redirect: '/statistics',
+      children: [
+        {
+          path: 'statistics',
+          component: () => import('@/views/statistics/index.vue'),
+          name: 'statistics',
+          meta: {
+            title: '统计分析',
+            svgIcon: 'earth'
+          }
+        },
+        {
+          path: 'central',
+          component: () => import('@/views/central/index.vue'),
+          name: 'central',
+          meta: {
+            title: '集中控制',
+            svgIcon: 'earth'
+          }
+        },
+        {
+          path: 'checkData',
+          component: () => import('@/views/checkData/index.vue'),
+          name: 'checkData',
+          meta: {
+            title: '检测数据',
+            svgIcon: 'earth'
+          }
+        },
+        {
+          path: 'abrasion',
+          component: () => import('@/views/abrasion/index.vue'),
+          name: 'abrasion',
+          meta: {
+            title: '检测预警',
+            svgIcon: 'earth'
+          }
+        }
+      ]
     },
     {
-      path: '/about',
-      name: 'about',
-      // route level code-splitting
-      // this generates a separate chunk (About.[hash].js) for this route
-      // which is lazy-loaded when the route is visited.
-      component: () => import('../views/AboutView.vue')
+      path: '/backend',
+      component: () => import('@/views/backend/index.vue'),
+      name: 'backend',
+      meta: {
+        title: '后台管理',
+        svgIcon: 'earth'
+      }
+    },
+    {
+      path: '/login',
+      component: () => import('@/views/login/index.vue'),
+      name: 'login',
+      meta: {
+        title: '登录',
+        svgIcon: ''
+      }
     }
   ]
 })
