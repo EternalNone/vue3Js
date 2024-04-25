@@ -1,10 +1,17 @@
+// variables
+$color: #ec0fec;
+$theme-color: #02245b;
+
+$el-header-height: 70px;
+
+// mixins
 @mixin scrollBar {
   &::-webkit-scrollbar {
     width: 6px;
     height: 6px;
   }
   &::-webkit-scrollbar-thumb {
-    background: #dfdede;
+    background: $theme-color;
     border-radius: 4px;
   }
   &::-webkit-scrollbar-thumb:hover {
@@ -18,4 +25,15 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-$color: #ec0fec;
+@mixin flexRow($justify-content, $align-items) {
+  display: flex;
+  flex-direction: row;
+  justify-content: $justify-content;
+  align-items: $align-items;
+}
+@mixin flexColumn($justify-content, $align-items) {
+  display: flex;
+  flex-direction: column;
+  justify-content: $justify-content;
+  align-items: $align-items;
+}

@@ -1,13 +1,12 @@
 <script setup>
-import { useMenu } from '@/hooks/useMenu'
-const { curMenu, menuList, setMenu } = useMenu()
-const handleSelect = (key) => {
-  setMenu(key)
-}
+import { CockpitRouter } from '@/router'
+const menuList = CockpitRouter[0]?.children || []
+const route = useRoute()
+const activeMenu = computed(() => route.path)
 </script>
 <template>
   <el-menu
-    :default-active="curMenu"
+    :default-active="activeMenu"
     class="cockpit-menu"
     mode="horizontal"
     background-color="transparent"
@@ -15,10 +14,12 @@ const handleSelect = (key) => {
     active-text-color="#fff"
     :ellipsis="false"
     router
-    @select="handleSelect"
   >
-    <el-menu-item v-for="item in menuList" :index="item.name" :key="item.name">
-      <span>{{ item.title }}</span>
+    <el-menu-item v-for="item in menuList" :index="`/${item.path}`" :key="item.path">
+      <span>{{ item.meta.title }}</span>
+    </el-menu-item>
+    <el-menu-item index="/backend" key="backend">
+      <span>后台管理</span>
     </el-menu-item>
   </el-menu>
 </template>
@@ -32,12 +33,12 @@ const handleSelect = (key) => {
     font-size: 16px;
     font-weight: 600;
     border: none;
-    background-color: rgba(255,255,255,0.1);
+    background-color: rgba(255, 255, 255, 0.1);
     margin: 0 5px;
     border-radius: 4px;
     &.el-menu-item.is-active {
       border: none;
-      background-color: #1770F6;
+      background-color: #1770f6;
     }
   }
 }

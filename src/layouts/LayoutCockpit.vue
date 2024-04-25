@@ -1,19 +1,16 @@
 <script setup>
+import AppMain from './AppMain.vue'
 import CockpitMenu from './CockpitMenu.vue'
 </script>
 
 <template>
-  <div class="common-layout">
+  <div class="layout-cockpit">
     <el-container>
       <el-header height="70px">
         <h1>集中控制数字驾驶舱</h1>
       </el-header>
       <el-main>
-        <router-view v-slot="{ Component, route }">
-          <transition name="el-fade-in" mode="out-in">
-            <component :is="Component" :key="route.path" />
-          </transition>
-        </router-view>
+        <AppMain />
       </el-main>
       <el-footer height="60px">
         <CockpitMenu />
@@ -23,7 +20,7 @@ import CockpitMenu from './CockpitMenu.vue'
 </template>
 
 <style lang="scss" scoped>
-.common-layout {
+.layout-cockpit {
   width: 100%;
   height: 100%;
   background: url(../assets/images/bg_full.png) no-repeat;
@@ -47,7 +44,7 @@ import CockpitMenu from './CockpitMenu.vue'
       }
     }
     .el-footer {
-      background: #02245b;
+      background: $theme-color;
       display: flex;
       justify-content: center;
       align-items: center;
