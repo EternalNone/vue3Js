@@ -34,11 +34,12 @@ const { isCollapse } = storeToRefs(appStore)
   font-weight: 600;
   border: none;
   background-color: transparent;
-  margin: 0 5px;
+  margin: 0 3px;
   border-radius: 4px;
   color: #fff;
 }
 .el-menu-vertical-backend {
+  width: 100%;
   height: calc(100% - $el-header-height);
   background-color: $theme-color;
   border: none;

@@ -11,7 +11,7 @@ const { isCollapse } = storeToRefs(appStore)
 <template>
   <div class="layout-backend">
     <el-container>
-      <el-aside :width="isCollapse ? '65px' : '200px'">
+      <el-aside :width="isCollapse ? '70px' : '200px'">
         <div class="logo"></div>
         <BackendMenu />
       </el-aside>
