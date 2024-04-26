@@ -16,6 +16,7 @@ const activeMenu = computed(() => route.path)
     router
   >
     <el-menu-item v-for="item in menuList" :index="`/${item.path}`" :key="item.path">
+      <SvgIcon :name="item.meta.svgIcon" />
       <span>{{ item.meta.title }}</span>
     </el-menu-item>
     <el-menu-item index="/backend" key="backend">
@@ -36,9 +37,17 @@ const activeMenu = computed(() => route.path)
     background-color: rgba(255, 255, 255, 0.1);
     margin: 0 5px;
     border-radius: 4px;
+    .svg-icon {
+      font-size: 20px;
+      margin-right: 5px;
+      color: #11d1fb;
+    }
     &.el-menu-item.is-active {
       border: none;
       background-color: #1770f6;
+      .svg-icon {
+        color: #fff;
+      }
     }
   }
 }

@@ -1,5 +1,5 @@
 <script setup>
-import { Menu } from '@element-plus/icons-vue'
+import { useAppStore } from '@/stores/app'
 const props = defineProps({
   menu: {
     type: Object,
@@ -10,7 +10,25 @@ const props = defineProps({
     default: ''
   }
 })
+const appStore = useAppStore()
+const { isCollapse } = storeToRefs(appStore)
 
+/** 显示的子菜单 */
+const showingChildren = computed(() => {
+  return props.menu.children?.filter((child) => !child.meta?.hidden) ?? []
+})
+/** 唯一的子菜单项 */
+const theOnlyOneChild = computed(() => {
+  const number = showingChildren.value.length
+  switch (true) {
+    case number > 1:
+      return null
+    case number === 1:
+      return showingChildren.value[0]
+    default:
+      return { ...props.item, path: '' }
+  }
+})
 /** 解析路径 */
 const resolvePath = (routePath) => {
   if (props.basePath.includes(routePath)) {
@@ -21,10 +39,16 @@ const resolvePath = (routePath) => {
 </script>
 
 <template>
-  <el-sub-menu v-if="menu?.children" :index="resolvePath(menu.path)">
+  <el-menu-item v-if="theOnlyOneChild && !theOnlyOneChild.children" :index="basePath">
+    <el-tooltip v-if="menu.meta.svgIcon" effect="dark" :content="isCollapse ? menu.meta.title : null" placement="right">
+      <SvgIcon :name="menu.meta.svgIcon" :size="20" />
+    </el-tooltip>
+    <span class="menu-title-wrap">{{ menu.meta.title }}</span>
+  </el-menu-item>
+  <el-sub-menu v-else :index="resolvePath(menu.path)">
     <template #title>
-      <el-icon><Menu /></el-icon>
-      <span>{{ menu.meta.title }}</span>
+      <SvgIcon v-if="menu.meta.svgIcon" :name="menu.meta.svgIcon" :size="20" />
+      <span class="menu-title-wrap">{{ menu.meta.title }}</span>
     </template>
     <BackendMenuItem
       v-for="subMenu in menu.children"
@@ -33,16 +57,5 @@ const resolvePath = (routePath) => {
       :basePath="resolvePath(subMenu.path)"
     />
   </el-sub-menu>
-  <el-menu-item v-else :index="basePath">
-    <el-icon><Menu /></el-icon>
-    <span>{{ menu.meta.title }}</span>
-  </el-menu-item>
 </template>
-<style lang="scss" scoped>
-.el-menu-vertical-backend {
-  width: 100%;
-  height: 100%;
-  background-color: $theme-color;
-  overflow-y: auto;
-}
-</style>
+<style lang="scss" scoped></style>

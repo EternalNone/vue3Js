@@ -1,15 +1,22 @@
 <script setup>
-import { Expand, Fold } from '@element-plus/icons-vue'
 import { useAppStore } from '@/stores/app'
 const appStore = useAppStore()
 const { isCollapse } = storeToRefs(appStore)
 </script>
 
 <template>
-  <el-icon :size="20" class="icon" color="#ffffff" @click="appStore.toggleSideBar">
-    <Expand v-if="isCollapse" />
-    <Fold v-else />
-  </el-icon>
+  <div class="sidebar-btn" @click="appStore.toggleSideBar">
+    <SvgIcon v-show="isCollapse" name="expand" />
+    <SvgIcon v-show="!isCollapse" name="fold" />
+  </div>
 </template>
 
-<style lang="scss" scoped></style>
+<style lang="scss" scoped>
+.sidebar-btn {
+  cursor: pointer;
+  .svg-icon {
+    font-size: 20px;
+    color: #fff;
+  }
+}
+</style>

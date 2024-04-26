@@ -8,13 +8,15 @@ const route = useRoute()
 const activeMenu = computed(() => route.path)
 const appStore = useAppStore()
 const { isCollapse } = storeToRefs(appStore)
-
 </script>
 <template>
   <el-menu
     :default-active="activeMenu"
     class="el-menu-vertical-backend"
     :collapse="isCollapse"
+    background-color="#02245b"
+    text-color="#ffffff"
+    active-text-color="#ffffff"
     unique-opened
     router
   >
@@ -34,16 +36,13 @@ const { isCollapse } = storeToRefs(appStore)
   font-weight: 600;
   border: none;
   background-color: transparent;
-  margin: 0 3px;
   border-radius: 4px;
   color: #fff;
 }
 .el-menu-vertical-backend {
   width: 100%;
   height: calc(100% - $el-header-height);
-  background-color: $theme-color;
   border: none;
-  overflow: auto;
   @include scrollBar;
   :deep(.el-menu-item) {
     margin-bottom: 8px;
@@ -66,8 +65,12 @@ const { isCollapse } = storeToRefs(appStore)
       }
     }
     .el-menu {
-      background-color: $theme-color;
       border: none;
+    }
+  }
+  &:not(.el-menu--collapse) {
+    :deep(.menu-title-wrap) {
+      padding-left: 5px;
     }
   }
 }

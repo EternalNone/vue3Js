@@ -27,7 +27,7 @@ const CockpitRouter = [
         name: 'statistics',
         meta: {
           title: '统计分析',
-          svgIcon: 'earth'
+          svgIcon: 'statistics'
         }
       },
       {
@@ -36,7 +36,7 @@ const CockpitRouter = [
         name: 'central',
         meta: {
           title: '集中控制',
-          svgIcon: 'earth'
+          svgIcon: 'central'
         }
       },
       {
@@ -45,7 +45,7 @@ const CockpitRouter = [
         name: 'checkData',
         meta: {
           title: '检测数据',
-          svgIcon: 'earth'
+          svgIcon: 'checkData'
         }
       },
       {
@@ -54,7 +54,7 @@ const CockpitRouter = [
         name: 'abrasion',
         meta: {
           title: '检测预警',
-          svgIcon: 'earth'
+          svgIcon: 'abrasion'
         }
       }
     ]
@@ -73,7 +73,7 @@ const BackendRouter = [
         name: 'home',
         meta: {
           title: '首页',
-          svgIcon: 'earth'
+          svgIcon: 'home'
         }
       },
       {
@@ -83,7 +83,7 @@ const BackendRouter = [
         name: 'dataManage',
         meta: {
           title: '算法管理',
-          svgIcon: 'earth'
+          svgIcon: 'algorithm'
         },
         children: [
           {
@@ -92,7 +92,46 @@ const BackendRouter = [
             name: 'faultAudit',
             meta: {
               title: '故障审核',
-              svgIcon: 'earth'
+              svgIcon: ''
+            }
+          },
+          {
+            path: 'faultMana',
+            component: () => import('@/views/backend/index.vue'),
+            name: 'faultMana',
+            meta: {
+              title: '故障管理',
+              svgIcon: ''
+            }
+          }
+        ]
+      },
+      {
+        path: 'checkManage',
+        redirect: '/backend/checkManage/checkOutside',
+        component: () => import('@/views/backend/index.vue'),
+        name: 'checkManage',
+        meta: {
+          title: '检车管理',
+          svgIcon: 'train'
+        },
+        children: [
+          {
+            path: 'checkOutside',
+            component: () => import('@/views/backend/index.vue'),
+            name: 'checkOutside',
+            meta: {
+              title: '库外检测',
+              svgIcon: ''
+            }
+          },
+          {
+            path: 'checkInside',
+            component: () => import('@/views/backend/index.vue'),
+            name: 'checkInside',
+            meta: {
+              title: '库内检测',
+              svgIcon: ''
             }
           }
         ]

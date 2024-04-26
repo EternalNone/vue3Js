@@ -2,7 +2,7 @@
 import { useAppStore } from '@/stores/app'
 import AppMain from './AppMain.vue'
 import BackendMenu from './BackendMenu.vue'
-import Breadcrumb from './Breadcrumb.vue'
+import HeaderToolsBar from './HeaderToolsBar.vue'
 
 const appStore = useAppStore()
 const { isCollapse } = storeToRefs(appStore)
@@ -11,14 +11,20 @@ const { isCollapse } = storeToRefs(appStore)
 <template>
   <div class="layout-backend">
     <el-container>
-      <el-aside :width="isCollapse ? '70px' : '200px'">
-        <div class="logo"></div>
-        <BackendMenu />
-      </el-aside>
+      <el-header>
+        <img src="@/assets/images/logo.png" alt="logo" width="150" />
+        <HeaderToolsBar />
+      </el-header>
       <el-container>
-        <el-header>
-          <Breadcrumb />
-        </el-header>
+        <el-aside :width="isCollapse ? '64px' : '200px'">
+          <el-scrollbar>
+            <BackendMenu />
+          </el-scrollbar>
+          <div class="sidebar-btn" @click="appStore.toggleSideBar">
+            <SvgIcon v-show="isCollapse" name="trainBtn" />
+            <SvgIcon v-show="!isCollapse" class="fold-icon" name="trainBtn" />
+          </div>
+        </el-aside>
         <el-main>
           <AppMain />
         </el-main>
@@ -40,14 +46,35 @@ const { isCollapse } = storeToRefs(appStore)
       width: 100%;
       height: $el-header-height;
       background: $theme-color;
-      @include flexRow(space-between, center);
+      @include flex($jc: space-between);
     }
     .el-aside {
       height: 100%;
       background: $theme-color;
       transition: width 0.3s;
-      .logo {
-        height: $el-header-height;
+      .el-scrollbar {
+        height: 100%;
+      }
+      .sidebar-btn {
+        width: 30px;
+        height: 40px;
+        border-radius: 30px;
+        @include flex;
+        position: fixed;
+        top: 50%;
+        left: calc(var(--el-aside-width) - 20px);
+        transition: left 0.3s;
+        cursor: pointer;
+        .svg-icon {
+          color: rgb(17, 209, 251);
+          font-size: 30px;
+          &.fold-icon {
+            transform: scaleX(-1);
+          }
+          &:hover {
+            filter: drop-shadow(2px 4px 5px #ffffff);
+          }
+        }
       }
     }
   }

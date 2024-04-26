@@ -8,11 +8,8 @@ defineProps({
 <template>
   <svg
     class="svg-icon"
-    :style="{
-      color,
-      fontSize: `${size}px`
-    }"
     aria-hidden="true"
+    :style="{ '--prop-color': color, '--prop-size': size + 'px'}"
   >
     <use :xlink:href="`#icon-${name}`" />
   </svg>
@@ -25,5 +22,7 @@ defineProps({
   vertical-align: -0.15em;
   fill: currentColor;
   overflow: hidden;
+  color: var(--prop-color);
+  font-size: var(--prop-size);
 }
 </style>
