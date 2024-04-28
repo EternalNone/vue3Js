@@ -1,6 +1,5 @@
 <script setup name="Login">
 import { User, Lock } from '@element-plus/icons-vue'
-import { Storage, StorageKey } from '@/utils/storage'
 import { useUserStore } from '@/store/modules/user'
 
 const userStore = useUserStore()
@@ -9,24 +8,18 @@ const router = useRouter()
 const loading = ref(false)
 const loginFormRef = ref(null)
 const loginFormData = reactive({
-  username: Storage.getItem(StorageKey.USER_LOGIN_NAME) || '',
-  password: '',
-  rememberMe: true
+  username: '',
+  password: ''
 })
 const loginFormRules = {
   username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
   password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
 }
-const { username, password, rememberMe } = toRefs(loginFormData)
+const { username, password } = toRefs(loginFormData)
 
 const handleLogin = () => {
   loginFormRef.value?.validate((valid, fields) => {
     if (valid) {
-      if (rememberMe.value) {
-        Storage.setItem(StorageKey.USER_LOGIN_NAME, username.value)
-      } else {
-        Storage.setItem(StorageKey.USER_LOGIN_NAME, '')
-      }
       loading.value = true
       userStore
         .login({ username: username.value, password: password.value })
@@ -82,7 +75,6 @@ const handleLogin = () => {
           />
         </el-form-item>
         <div class="login-actions">
-          <el-checkbox v-model="rememberMe" label="记住用户名" />
           <div class="forget-password">忘记密码</div>
         </div>
         <el-button :loading="loading" type="primary" size="large" @click.prevent="handleLogin"
@@ -126,7 +118,7 @@ $space: 30px;
       letter-spacing: 5px;
     }
     .login-actions {
-      @include flex($jc: space-between);
+      @include flex($jc: flex-end);
       .el-checkbox {
         --el-checkbox-input-border: 1px solid rgba(17, 209, 251, 1);
         --el-checkbox-bg-color: transparent;
