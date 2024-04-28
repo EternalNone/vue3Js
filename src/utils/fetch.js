@@ -1,8 +1,9 @@
 import { createFetch } from '@vueuse/core'
+import { Storage, StorageKey } from '@/utils/storage'
 export const fetchRequest = ({ url, method, data }) => {
   console.log('xxxxxxx', url)
   const useFetch = createFetch({
-    baseUrl: url,
+    baseUrl: '',
     combination: 'overwrite',
     options: {
       immediate: false,
@@ -22,7 +23,7 @@ export const fetchRequest = ({ url, method, data }) => {
       method,
       headers: {
         'Content-Type': 'application/json',
-        Authorization: 'Bearer ' + localStorage.getItem('token')
+        Authorization: Storage.getItem(StorageKey.USER_TOKEN) || ''
       },
       body: JSON.stringify(data)
     }

@@ -1,5 +1,5 @@
 <script setup>
-import { useAppStore } from '@/stores/app'
+import { useAppStore } from '@/store/modules/app'
 const appStore = useAppStore()
 const { isCollapse } = storeToRefs(appStore)
 </script>

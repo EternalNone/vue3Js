@@ -1,7 +1,7 @@
 <script setup>
 import { BackendRouter } from '@/router'
 import BackendMenuItem from './BackendMenuItem.vue'
-import { useAppStore } from '@/stores/app'
+import { useAppStore } from '@/store/modules/app'
 
 const menuList = BackendRouter[0]?.children || []
 const route = useRoute()

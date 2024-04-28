@@ -1,5 +1,5 @@
 <script setup>
-import { useAppStore } from '@/stores/app'
+import { useAppStore } from '@/store/modules/app'
 import AppMain from './AppMain.vue'
 import BackendMenu from './BackendMenu.vue'
 import HeaderToolsBar from './HeaderToolsBar.vue'
