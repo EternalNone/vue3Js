@@ -1,3 +1,5 @@
+@import 'element-plus/theme-chalk/index.css';
+
 :root {
   /** color-primary */
   --el-color-primary: rgba(17, 209, 251, 1);
@@ -8,13 +10,3 @@
   --el-color-primary-light-9: rgba(17, 209, 251, 0.1);
   --el-color-primary-dark-2: #0386a3;
 }
-
-/* .el-input__inner:-webkit-autofill,
-.el-input__inner:-webkit-autofill:hover,
-.el-input__inner:-webkit-autofill:focus,
-.el-input__inner:-webkit-autofill:active {
-  -webkit-transition-delay: 99999s;
-  -webkit-transition:
-    color 99999s ease-out,
-    background-color 99999s ease-out;
-} */

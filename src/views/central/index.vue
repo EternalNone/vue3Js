@@ -1,21 +1,8 @@
-<script setup name="Central">
-const count = ref(1)
-</script>
+<script setup name="Central"></script>
 <template>
-  <div class="about">
-    <h1>This is an about page</h1>
-    <SvgIcon name="earth" class="earth-icon" :size="18" color="blue" />
-    <div>{{ count }}</div>
-    <div>
-      <!-- <el-empty :image-size="200" /> -->
-    </div>
+  <div>
+    <img src="@/assets/images/test.jpg" alt="" width="100%" height="100%" />
   </div>
 </template>
 
-<style lang="scss" scoped>
-.about {
-  h1 {
-    color: $color;
-  }
-}
-</style>
+<style lang="scss" scoped></style>

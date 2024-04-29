@@ -5,17 +5,24 @@ $theme-color: #02245b;
 $el-header-height: 70px;
 
 // mixins
-@mixin scrollBar {
+@mixin scrollBar($color:rgba(144,147,153,0.3),$activeColor:rgba(144,147,153,1)) {
   &::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
   }
   &::-webkit-scrollbar-thumb {
-    background: $theme-color;
+    background: $color;
     border-radius: 4px;
   }
   &::-webkit-scrollbar-thumb:hover {
-    background: rgb(194, 193, 193);
+    background: $activeColor;
+  }
+  &::-webkit-scrollbar-thumb:active {
+    background: $activeColor;
+  }
+  // 当同时有垂直滚动条和水平滚动条时交汇的部分
+  &::-webkit-scrollbar-corner {
+    background-color: transparent;
   }
 }
 @mixin multiTextEllipsis($lineCount) {

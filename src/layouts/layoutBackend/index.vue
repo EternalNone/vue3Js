@@ -1,8 +1,8 @@
 <script setup>
 import { useAppStore } from '@/store/modules/app'
-import AppMain from './AppMain.vue'
+import AppMain from '../AppMain.vue'
 import BackendMenu from './BackendMenu.vue'
-import HeaderToolsBar from './HeaderToolsBar.vue'
+import HeaderToolsBar from '../HeaderToolsBar.vue'
 
 const appStore = useAppStore()
 const { isCollapse } = storeToRefs(appStore)
@@ -12,7 +12,7 @@ const { isCollapse } = storeToRefs(appStore)
   <div class="layout-backend">
     <el-container>
       <el-header>
-        <img src="@/assets/images/logo.png" alt="logo" width="150" />
+        <img class="logo" src="@/assets/images/logo.png" alt="logo" width="150" @click="$router.push('/')" />
         <HeaderToolsBar />
       </el-header>
       <el-container>
@@ -41,12 +41,15 @@ const { isCollapse } = storeToRefs(appStore)
     width: 100%;
     height: 100%;
     overflow: hidden;
-
     .el-header {
       width: 100%;
       height: $el-header-height;
       background: $theme-color;
       @include flex($jc: space-between);
+      user-select: none;
+      .logo {
+        cursor: pointer;
+      }
     }
     .el-aside {
       height: 100%;

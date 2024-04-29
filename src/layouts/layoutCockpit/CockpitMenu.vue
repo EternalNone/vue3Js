@@ -28,6 +28,7 @@ const activeMenu = computed(() => route.path)
 .el-menu {
   height: 40px;
   border: none;
+  user-select: none;
   .el-menu-item {
     height: 40px;
     line-height: 40px;

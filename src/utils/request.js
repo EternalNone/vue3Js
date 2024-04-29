@@ -17,6 +17,7 @@ const createInstance = () => {
         // 在发送请求之前做些什么
         config.headers['Content-Type'] = 'application/json'
         config.headers['Authorization'] = Storage.getItem(StorageKey.USER_TOKEN) || ''
+        config.headers['Token'] = Storage.getItem(StorageKey.USER_TOKEN) || ''
         return config
       },
       (error) => {

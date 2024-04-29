@@ -43,7 +43,7 @@ const { isCollapse } = storeToRefs(appStore)
   width: 100%;
   height: calc(100% - $el-header-height);
   border: none;
-  @include scrollBar;
+  user-select: none;
   :deep(.el-menu-item) {
     margin-bottom: 8px;
     @extend %item-style;

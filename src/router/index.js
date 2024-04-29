@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
-const LayoutCockpit = () => import('@/layouts/LayoutCockpit.vue')
-const LayoutBackend = () => import('@/layouts/LayoutBackend.vue')
+const LayoutCockpit = () => import('@/layouts/layoutCockpit/index.vue')
+const LayoutBackend = () => import('@/layouts/layoutBackend/index.vue')
 // 常驻路由
 const constantRoutes = [
   {
@@ -45,7 +45,8 @@ const CockpitRouter = [
         name: 'checkData',
         meta: {
           title: '检测数据',
-          svgIcon: 'checkData'
+          svgIcon: 'checkData',
+          scrollbar: false
         }
       },
       {
