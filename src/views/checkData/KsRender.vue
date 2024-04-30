@@ -2,7 +2,8 @@
 // 创建Web Worker
 const worker = new Worker(new URL('@/worker/worker.js', import.meta.url))
 const batchSize = 10
-const imgBaseUrl = import.meta.env.VITE_IMAGE_BASE_URL
+const imgBaseUrl = import.meta.env.VITE_IMAGE_BASE_URL // 对应环境的图片域名及端口
+const allProcessedPics = [] // 所有分批处理好的图片列表（二维数组）
 
 const props = defineProps({
   isVertical: {
@@ -19,26 +20,31 @@ const props = defineProps({
   }
 })
 const { isVertical, ksImgs, ksFaults } = toRefs(props)
-const canvasList = ref([])
-const picCanvasRefs = ref([])
-const faultCanvasRefs = ref([])
-const scrollContainerRef = ref(null)
-
-onMounted(() => {
-  // 初始化canvas列表
-  canvasList.value = Array.from({ length: Math.ceil(ksImgs.value.length / batchSize) }, (_, i) => i)
-})
+const canvasList = ref([]) // canvas列表
+const picCanvasRefs = ref([]) // 图片canvas的模板引用
+const faultCanvasRefs = ref([]) // 故障canvas的模板引用
+const scrollContainerRef = ref(null) // canvas容器的模板引用
+const showViewer = ref(false) // 是否显示查看器
+const srcList = ref([]) // 查看器图片列表
 
 watch(ksImgs, (newVal) => {
   console.log('ksImgs')
   if (Array.isArray(newVal) && newVal.length > 0) {
     canvasList.value = Array.from({ length: Math.ceil(newVal.length / batchSize) }, (_, i) => i) // 重置canvas列表
-    worker.postMessage({ list: toRaw(newVal), imgBaseUrl, batchSize })
+    allProcessedPics.length = 0
+    worker.postMessage({ list: toRaw(newVal), imgBaseUrl, batchSize, isVertical: isVertical.value })
   }
 })
 watch(ksFaults, (newVal) => {
   console.log('ksFaults', newVal)
-  updateFaults()
+  nextTick(()=>{
+    updateFaults()
+  })
+
+})
+
+onUnmounted(() => {
+  worker.terminate()
 })
 
 // 监听Web Worker消息
@@ -46,7 +52,7 @@ worker.onmessage = function (event) {
   const { processedImages, curIdx } = event.data
   const canvasIdx = curIdx / batchSize // canvas的索引
   const totalImgsCount = curIdx + processedImages.length // 当前已加载的图片总数
-  const existImg = processedImages.find((item) => item && item.width && item.height)
+  const existImg = processedImages.find((item) => item.pic && item.pic?.width && item.pic?.height)
   let canvasW = 0,
     canvasH = 0,
     start = 0,
@@ -62,27 +68,34 @@ worker.onmessage = function (event) {
     start = existImg.width * totalImgsCount - canvasW // 当前索引对应画布的起始位置
     end = existImg.width * totalImgsCount // 当前索引对应画布的结束位置
   }
-  drawImage(processedImages, canvasIdx, canvasW, canvasH)
+  // 存储已经处理好的图片
+  allProcessedPics.push(processedImages)
+  // 图片图层设置
+  const pCanvas = picCanvasRefs.value[canvasIdx]
+  pCanvas.width = canvasW
+  pCanvas.height = canvasH
+  pCanvas.setAttribute('start', start)
+  pCanvas.setAttribute('end', end)
+  drawImage(processedImages, canvasIdx)
   // 故障框图层设置
-  const canvas = faultCanvasRefs.value[canvasIdx]
-  canvas.width = canvasW
-  canvas.height = canvasH
-  canvas.setAttribute('start', start)
-  canvas.setAttribute('end', end)
+  const fCanvas = faultCanvasRefs.value[canvasIdx]
+  fCanvas.width = canvasW
+  fCanvas.height = canvasH
+  fCanvas.setAttribute('start', start)
+  fCanvas.setAttribute('end', end)
   drawFaults(canvasIdx)
 }
-const drawImage = (processedImages, canvasIdx, canvasW, canvasH) => {
+// 绘制图片
+const drawImage = (processedImages, canvasIdx) => {
   const canvas = picCanvasRefs.value[canvasIdx]
-  canvas.width = canvasW
-  canvas.height = canvasH
   const ctx = canvas.getContext('2d')
   processedImages.forEach((item, idx) => {
-    if (item) {
-      const { width, height } = item
+    if (item.pic) {
+      const { width, height } = item.pic
       if (isVertical.value) {
-        ctx.drawImage(item, 0, idx * height, width, height)
+        ctx.drawImage(item.pic, 0, idx * height, width, height)
       } else {
-        ctx.drawImage(item, idx * width, 0, width, height)
+        ctx.drawImage(item.pic, idx * width, 0, width, height)
       }
     }
   })
@@ -117,6 +130,7 @@ const drawFaults = (canvasIdx) => {
 }
 const updateFaults = () => {
   console.log('update faults')
+  console.log('xxxxxxxxsssssss',faultCanvasRefs.value.length)
   for (let j = 0, len = faultCanvasRefs.value.length; j < len; j++) {
     const curCanvas = faultCanvasRefs.value[j]
     const ctx = curCanvas.getContext('2d')
@@ -147,46 +161,75 @@ const updateFaults = () => {
   }
 }
 
-onUnmounted(() => {
-  worker.terminate()
-})
-const handleScroll = (event) => {
-  if(isVertical.value){
-    return;
+const handleScroll = (e) => {
+  if (isVertical.value) {
+    return
   }
   // 检查是否按住了水平滚动条，如果是则不处理
-  if (event.shiftKey) {
+  if (e.shiftKey) {
     return
   }
   // 阻止默认的垂直滚动行为
-  event.preventDefault()
+  e.preventDefault()
   // 获取滚动容器元素
   const scrollContainer = scrollContainerRef.value
   // 横向滚动距离
-  const delta = event.deltaY
+  const delta = e.deltaY
   // 设置横向滚动条位置
   scrollContainer.scrollLeft += delta
+}
+// 根据点击的坐标，判断是否在某个范围内
+const isInRange = (x, y, startX, startY, endX, endY) => {
+  return x >= startX && x <= endX && y >= startY && y <= endY
+}
+
+// 查看大图
+const showBigImg = async (e, idx) => {
+  const curCanvasPics = allProcessedPics[idx] // 点击的canvas里面绘制的图片列表
+  const curCanvas = faultCanvasRefs.value[idx] // 点击的canvas
+  const start = Number(curCanvas.getAttribute('start'))
+  // const containerW = canvasOuter?.clientWidth
+  // const containerH = canvasOuter?.clientHeight
+  const offsetX = e.offsetX * (curCanvas.width / curCanvas.clientWidth)
+  const offsetY = e.offsetY * (curCanvas.width / curCanvas.clientWidth)
+  const x = isVertical.value ? offsetX : offsetX + start
+  const y = isVertical.value ? offsetY + start : offsetY
+
+  const clickPic = curCanvasPics.find((item) => {
+    const { width, height, startX, startY } = item // 每张图片的起始坐标及宽高
+    return isInRange(x, y, startX, startY, startX + width, startY + height)
+  })
+  console.log('kkkkkkk', curCanvas.width / curCanvas.clientWidth, curCanvas.height / curCanvas.clientHeight)
+  const offscreenCanvas = document.createElement('canvas') // 创建离屏canvas
+  const offscreenCtx = offscreenCanvas.getContext('2d')
+  offscreenCanvas.width = clickPic.pic.width
+  offscreenCanvas.height = clickPic.pic.height
+  offscreenCtx.drawImage(clickPic.pic, 0, 0, clickPic.pic.width, clickPic.pic.height) // 将点击的图片绘制到离屏canvas上
+  const url = offscreenCanvas.toDataURL('image/jpeg', 0.5)
+
+  showViewer.value = true
+  srcList.value = [url]
 }
 </script>
 <template>
   <div class="canvas-content" ref="scrollContainerRef" @wheel="handleScroll">
     <div :class="isVertical ? 'verticalContainer' : 'canvasContainer'">
       <canvas
-        v-for="(item, index) in canvasList"
+        v-for="(_, index) in canvasList"
         :ref="(el) => (picCanvasRefs[index] = el)"
         :key="index"
-        width="0"
       ></canvas>
     </div>
     <div :class="isVertical ? 'verticalContainer faults-canvas' : 'canvasContainer faults-canvas'">
       <canvas
-        v-for="(item, index) in canvasList"
+        v-for="(_, index) in canvasList"
         :ref="(el) => (faultCanvasRefs[index] = el)"
         :key="index"
-        width="0"
+        @click="showBigImg($event, index)"
       ></canvas>
     </div>
   </div>
+  <ElImageViewer v-if="showViewer" @close="() => (showViewer = false)" :url-list="srcList" />
 </template>
 
 <style lang="scss" scoped>
@@ -195,7 +238,7 @@ const handleScroll = (event) => {
   height: 100%;
   position: relative;
   overflow: auto;
-  @include scrollBar($color: rgba(17, 209, 251, 0.5),$activeColor:rgba(17, 209, 251, 1));
+  @include scrollBar($color: rgba(17, 209, 251, 0.5), $activeColor: rgba(17, 209, 251, 1));
   canvas {
     margin: 0;
     border: 0;

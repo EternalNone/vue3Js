@@ -1,6 +1,6 @@
 <script setup name="CheckData">
 import { getCheckDataPicList } from '@/api/checkData'
-import KsRender from './KsRender.vue'
+import KsRender from './KsRender1.vue'
 
 const ksData = reactive({
   ksImgs: [],

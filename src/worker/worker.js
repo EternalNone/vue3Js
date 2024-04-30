@@ -1,7 +1,7 @@
 // worker.js
 
 self.onmessage = async (event) => {
-  const { list, imgBaseUrl, batchSize } = event.data
+  const { list, imgBaseUrl, batchSize, isVertical } = event.data
   let offscreenCanvas = new OffscreenCanvas(0, 0) // 创建离屏canvas
   let offscreenCtx = offscreenCanvas.getContext('2d')
   let curIdx = 0 // 当前处理到的索引
@@ -35,7 +35,7 @@ self.onmessage = async (event) => {
       const { width, height } = existImage
       offscreenCanvas.width = existImage.width
       offscreenCanvas.height = existImage.height
-      batchData.forEach((image) => {
+      batchData.forEach((image, idx) => {
         let canvas = null
         // 清空离屏Canvas
         offscreenCtx.clearRect(0, 0, width, height)
@@ -57,7 +57,15 @@ self.onmessage = async (event) => {
           offscreenCtx.fillText(text, textX, textY)
         }
         canvas = offscreenCanvas.transferToImageBitmap()
-        processedImages.push(canvas)
+        const startX = isVertical ? 0 : width * (idx + curIdx)
+        const startY = isVertical ? height * (idx + curIdx) : 0
+        processedImages.push({
+          pic: canvas,
+          startX,
+          startY,
+          width,
+          height
+        })
         canvas = null // 释放离屏canvas
       })
       self.postMessage({ processedImages, curIdx })
