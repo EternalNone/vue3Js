@@ -1,10 +1,85 @@
 <script setup name="CheckData">
 import { getCheckDataPicList } from '@/api/checkData'
-import KsRender from './KsRender1.vue'
+// import KsRender from './KsRender1.vue'
+import KsRender from './KsRender.vue'
 
 const ksData = reactive({
-  ksImgs: [],
-  ksFaults: []
+  ksImgs: [
+    '/src/assets/images/11-1.jpg',
+    '//src/assets/images/11-2.jpg',
+    '/src/assets/images/11-1.jpg',
+    '/src/assets/images/11-1.jpg',
+    '/src/assets/images/11-1.jpg',
+    '/src/assets/images/11-2.jpg',
+    '/src/assets/images/11-1.jpg',
+    '/src/assets/images/11-2.jpg',
+    '/src/assets/images/11-1.jpg',
+    '/src/assets/images/11-2.jpg',
+    '/src/assets/images/11-1.jpg',
+    '/src/assets/images/11-2.jpg',
+    '/src/assets/images/11-1.jpg',
+    '/src/assets/images/11-2.jpg',
+    '/src/assets/images/11-1.jpg',
+    '/src/assets/images/11-2.jpg',
+    '/src/assets/images/11-1.jpg',
+    '/src/assets/images/11-2.jpg',
+    '/src/assets/images/11-1.jpg',
+    '/src/assets/images/11-2.jpg',
+    '/src/assets/images/11-1.jpg',
+    '/src/assets/images/11-2.jpg',
+    '/src/assets/images/11-1.jpg',
+    '/src/assets/images/11-2.jpg',
+    '/src/assets/images/11-1.jpg',
+    '/src/assets/images/11-2.jpg',
+    '/src/assets/images/11-1.jpg',
+    '/src/assets/images/11-2.jpg',
+    '/src/assets/images/11-1.jpg',
+    '/src/assets/images/11-2.jpg',
+    '/src/assets/images/11-1.jpg',
+    '/src/assets/images/11-2.jpg',
+    '/src/assets/images/11-1.jpg',
+    '/src/assets/images/11-2.jpg',
+    '/src/assets/images/11-1.jpg',
+    '/src/assets/images/11-2.jpg',
+    '/src/assets/images/11-1.jpg',
+    '/src/assets/images/11-2.jpg',
+    '/src/assets/images/11-1.jpg',
+    '/src/assets/images/11-2.jpg',
+    '/src/assets/images/11-1.jpg',
+    '/src/assets/images/11-2.jpg',
+    '/src/assets/images/11-1.jpg',
+    '/src/assets/images/11-3.jpg'
+  ],
+  ksFaults: [
+    {
+      width: 1228,
+      height: 600,
+      coordinateX: 0,
+      coordinateY: 0,
+      description: '测试故障1'
+    },
+    {
+      width: 300,
+      height: 300,
+      coordinateX: 150,
+      coordinateY: 150,
+      description: '测试故障2'
+    },
+    {
+      width: 500,
+      height: 500,
+      coordinateX: 150,
+      coordinateY: 5800,
+      description: '测试故障3'
+    },
+    {
+      width: 1000,
+      height: 1000,
+      coordinateX: 0,
+      coordinateY: 5800,
+      description: '测试故障4'
+    }
+  ]
 })
 const loading = ref(false)
 const showType = ref('VERTICAL')
@@ -12,7 +87,7 @@ const isVertical = computed(() => showType.value === 'VERTICAL')
 const { ksImgs, ksFaults } = toRefs(ksData)
 
 onMounted(() => {
-  getData()
+  // getData()
 })
 const getData = () => {
   loading.value = true
@@ -46,7 +121,7 @@ const getData = () => {
 
 <template>
   <div class="checkData" v-loading="loading" element-loading-background="transparent">
-    <KsRender :ksImgs="ksImgs" :ksFaults="ksFaults" :isVertical="isVertical" />
+    <KsRender :ksData="ksData" :isVertical="isVertical" />
   </div>
 </template>
 

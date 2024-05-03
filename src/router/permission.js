@@ -5,7 +5,7 @@ import { Storage, StorageKey } from '@/utils/storage'
 import NProgress from 'nprogress'
 import 'nprogress/nprogress.css'
 
-const WHITELIST = ['login']
+const WHITELIST = ['login', 'checkData']
 
 NProgress.configure({ showSpinner: false })
 
