@@ -211,12 +211,8 @@ const exportFault = () => {
             </span>
           </div>
           <div>
-            <span>车型：</span>
-            <span>{{ trainInfo?.vehicleModel || '--' }}</span>
-          </div>
-          <div>
-            <span>车号：</span>
-            <span>{{ trainInfo?.carNo || '--' }}</span>
+            <span>车型车号：</span>
+            <span>{{ `${trainInfo?.vehicleModel || '-'} ${trainInfo?.carNo || '-'}` }}</span>
           </div>
           <div v-show="moduleType === 'INSIDE'">
             <span>端位：</span>
