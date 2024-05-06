@@ -104,26 +104,29 @@ const getExistImg = async (list) => {
 }
 
 watch(
-  ksData,
+  () => ksData.value.ksImgs,
   (newVal) => {
-    console.log('ksData', newVal)
-    canvasList.value = Array.from(
-      { length: Math.ceil(newVal?.ksImgs.length / batchSize) },
-      (_, i) => i
-    ) // 重置canvas列表
-    if (Array.isArray(newVal?.ksImgs) && newVal?.ksImgs.length) {
-      getExistImg(newVal?.ksImgs).then((existImg) => {
+    console.log('ksImgs', newVal)
+    canvasList.value = Array.from({ length: Math.ceil(newVal?.length / batchSize) }, (_, i) => i) // 重置canvas列表
+    if (Array.isArray(newVal) && newVal.length) {
+      getExistImg(newVal).then((existImg) => {
         imgW.value = existImg.width
         imgH.value = existImg.height
       })
     }
+  },
+  { immediate: true, deep: true }
+)
+watch(
+  () => ksData.value.ksFaults,
+  (newVal) => {
+    console.log('ksFaults', newVal)
     nextTick(() => {
       drawFaults()
     })
   },
   { immediate: true, deep: true }
 )
-
 // 横向滚动事件
 const handleScroll = (e) => {
   if (isVertical.value) {
@@ -220,7 +223,7 @@ const showBigImg = async (e, idx, url) => {
           h('p', null, `宽度：${fault.width}`),
           h('p', null, `高度：${fault.height}`),
           h('p', null, `顶点坐标：(${fault.coordinateX}，${fault.coordinateY})`),
-          h('p', null, `故障描述：${fault.description}`)
+          h('p', null, `故障描述：${fault.faultDesc}`)
         ])
       )
     }).catch(() => {

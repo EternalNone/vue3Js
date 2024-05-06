@@ -25,6 +25,11 @@ $el-header-height: 70px;
     background-color: transparent;
   }
 }
+@mixin textEllipsis() {
+  white-space: nowrap;
+ overflow: hidden;
+ text-overflow: ellipsis;
+}
 @mixin multiTextEllipsis($lineCount) {
   display: -webkit-box;
   -webkit-box-orient: vertical;

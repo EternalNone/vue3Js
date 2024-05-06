@@ -38,15 +38,19 @@ watch(
   (newVal) => {
     console.log('ksData', newVal)
     handledImgs.value = []
-    worker.postMessage({
-      imgs: toRaw(newVal.ksImgs),
-      faults: toRaw(newVal.ksFaults),
-      imgBaseUrl,
-      batchSize,
-      isVertical: isVertical.value
-    })
+    if (newVal.ksFaults.length > 0) {
+      worker.postMessage({
+        imgs: toRaw(newVal.ksImgs),
+        faults: toRaw(newVal.ksFaults),
+        imgBaseUrl,
+        batchSize,
+        isVertical: isVertical.value
+      })
+    } else {
+      handledImgs.value = newVal.ksImgs.map((i) => `${imgBaseUrl}${i}`)
+    }
   },
-  { immediate: true, deep: true }
+  { deep: true }
 )
 // 监听Web Worker消息
 worker.onmessage = function (event) {
@@ -75,7 +79,6 @@ const handleScroll = (e) => {
 }
 // 判断一个点是否在矩形区域内
 const isPointInRect = (x, y, startX, startY, endX, endY) => {
-  console.log('isPointInRect', x, y, startX, startY, endX, endY)
   return x >= startX && x <= endX && y >= startY && y <= endY
 }
 
@@ -122,7 +125,7 @@ const showBigImg = async (e, idx, url) => {
           h('p', null, `宽度：${fault.width}`),
           h('p', null, `高度：${fault.height}`),
           h('p', null, `顶点坐标：(${fault.coordinateX}，${fault.coordinateY})`),
-          h('p', null, `故障描述：${fault.description}`)
+          h('p', null, `故障描述：${fault.faultDesc}`)
         ])
       )
     }).catch(() => {
@@ -155,7 +158,7 @@ const showBigImg = async (e, idx, url) => {
   width: 100%;
   height: 100%;
   overflow: auto;
-  @include scrollBar($color: rgba(17, 209, 251, 0.5), $activeColor: rgba(17, 209, 251, 1));
+  @include scrollBar($color: var(--el-color-primary-light-5), $activeColor: var(--el-color-primary));
   .pics-wrap-v {
     width: 100%;
     height: auto;

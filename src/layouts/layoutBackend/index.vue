@@ -12,7 +12,13 @@ const { isCollapse } = storeToRefs(appStore)
   <div class="layout-backend">
     <el-container>
       <el-header>
-        <img class="logo" src="@/assets/images/logo.png" alt="logo" width="150" @click="$router.push('/')" />
+        <img
+          class="logo"
+          src="@/assets/images/logo.png"
+          alt="logo"
+          width="150"
+          @click="$router.push('/')"
+        />
         <HeaderToolsBar />
       </el-header>
       <el-container>
@@ -21,8 +27,7 @@ const { isCollapse } = storeToRefs(appStore)
             <BackendMenu />
           </el-scrollbar>
           <div class="sidebar-btn" @click="appStore.toggleSideBar">
-            <SvgIcon v-show="isCollapse" name="trainBtn" />
-            <SvgIcon v-show="!isCollapse" class="fold-icon" name="trainBtn" />
+            <SvgIcon :name="isCollapse ? 'expand' : 'fold'" />
           </div>
         </el-aside>
         <el-main>
@@ -60,20 +65,17 @@ const { isCollapse } = storeToRefs(appStore)
       }
       .sidebar-btn {
         width: 30px;
-        height: 40px;
-        border-radius: 30px;
+        height: 30px;
         @include flex;
         position: fixed;
-        top: 50%;
+        top: 50vh;
         left: calc(var(--el-aside-width) - 20px);
         transition: left 0.3s;
         cursor: pointer;
         .svg-icon {
-          color: rgb(17, 209, 251);
+          color: var(--el-color-primary);
           font-size: 30px;
-          &.fold-icon {
-            transform: scaleX(-1);
-          }
+          
           &:hover {
             filter: drop-shadow(2px 4px 5px #ffffff);
           }
