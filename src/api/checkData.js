@@ -36,3 +36,16 @@ export function faultReviewExport(lcxxBh) {
     responseType: 'blob'
   })
 }
+
+/**
+ * @description 获取检测数据页面故障统计
+ * @param {*} params
+ * @returns
+ */
+export function getCheckDataStatics(params) {
+  return request({
+    url: '/api/check/data/stat',
+    method: 'get',
+    params
+  })
+}

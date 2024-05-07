@@ -29,7 +29,7 @@ export const useUserStore = defineStore('user', () => {
     userInfo.value = {}
   }
 
-  return { roles,login, logout, resetToken }
+  return { roles, login, logout, resetToken }
 })
 
 export const useUserStoreHook = () => {

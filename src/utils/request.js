@@ -10,7 +10,7 @@ const createInstance = () => {
   if (!instance) {
     instance = axios.create({
       baseURL: '',
-      timeout: 5000
+      timeout: 1000000
     })
 
     // 请求拦截器

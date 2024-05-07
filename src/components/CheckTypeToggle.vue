@@ -43,6 +43,7 @@ const handleChange = (val) => {
     width: 50%;
     height: 100%;
     text-align: center;
+    font-size: 14px;
     background-color: rgba(255, 255, 255, 0.2);
     color: #fff;
     cursor: pointer;

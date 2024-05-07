@@ -1,10 +1,10 @@
 <script setup name="PassTrainFilter">
 import dayjs from 'dayjs'
-import CheckTypeToggle from '@/components/CheckTypeToggle.vue'
 import { useGlobalStore } from '@/store/modules/global'
 import { getPassTransList } from '@/api/passTrain'
 
 const globalStore = useGlobalStore()
+const { moduleType } = storeToRefs(globalStore)
 
 const quickSearchItems = [
   {
@@ -23,7 +23,6 @@ const state = reactive({
   loading: false,
   noMore: false,
   expand: true, // 筛选栏是否展开
-  moduleType: globalStore.moduleType, // 检测方式
   vehicleModel: '', // 车型
   type: '', // 检测类型：TODAY—当天数据，LATEST_TEN_COUNT-最新10条数据，LATEST_FIFTEEN_DAY-最近15天
   carNo: '', // 车号
@@ -43,7 +42,6 @@ const {
   noMore,
   expand,
   pageInfo,
-  moduleType,
   vehicleModel,
   type,
   carNo,
@@ -51,7 +49,11 @@ const {
   tranTimer
 } = toRefs(state)
 const disabled = computed(() => loading.value || noMore.value)
-
+watch(moduleType, (newVal, oldVal) => {
+  if (newVal !== oldVal) {
+    search()
+  }
+})
 onUnmounted(() => {
   if (tranTimer.value) {
     clearTimeout(tranTimer.value)
@@ -180,7 +182,6 @@ const toggleFilter = () => {
       <span>过车信息筛选</span>
     </div>
     <div class="search-form">
-      <CheckTypeToggle />
       <div class="quick-search">
         <div
           v-for="item in quickSearchItems"
@@ -232,7 +233,7 @@ const toggleFilter = () => {
           <i
             class="status"
             :style="{
-              background: moduleType === 'OUTSIDE' || item.checkEndDate ? '#43fd33' : '#e73840'
+              background: moduleType === 'OUTSIDE' || item.checkEndDate ? 'var(--el-color-success)' : 'var(--el-color-danger)'
             }"
           />
           <div class="checkInDate">{{ item.checkInDate || '--' }}</div>
@@ -293,7 +294,6 @@ const toggleFilter = () => {
       line-height: 34px;
       border-radius: 4px;
       overflow: hidden;
-      margin-top: 10px;
       .quick-search-item {
         width: 50%;
         height: 100%;
@@ -349,6 +349,11 @@ const toggleFilter = () => {
       .el-button {
         flex: 1;
         height: 34px;
+        &:last-child {
+          --el-button-bg-color: transparent;
+          --el-button-border-color: #fff;
+          --el-button-text-color: #fff;
+        }
       }
     }
   }
@@ -370,9 +375,12 @@ const toggleFilter = () => {
     }
     .list-content {
       width: 100%;
-      height: calc(100vh - 480px);
+      height: calc(100vh - 436px);
       overflow-y: auto;
-      @include scrollBar($color: var(--el-color-primary-light-5), $activeColor: var(--el-color-primary));
+      @include scrollBar(
+        $color: var(--el-color-primary-light-5),
+        $activeColor: var(--el-color-primary)
+      );
       > div {
         width: 100%;
         height: 40px;
@@ -385,7 +393,7 @@ const toggleFilter = () => {
           background: rgba(186, 208, 241, 0.1);
         }
         &:hover {
-          background: var(--el-color-primary-light-7);
+          background: var(--el-color-primary);
         }
         &.active {
           background: var(--el-color-primary);

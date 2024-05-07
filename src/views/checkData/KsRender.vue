@@ -1,7 +1,7 @@
 <script setup name="KsRender2">
 import { ElMessageBox } from 'element-plus'
 
-const worker = new Worker(new URL('@/worker/drawImg.js', import.meta.url)) // 创建Web Worker
+const worker = new Worker(new URL('@/worker/handleImg.js', import.meta.url)) // 创建Web Worker
 const imgBaseUrl = import.meta.env.VITE_IMAGE_BASE_URL // 对应环境的图片域名及端口
 const batchSize = 10 // 批处理的图片数量
 
@@ -121,7 +121,7 @@ const showBigImg = async (e, idx, url) => {
         'div',
         null,
         faultsContainPonit.map((fault, index) => [
-          h('h3', { style: 'margin: 10px 0;color:rgba(17, 209, 251, 1)' }, `故障${index + 1}`),
+          h('h3', { style: 'margin: 10px 0;color:var(--el-color-primary)' }, `故障${index + 1}`),
           h('p', null, `宽度：${fault.width}`),
           h('p', null, `高度：${fault.height}`),
           h('p', null, `顶点坐标：(${fault.coordinateX}，${fault.coordinateY})`),

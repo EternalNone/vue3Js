@@ -1,4 +1,5 @@
 <script setup>
+import CheckTypeToggle from '@/components/CheckTypeToggle.vue'
 import AppMain from '../AppMain.vue'
 import CockpitMenu from './CockpitMenu.vue'
 import HeaderToolsBar from '../HeaderToolsBar.vue'
@@ -8,8 +9,13 @@ import HeaderToolsBar from '../HeaderToolsBar.vue'
   <div class="layout-cockpit">
     <el-container>
       <el-header height="70px">
-        <div class="logo">
-          <img src="@/assets/images/logo.png" alt="logo" width="150" />
+        <div class="header-left">
+          <div class="logo">
+            <img src="@/assets/images/logo.png" alt="logo" width="150" />
+          </div>
+          <div style="width: 180px">
+            <CheckTypeToggle />
+          </div>
         </div>
         <h1>集中控制数字驾驶舱</h1>
         <HeaderToolsBar />
@@ -39,12 +45,18 @@ import HeaderToolsBar from '../HeaderToolsBar.vue'
       background-size: 100% 70px;
       @include flex($al: flex-start);
       user-select: none;
-      .logo {
+      .header-left {
+        width: 330px;
+        height: 100%;
         position: absolute;
         height: 100%;
         left: 20px;
         top: 0;
         @include flex($jc: flex-start);
+        .logo {
+          margin-right: 20px;
+          @include flex($jc: flex-start);
+        }
       }
       h1 {
         font-size: 30px;

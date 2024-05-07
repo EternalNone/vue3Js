@@ -1,106 +1,143 @@
 <script setup name="CheckData">
 import { ElMessage } from 'element-plus'
-import { getCheckDataPicList, getPassageway, faultReviewExport } from '@/api/checkData'
+import {
+  getCheckDataPicList,
+  getPassageway,
+  faultReviewExport,
+  getCheckDataStatics
+} from '@/api/checkData'
 import { useGlobalStore } from '@/store/modules/global'
 import { download } from '@/utils/file.js'
 import PassTrainFilter from '@/components/PassTrainFilter.vue'
+import TrainCarriage from '@/components/TrainCarriage.vue'
 // import KsRender from './KsRender1.vue'
+import JsList from './JsList.vue'
 import KsRender from './KsRender.vue'
+import { watch } from 'vue'
 
 const globalStore = useGlobalStore()
 const { moduleType } = storeToRefs(globalStore)
 
-const ksData = reactive({
-  ksImgs: [
-    // '/src/assets/images/11-1.jpg',
-    // '//src/assets/images/11-2.jpg',
-    // '/src/assets/images/11-1.jpg',
-    // '/src/assets/images/11-1.jpg',
-    // '/src/assets/images/11-1.jpg',
-    // '/src/assets/images/11-2.jpg',
-    // '/src/assets/images/11-1.jpg',
-    // '/src/assets/images/11-2.jpg',
-    // '/src/assets/images/11-1.jpg',
-    // '/src/assets/images/11-2.jpg',
-    // '/src/assets/images/11-1.jpg',
-    // '/src/assets/images/11-2.jpg',
-    // '/src/assets/images/11-1.jpg',
-    // '/src/assets/images/11-2.jpg',
-    // '/src/assets/images/11-1.jpg',
-    // '/src/assets/images/11-2.jpg',
-    // '/src/assets/images/11-1.jpg',
-    // '/src/assets/images/11-2.jpg',
-    // '/src/assets/images/11-1.jpg',
-    // '/src/assets/images/11-2.jpg',
-    // '/src/assets/images/11-1.jpg',
-    // '/src/assets/images/11-2.jpg',
-    // '/src/assets/images/11-1.jpg',
-    // '/src/assets/images/11-2.jpg',
-    // '/src/assets/images/11-1.jpg',
-    // '/src/assets/images/11-2.jpg',
-    // '/src/assets/images/11-1.jpg',
-    // '/src/assets/images/11-2.jpg',
-    // '/src/assets/images/11-1.jpg',
-    // '/src/assets/images/11-2.jpg',
-    // '/src/assets/images/11-1.jpg',
-    // '/src/assets/images/11-2.jpg',
-    // '/src/assets/images/11-1.jpg',
-    // '/src/assets/images/11-2.jpg',
-    // '/src/assets/images/11-1.jpg',
-    // '/src/assets/images/11-2.jpg',
-    // '/src/assets/images/11-1.jpg',
-    // '/src/assets/images/11-2.jpg',
-    // '/src/assets/images/11-1.jpg',
-    // '/src/assets/images/11-2.jpg',
-    // '/src/assets/images/11-1.jpg',
-    // '/src/assets/images/11-2.jpg',
-    // '/src/assets/images/11-1.jpg',
-    // '/src/assets/images/11-3.jpg'
-  ],
-  ksFaults: [
-    // {
-    //   width: 1228,
-    //   height: 600,
-    //   coordinateX: 0,
-    //   coordinateY: 0,
-    //   faultDesc: '测试故障1'
-    // },
-    // {
-    //   width: 300,
-    //   height: 300,
-    //   coordinateX: 150,
-    //   coordinateY: 150,
-    //   faultDesc: '测试故障2'
-    // },
-    // {
-    //   width: 500,
-    //   height: 500,
-    //   coordinateX: 150,
-    //   coordinateY: 5800,
-    //   faultDesc: '测试故障3'
-    // },
-    // {
-    //   width: 1000,
-    //   height: 1000,
-    //   coordinateX: 0,
-    //   coordinateY: 5800,
-    //   faultDesc: '测试故障4'
-    // }
-  ]
+const state = reactive({
+  searchForm: {
+    isFault: false, // 精扫列表是否只看异常图
+    fullCarNo: '', // 完整车号
+    code: '' // 通道号
+  },
+  trainInfo: {}, // 过车信息
+  warningInfo: {}, // 报警信息
+  passagewayList: [], // 通道列表
+  trainCarList: [], // 车厢列表
+  loading: false, // 加载状态
+  showType: 'VERTICAL', // 布局方式，横向、纵向、网格
+  ksData: {
+    // 快扫图片及故障
+    ksImgs: [
+      // '/src/assets/images/11-1.jpg',
+      // '//src/assets/images/11-2.jpg',
+      // '/src/assets/images/11-1.jpg',
+      // '/src/assets/images/11-1.jpg',
+      // '/src/assets/images/11-1.jpg',
+      // '/src/assets/images/11-2.jpg',
+      // '/src/assets/images/11-1.jpg',
+      // '/src/assets/images/11-2.jpg',
+      // '/src/assets/images/11-1.jpg',
+      // '/src/assets/images/11-2.jpg',
+      // '/src/assets/images/11-1.jpg',
+      // '/src/assets/images/11-2.jpg',
+      // '/src/assets/images/11-1.jpg',
+      // '/src/assets/images/11-2.jpg',
+      // '/src/assets/images/11-1.jpg',
+      // '/src/assets/images/11-2.jpg',
+      // '/src/assets/images/11-1.jpg',
+      // '/src/assets/images/11-2.jpg',
+      // '/src/assets/images/11-1.jpg',
+      // '/src/assets/images/11-2.jpg',
+      // '/src/assets/images/11-1.jpg',
+      // '/src/assets/images/11-2.jpg',
+      // '/src/assets/images/11-1.jpg',
+      // '/src/assets/images/11-2.jpg',
+      // '/src/assets/images/11-1.jpg',
+      // '/src/assets/images/11-2.jpg',
+      // '/src/assets/images/11-1.jpg',
+      // '/src/assets/images/11-2.jpg',
+      // '/src/assets/images/11-1.jpg',
+      // '/src/assets/images/11-2.jpg',
+      // '/src/assets/images/11-1.jpg',
+      // '/src/assets/images/11-2.jpg',
+      // '/src/assets/images/11-1.jpg',
+      // '/src/assets/images/11-2.jpg',
+      // '/src/assets/images/11-1.jpg',
+      // '/src/assets/images/11-2.jpg',
+      // '/src/assets/images/11-1.jpg',
+      // '/src/assets/images/11-2.jpg',
+      // '/src/assets/images/11-1.jpg',
+      // '/src/assets/images/11-2.jpg',
+      // '/src/assets/images/11-1.jpg',
+      // '/src/assets/images/11-2.jpg',
+      // '/src/assets/images/11-1.jpg',
+      // '/src/assets/images/11-3.jpg'
+    ],
+    ksFaults: [
+      // {
+      //   width: 1228,
+      //   height: 600,
+      //   coordinateX: 0,
+      //   coordinateY: 0,
+      //   faultDesc: '测试故障1'
+      // },
+      // {
+      //   width: 300,
+      //   height: 300,
+      //   coordinateX: 150,
+      //   coordinateY: 150,
+      //   faultDesc: '测试故障2'
+      // },
+      // {
+      //   width: 500,
+      //   height: 500,
+      //   coordinateX: 150,
+      //   coordinateY: 5800,
+      //   faultDesc: '测试故障3'
+      // },
+      // {
+      //   width: 1000,
+      //   height: 1000,
+      //   coordinateX: 0,
+      //   coordinateY: 5800,
+      //   faultDesc: '测试故障4'
+      // }
+    ]
+  },
+  jsData: [] // 精扫数据
 })
-const searchForm = {
-  isFault: false, // 精扫列表是否只看异常图
-  fullCarNo: '', // 完整车号
-  code: '' // 通道号
-}
-const trainInfo = ref({})
-const warningInfo = ref({})
-const passagewayList = ref([])
-const loading = ref(false)
-const showType = ref('VERTICAL')
-const { ksImgs, ksFaults } = toRefs(ksData)
+const {
+  searchForm,
+  trainInfo,
+  warningInfo,
+  passagewayList,
+  loading,
+  showType,
+  ksData,
+  jsData,
+  trainCarList
+} = toRefs(state)
 const isVertical = computed(() => showType.value === 'VERTICAL')
 
+watch(moduleType, (newVal, oldVal) => {
+  if (newVal !== oldVal) {
+    getPassWayList()
+  }
+})
+watch(showType, (newVal, oldVal) => {
+  if (newVal !== oldVal) {
+    jsData.value = []
+    ksData.value = {
+      ksImgs: [],
+      ksFaults: []
+    }
+  }
+})
 onMounted(() => {
   getPassWayList()
 })
@@ -127,10 +164,12 @@ const getType = (columnPosition, carNo) => {
 const getPassTrainData = (train) => {
   trainInfo.value = train
   if (train.trainNo) {
-    getData()
+    getStatics()
   } else {
-    ksImgs.value = []
-    ksFaults.value = []
+    ksData.value = {
+      ksImgs: [],
+      ksFaults: []
+    }
   }
 }
 // 获取通道接口
@@ -138,45 +177,76 @@ const getPassWayList = () => {
   getPassageway({ moduleType: moduleType.value }).then((res) => {
     const data = res?.data || []
     passagewayList.value = data
-    searchForm.code = data?.length ? data[0].code : ''
+    searchForm.value.code = data?.length ? data[0].code : ''
     showType.value = data?.length ? data[0].showType : ''
   })
 }
 // 选择通道，切换页面布局
 const changePassageway = (val) => {
   const curOps = passagewayList.value?.find((item) => item.code === val)
-  showType.value = curOps?.showType || ''
+  showType.value = curOps?.showType || 'VERTICAL'
+  console.log('ssssssssss', curOps?.showType)
   getData()
 }
 // 获取检测数据
 const getData = () => {
   const { trainNo } = trainInfo.value
+  const { code, fullCarNo, isFault } = searchForm.value
   loading.value = true
   getCheckDataPicList({
     trainNo,
-    fullCarNo: '107101',
-    code: 11
+    fullCarNo,
+    code,
+    isFault: showType.value === 'GRID' ? (isFault ? 1 : 0) : undefined
   })
     .then((res) => {
       const data = res?.data || []
-      const imgUrl = []
-      let itemRects = []
-      const obj = {}
-      for (let i = 0, len = data.length; i < len; i++) {
-        const item = data[i]
-        imgUrl.push(item.imgPath)
-        itemRects = itemRects.concat(item.faultFrames)
+      if (showType.value === 'GRID') {
+        jsData.value = data
+      } else {
+        const imgUrl = []
+        let itemRects = []
+        const obj = {}
+        for (let i = 0, len = data.length; i < len; i++) {
+          const item = data[i]
+          imgUrl.push(item.faultFrames?.length ? `${item.imgPath}?withFault=1` : item.imgPath)
+          itemRects = itemRects.concat(item.faultFrames)
+        }
+        itemRects = itemRects.reduce((cur, next) => {
+          obj[next.id] ? '' : (obj[next.id] = true && cur.push(next))
+          return cur
+        }, [])
+        ksData.value = {
+          ksImgs: imgUrl,
+          ksFaults: itemRects
+        }
       }
-      itemRects = itemRects.reduce((cur, next) => {
-        obj[next.id] ? '' : (obj[next.id] = true && cur.push(next))
-        return cur
-      }, [])
-      ksImgs.value = imgUrl
-      ksFaults.value = itemRects
     })
     .finally(() => {
       loading.value = false
     })
+}
+
+// 获取故障统计数据及车厢信息
+const getStatics = () => {
+  const { trainNo } = trainInfo.value
+  if (!trainNo) {
+    return
+  }
+  getCheckDataStatics({ moduleType: moduleType.value, trainNo }).then((res) => {
+    const data = res?.data?.faultStat
+    const list = data?.faultPerCars || []
+    // 检测数据页面没有全部选项，默认选中第一个车厢
+    searchForm.value.fullCarNo = list[0]?.fullCarNo || ''
+    warningInfo.value = data || {}
+    trainCarList.value = list
+    getData()
+  })
+}
+// 选择车厢
+const selectLw = (val) => {
+  searchForm.value.fullCarNo = val
+  getData()
 }
 // 导出故障复核单
 const exportFault = () => {
@@ -204,7 +274,10 @@ const exportFault = () => {
             <span>检测状态：</span>
             <span
               :style="{
-                color: moduleType === 'OUTSIDE' || trainInfo.checkEndDate ? '#43fd33' : '#e73840'
+                color:
+                  moduleType === 'OUTSIDE' || trainInfo.checkEndDate
+                    ? 'var(--el-color-success)'
+                    : 'var(--el-color-danger)'
               }"
             >
               {{ moduleType === 'OUTSIDE' || trainInfo.checkEndDate ? '已完成' : '未完成' }}
@@ -242,7 +315,7 @@ const exportFault = () => {
           </div>
           <div>
             <span>故障数：</span>
-            <span style="color: #fa6157">
+            <span style="color: var(--el-color-danger)">
               {{ warningInfo.totalFaultCount ?? '--' }}
             </span>
           </div>
@@ -266,33 +339,39 @@ const exportFault = () => {
             <el-button type="primary" @click="exportFault">故障复核单</el-button>
             <el-button type="primary">故障详情</el-button>
             <div style="margin-right: 10px" v-show="showType === 'GRID'">
-              <span style="padding: 0 10px">只看异常图</span>
+              <span style="padding: 0 10px; font-size: 14px">只看异常图</span>
               <el-switch v-model="searchForm.isFault" @change="getData" />
             </div>
           </div>
           <div class="status">
             <div>
-              <i class="point" style="background: #4131e9" />
+              <i class="point" style="background: var(--el-color-primary)" />
               待复核（{{ warningInfo.reviewCount || 0 }}）
             </div>
             <div>
-              <i class="point" style="background: #df392b" />
+              <i class="point" style="background: var(--el-color-danger)" />
               确报故障（{{ warningInfo.confirmCount || 0 }}）
             </div>
             <div>
-              <i class="point" style="background: #e79d3e" /> 误报故障{{
+              <i class="point" style="background: var(--el-color-warning)" /> 误报故障{{
                 warningInfo.falseCount || 0
               }}）
             </div>
           </div>
         </div>
+        <div class="train-carriage-wrap">
+          <TrainCarriage
+            :trainCarList="trainCarList"
+            :selectedCarNo="searchForm.fullCarNo"
+            :showAll="false"
+            showSatus
+            @selectLw="selectLw"
+          />
+        </div>
       </div>
-      <div
-        class="check-data-ks-render"
-        v-loading="loading"
-        element-loading-background="transparent"
-      >
-        <KsRender :ksData="ksData" :isVertical="isVertical" />
+      <div class="check-data-render" v-loading="loading" element-loading-background="transparent">
+        <JsList v-if="showType === 'GRID'" :jsData="jsData" />
+        <KsRender v-else :ksData="ksData" :isVertical="isVertical" />
       </div>
     </div>
   </div>
@@ -307,6 +386,7 @@ const exportFault = () => {
   .check-data-main {
     flex: 1;
     height: 100%;
+    overflow: hidden;
     @include flex($dir: column, $al: stretch);
     .check-data-top {
       background: rgba(255, 255, 255, 0.1);
@@ -346,9 +426,12 @@ const exportFault = () => {
           }
         }
       }
+      .train-carriage-wrap {
+        padding: 10px 20px;
+      }
     }
 
-    .check-data-ks-render {
+    .check-data-render {
       width: 100%;
       flex: 1;
       overflow: hidden;
