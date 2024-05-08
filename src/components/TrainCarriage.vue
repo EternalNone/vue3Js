@@ -21,7 +21,9 @@ const props = defineProps({
 })
 const emits = defineEmits(['selectLw'])
 const selectItem = (sId) => {
-  emits('selectLw', sId)
+  if (sId !== props.selectedCarNo) {
+    emits('selectLw', sId)
+  }
 }
 const selectAll = () => {
   if (props.showAll) {
@@ -107,6 +109,12 @@ const selectAll = () => {
       }
       &.active {
         background: var(--el-color-primary);
+        .no {
+          color: #fff;
+        }
+      }
+      &:hover {
+        background: var(--el-color-primary-light-5);
         .no {
           color: #fff;
         }

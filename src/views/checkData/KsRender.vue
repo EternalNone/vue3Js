@@ -3,62 +3,69 @@ import { ElMessageBox } from 'element-plus'
 
 const worker = new Worker(new URL('@/worker/handleImg.js', import.meta.url)) // 创建Web Worker
 const imgBaseUrl = import.meta.env.VITE_IMAGE_BASE_URL // 对应环境的图片域名及端口
-const batchSize = 10 // 批处理的图片数量
 
 const props = defineProps({
   isVertical: {
     type: Boolean,
     default: true
   },
-  ksData: {
-    type: Object,
-    default: () => {
-      return {
-        ksImgs: [],
-        ksFaults: []
-      }
-    }
+  list: {
+    type: Array,
+    default: () => [],
+    required: true
   }
 })
 
-const { isVertical, ksData } = toRefs(props)
+const { isVertical, list } = toRefs(props)
 const scrollContainerRef = ref(null) // 整个容器的模板引用
 const showViewer = ref(false) // 是否显示查看器
 const srcList = ref([]) // 查看器图片列表
 const handledImgs = ref([]) // 处理好的图片列表
 const imgW = ref(1228) // 图片宽度
 const imgH = ref(600) // 图片高度
-const imgRatio = computed(() => {
-  // 图片宽高比
-  return imgW.value / imgH.value
+const imgRatio = computed(() => imgW.value / imgH.value) // 图像宽高比
+// 所有故障
+const allFaults = computed(() => {
+  let itemRects = []
+  const obj = {}
+  list.value.forEach((item) => {
+    itemRects = itemRects.concat(item.faultFrames)
+  })
+  itemRects = itemRects.reduce((cur, next) => {
+    obj[next.id] ? '' : (obj[next.id] = true && cur.push(next))
+    return cur
+  }, [])
+  return itemRects
 })
-
 watch(
-  ksData,
+  list,
   (newVal) => {
     console.log('ksData', newVal)
-    handledImgs.value = []
-    if (newVal.ksFaults.length > 0) {
+    // 判断是否有故障
+    if (newVal.some((item) => item?.faultFrames?.length)) {
       worker.postMessage({
-        imgs: toRaw(newVal.ksImgs),
-        faults: toRaw(newVal.ksFaults),
+        list: toRaw(newVal),
         imgBaseUrl,
-        batchSize,
-        isVertical: isVertical.value
+        isVertical: isVertical.value,
+        isKs: true // 是否是快扫
       })
     } else {
-      handledImgs.value = newVal.ksImgs.map((i) => `${imgBaseUrl}${i}`)
+      handledImgs.value = newVal.map((i) => `${imgBaseUrl}${i?.imgPath}`)
     }
   },
-  { deep: true }
+  { deep: true, immediate: true }
 )
+
 // 监听Web Worker消息
 worker.onmessage = function (event) {
   const { processedImages, width, height } = event.data
-  handledImgs.value.push(...processedImages)
-  imgW.value = width
-  imgH.value = height
+  handledImgs.value = processedImages
+  imgW.value = width || imgW.value
+  imgH.value = height || imgH.value
 }
+onUnmounted(() => {
+  worker.terminate()
+})
 // 横向滚动事件
 const handleScroll = (e) => {
   if (isVertical.value) {
@@ -95,7 +102,7 @@ const showBigImg = async (e, idx, url) => {
   const cursorX = isVertical.value ? offsetX : imgStartX + offsetX
   const cursorY = isVertical.value ? imgStartY + offsetY : offsetY
   // 找出鼠标当前置入的故障框
-  const faultsContainPonit = ksData.value.ksFaults?.filter((item) => {
+  const faultsContainPonit = allFaults.value?.filter((item) => {
     const { coordinateX, coordinateY, width, height } = item
     if (
       isPointInRect(
@@ -158,7 +165,10 @@ const showBigImg = async (e, idx, url) => {
   width: 100%;
   height: 100%;
   overflow: auto;
-  @include scrollBar($color: var(--el-color-primary-light-5), $activeColor: var(--el-color-primary));
+  @include scrollBar(
+    $color: var(--el-color-primary-light-5),
+    $activeColor: var(--el-color-primary)
+  );
   .pics-wrap-v {
     width: 100%;
     height: auto;

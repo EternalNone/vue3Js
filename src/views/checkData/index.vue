@@ -11,9 +11,8 @@ import { download } from '@/utils/file.js'
 import PassTrainFilter from '@/components/PassTrainFilter.vue'
 import TrainCarriage from '@/components/TrainCarriage.vue'
 // import KsRender from './KsRender1.vue'
-import JsList from './JsList.vue'
 import KsRender from './KsRender.vue'
-import { watch } from 'vue'
+import JsRender from './JsRender.vue'
 
 const globalStore = useGlobalStore()
 const { moduleType } = storeToRefs(globalStore)
@@ -30,86 +29,7 @@ const state = reactive({
   trainCarList: [], // 车厢列表
   loading: false, // 加载状态
   showType: 'VERTICAL', // 布局方式，横向、纵向、网格
-  ksData: {
-    // 快扫图片及故障
-    ksImgs: [
-      // '/src/assets/images/11-1.jpg',
-      // '//src/assets/images/11-2.jpg',
-      // '/src/assets/images/11-1.jpg',
-      // '/src/assets/images/11-1.jpg',
-      // '/src/assets/images/11-1.jpg',
-      // '/src/assets/images/11-2.jpg',
-      // '/src/assets/images/11-1.jpg',
-      // '/src/assets/images/11-2.jpg',
-      // '/src/assets/images/11-1.jpg',
-      // '/src/assets/images/11-2.jpg',
-      // '/src/assets/images/11-1.jpg',
-      // '/src/assets/images/11-2.jpg',
-      // '/src/assets/images/11-1.jpg',
-      // '/src/assets/images/11-2.jpg',
-      // '/src/assets/images/11-1.jpg',
-      // '/src/assets/images/11-2.jpg',
-      // '/src/assets/images/11-1.jpg',
-      // '/src/assets/images/11-2.jpg',
-      // '/src/assets/images/11-1.jpg',
-      // '/src/assets/images/11-2.jpg',
-      // '/src/assets/images/11-1.jpg',
-      // '/src/assets/images/11-2.jpg',
-      // '/src/assets/images/11-1.jpg',
-      // '/src/assets/images/11-2.jpg',
-      // '/src/assets/images/11-1.jpg',
-      // '/src/assets/images/11-2.jpg',
-      // '/src/assets/images/11-1.jpg',
-      // '/src/assets/images/11-2.jpg',
-      // '/src/assets/images/11-1.jpg',
-      // '/src/assets/images/11-2.jpg',
-      // '/src/assets/images/11-1.jpg',
-      // '/src/assets/images/11-2.jpg',
-      // '/src/assets/images/11-1.jpg',
-      // '/src/assets/images/11-2.jpg',
-      // '/src/assets/images/11-1.jpg',
-      // '/src/assets/images/11-2.jpg',
-      // '/src/assets/images/11-1.jpg',
-      // '/src/assets/images/11-2.jpg',
-      // '/src/assets/images/11-1.jpg',
-      // '/src/assets/images/11-2.jpg',
-      // '/src/assets/images/11-1.jpg',
-      // '/src/assets/images/11-2.jpg',
-      // '/src/assets/images/11-1.jpg',
-      // '/src/assets/images/11-3.jpg'
-    ],
-    ksFaults: [
-      // {
-      //   width: 1228,
-      //   height: 600,
-      //   coordinateX: 0,
-      //   coordinateY: 0,
-      //   faultDesc: '测试故障1'
-      // },
-      // {
-      //   width: 300,
-      //   height: 300,
-      //   coordinateX: 150,
-      //   coordinateY: 150,
-      //   faultDesc: '测试故障2'
-      // },
-      // {
-      //   width: 500,
-      //   height: 500,
-      //   coordinateX: 150,
-      //   coordinateY: 5800,
-      //   faultDesc: '测试故障3'
-      // },
-      // {
-      //   width: 1000,
-      //   height: 1000,
-      //   coordinateX: 0,
-      //   coordinateY: 5800,
-      //   faultDesc: '测试故障4'
-      // }
-    ]
-  },
-  jsData: [] // 精扫数据
+  list: [] // 图片及故障列表
 })
 const {
   searchForm,
@@ -118,8 +38,7 @@ const {
   passagewayList,
   loading,
   showType,
-  ksData,
-  jsData,
+  list,
   trainCarList
 } = toRefs(state)
 const isVertical = computed(() => showType.value === 'VERTICAL')
@@ -131,11 +50,7 @@ watch(moduleType, (newVal, oldVal) => {
 })
 watch(showType, (newVal, oldVal) => {
   if (newVal !== oldVal) {
-    jsData.value = []
-    ksData.value = {
-      ksImgs: [],
-      ksFaults: []
-    }
+    list.value = []
   }
 })
 onMounted(() => {
@@ -166,10 +81,7 @@ const getPassTrainData = (train) => {
   if (train.trainNo) {
     getStatics()
   } else {
-    ksData.value = {
-      ksImgs: [],
-      ksFaults: []
-    }
+    list.value = []
   }
 }
 // 获取通道接口
@@ -185,7 +97,6 @@ const getPassWayList = () => {
 const changePassageway = (val) => {
   const curOps = passagewayList.value?.find((item) => item.code === val)
   showType.value = curOps?.showType || 'VERTICAL'
-  console.log('ssssssssss', curOps?.showType)
   getData()
 }
 // 获取检测数据
@@ -200,27 +111,7 @@ const getData = () => {
     isFault: showType.value === 'GRID' ? (isFault ? 1 : 0) : undefined
   })
     .then((res) => {
-      const data = res?.data || []
-      if (showType.value === 'GRID') {
-        jsData.value = data
-      } else {
-        const imgUrl = []
-        let itemRects = []
-        const obj = {}
-        for (let i = 0, len = data.length; i < len; i++) {
-          const item = data[i]
-          imgUrl.push(item.faultFrames?.length ? `${item.imgPath}?withFault=1` : item.imgPath)
-          itemRects = itemRects.concat(item.faultFrames)
-        }
-        itemRects = itemRects.reduce((cur, next) => {
-          obj[next.id] ? '' : (obj[next.id] = true && cur.push(next))
-          return cur
-        }, [])
-        ksData.value = {
-          ksImgs: imgUrl,
-          ksFaults: itemRects
-        }
-      }
+      list.value = res?.data || []
     })
     .finally(() => {
       loading.value = false
@@ -370,8 +261,11 @@ const exportFault = () => {
         </div>
       </div>
       <div class="check-data-render" v-loading="loading" element-loading-background="transparent">
-        <JsList v-if="showType === 'GRID'" :jsData="jsData" />
-        <KsRender v-else :ksData="ksData" :isVertical="isVertical" />
+        <template v-if="list.length">
+          <JsRender v-if="showType === 'GRID'" :list="list" />
+          <KsRender v-else :list="list" :isVertical="isVertical" />
+        </template>
+        <el-empty v-else description="暂无数据" />
       </div>
     </div>
   </div>
@@ -435,6 +329,7 @@ const exportFault = () => {
       width: 100%;
       flex: 1;
       overflow: hidden;
+      @include flex;
     }
   }
 }

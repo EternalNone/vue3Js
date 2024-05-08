@@ -1,22 +1,61 @@
-<script setup name="JsList">
+<script setup name="JsRender">
+import FaultViewer from '@/components/FaultViewer.vue'
+
+const worker = new Worker(new URL('@/worker/handleImg.js', import.meta.url)) // 创建Web Worker
 const imgBaseUrl = import.meta.env.VITE_IMAGE_BASE_URL // 对应环境的图片域名及端口
 
 const props = defineProps({
-  jsData: {
+  list: {
     type: Array,
     default: () => [],
     required: true
   }
 })
-console.log('ssssssssssss', props.jsData)
-const { jsData } = toRefs(props)
+const { list } = toRefs(props)
+const faultViewerRef = ref(null)
+const handledImgs = ref([])
+const imgW = ref(2048)
+const imgH = ref(1536)
+const imgRatio = computed(() => imgW.value / imgH.value)
+
+watch(
+  list,
+  async (newVal) => {
+    if (newVal.length) {
+      if (newVal.some((item) => item?.faultFrames?.length)) {
+      worker.postMessage({
+        list: toRaw(newVal),
+        imgBaseUrl
+      })
+    } else {
+      handledImgs.value = newVal.map((i) => `${imgBaseUrl}${i?.imgPath}`)
+    }
+    }
+  },
+  { immediate: true, deep: true }
+)
+// 监听Web Worker消息
+worker.onmessage = function (event) {
+  const { processedImages, width, height } = event.data
+  handledImgs.value = processedImages
+  imgW.value = width || imgW.value
+  imgH.value = height || imgH.value
+}
+onUnmounted(() => {
+  worker.terminate()
+})
+
+// 打开故障查看器
+const openFaultViewer = (idx) => {
+  faultViewerRef.value.show({data:toRaw(list.value),imgW:imgW.value.value,imgH:imgH.value,idx})
+}
 </script>
 
 <template>
   <div class="js-render">
     <el-row :gutter="20">
       <el-col
-        v-for="item in jsData"
+        v-for="(item, idx) in list"
         :key="item.imgPath"
         class="js-item"
         :xs="24"
@@ -24,9 +63,10 @@ const { jsData } = toRefs(props)
         :md="8"
         :lg="6"
         :xl="4"
+        @click="openFaultViewer(idx)"
       >
         <div class="img">
-          <el-image :src="imgBaseUrl + item.imgPath" lazy></el-image>
+          <el-image :src="handledImgs[idx]" lazy></el-image>
         </div>
         <div v-if="item.faultFrames.length" class="title">
           <div
@@ -47,6 +87,7 @@ const { jsData } = toRefs(props)
       </el-col>
     </el-row>
   </div>
+  <FaultViewer ref="faultViewerRef" />
 </template>
 
 <style lang="scss" scoped>
@@ -73,8 +114,9 @@ const { jsData } = toRefs(props)
       .img {
         width: 100%;
         overflow: hidden;
-        aspect-ratio: 1.3;
+        aspect-ratio: v-bind(imgRatio);
         .el-image {
+          display: block;
           width: 100%;
           height: 100%;
           transition: all 0.3s;
@@ -130,9 +172,6 @@ const { jsData } = toRefs(props)
         line-height: 24px;
         text-align: center;
         font-size: 14px;
-        font-family:
-          Microsoft YaHei,
-          Microsoft YaHei;
         font-weight: 400;
         color: #ffffff;
         &.normal {
