@@ -66,6 +66,13 @@ export default defineConfig({
         ws: true,
         /** 是否允许跨域 */
         changeOrigin: true
+      },
+      "/pic": {
+        target: "http://192.168.21.125:8080",
+        ws: true,
+        rewrite: (path) =>path.replace(/^\/pic/, ""),
+        /** 是否允许跨域 */
+        changeOrigin: true
       }
     },
     /** 预热常用文件，提高初始页面加载速度 */

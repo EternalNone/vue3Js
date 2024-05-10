@@ -19,9 +19,10 @@ const getFromCache = (url, expirationTime = 3600000) => {
     return null
   }
 }
+// 将图片url转成bitmap、失败的场景返回null
 const urlToBitmap = async (url) => {
   try {
-    const response = await fetch(url)
+    const response = await fetch(url, { mode: 'cors' })
     if (!response.ok) {
       // 图片请求失败
       console.error(`Error fetch image: ${url}`)
@@ -40,13 +41,23 @@ const urlToBitmap = async (url) => {
     return null
   }
 }
+// 将canvas转成图片
+const canvasToBlob = async (canvas) => {
+  const blob = await canvas.convertToBlob({ type: 'image/webp', quality: 0.5 })
+  const url = await new Promise((resolve) => {
+    const reader = new FileReader()
+    reader.readAsDataURL(blob)
+    reader.onloadend = () => resolve(reader.result)
+  })
+  return url
+}
 self.onmessage = async (event) => {
   const { list, imgBaseUrl, isKs = false, isVertical = false } = event.data
   let offscreenCanvas = new OffscreenCanvas(0, 0) // 创建离屏canvas
   let offscreenCtx = offscreenCanvas.getContext('2d')
   let existW = 0
   let existH = 0
-  const processedImages = []
+  let processedList = []
   for (const [index, item] of list.entries()) {
     if (item.faultFrames.length) {
       // 该图片中有故障
@@ -65,37 +76,31 @@ self.onmessage = async (event) => {
         const { width, height } = imgBitmap
         existW = width
         existH = height
-        const imgStartX = isVertical ? 0 : index * width // 图片的起始x坐标
-        const imgStartY = isVertical ? index * height : 0 // 图片的起始y坐标
+        const imgStartX = isKs ? (isVertical ? 0 : index * width) : 0 // 图片的起始x坐标
+        const imgStartY = isKs ? (isVertical ? index * height : 0) : 0 // 图片的起始y坐标
         // 绘制图片
         offscreenCanvas.width = width
         offscreenCanvas.height = height
+        offscreenCtx.clearRect(0, 0, width, height)
         offscreenCtx.drawImage(imgBitmap, 0, 0, width, height)
         // 绘制故障
         offscreenCtx.strokeStyle = faultStrokeStyle
         offscreenCtx.lineWidth = faultStrokeWidth
-        item.faultFrames.forEach((fault) => {
+        // 绘制故障，并且把快扫的故障坐标换算成当前图片的坐标
+        item.faultFrames = item.faultFrames.map((fault) => {
           const { coordinateX, coordinateY, width, height } = fault
-          if (isKs) {
-            offscreenCtx.strokeRect(coordinateX - imgStartX, coordinateY - imgStartY, width, height)
-          } else {
-            offscreenCtx.strokeRect(coordinateX, coordinateY, width, height)
+          offscreenCtx.strokeRect(coordinateX - imgStartX, coordinateY - imgStartY, width, height)
+          return {
+            ...fault,
+            coordinateX: coordinateX - imgStartX,
+            coordinateY: coordinateY - imgStartY
           }
         })
         // 转成dataUrl用于主线程img展示
-        const blob = await new Promise((resolve) => {
-          offscreenCanvas.convertToBlob({ type: 'image/webp', quality: 0.5 }).then(resolve)
-        })
-        const url = await new Promise((resolve) => {
-          const reader = new FileReader()
-          reader.readAsDataURL(blob)
-          reader.onloadend = () => {
-            resolve(reader.result)
-          }
-        })
-        processedImages.push(url)
+        const url = await canvasToBlob(offscreenCanvas)
+        processedList.push({ ...item, handledImg: url })
       } else {
-        processedImages.push(`${imgBaseUrl}${item?.imgPath}`)
+        processedList.push({ ...item, handledImg: `${imgBaseUrl}${item?.imgPath}` })
       }
     } else {
       // 没有故障返回原图
@@ -114,14 +119,20 @@ self.onmessage = async (event) => {
           existH = imgBitmap.height
         }
       }
-      processedImages.push(`${imgBaseUrl}${item?.imgPath}`)
+      processedList.push({ ...item, handledImg: `${imgBaseUrl}${item?.imgPath}` })
     }
   }
 
-  self.postMessage({ processedImages, width: existW, height: existH })
+  processedList = processedList.map((item) => {
+    return { ...item, fullPath: `${imgBaseUrl}${item?.imgPath}`, imgW: existW, imgH: existH }
+  })
+  console.log('processedList', processedList)
+  self.postMessage({ processedList, width: existW, height: existH })
 
   // 处理完所有图片后释放离屏canvas及其他变量
   offscreenCanvas = null
   offscreenCtx = null
-  processedImages.length = 0
+  existW = 0
+  existH = 0
+  processedList.length = 0
 }

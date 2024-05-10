@@ -55,6 +55,7 @@ defineExpose({
 <style lang="scss" scoped>
 .css-filter {
   width: min(100%, 300px);
+  padding-right: 12px;
   > div {
     width: 100%;
     @include flex($jc: flex-start);

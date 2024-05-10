@@ -13,31 +13,30 @@ const props = defineProps({
 })
 const { list } = toRefs(props)
 const faultViewerRef = ref(null)
-const handledImgs = ref([])
-const imgW = ref(2048)
-const imgH = ref(1536)
+const state = reactive({
+  handledList: [],
+  imgW: 2048,
+  imgH: 1536
+})
+const { handledList, imgW, imgH } = toRefs(state)
 const imgRatio = computed(() => imgW.value / imgH.value)
 
 watch(
   list,
   async (newVal) => {
     if (newVal.length) {
-      if (newVal.some((item) => item?.faultFrames?.length)) {
       worker.postMessage({
         list: toRaw(newVal),
         imgBaseUrl
       })
-    } else {
-      handledImgs.value = newVal.map((i) => `${imgBaseUrl}${i?.imgPath}`)
-    }
     }
   },
   { immediate: true, deep: true }
 )
 // 监听Web Worker消息
 worker.onmessage = function (event) {
-  const { processedImages, width, height } = event.data
-  handledImgs.value = processedImages
+  const { processedList, width, height } = event.data
+  handledList.value = processedList
   imgW.value = width || imgW.value
   imgH.value = height || imgH.value
 }
@@ -47,7 +46,10 @@ onUnmounted(() => {
 
 // 打开故障查看器
 const openFaultViewer = (idx) => {
-  faultViewerRef.value.show({data:toRaw(list.value),imgW:imgW.value.value,imgH:imgH.value,idx})
+  faultViewerRef.value.show({
+    data: toRaw(handledList.value),
+    idx
+  })
 }
 </script>
 
@@ -55,8 +57,8 @@ const openFaultViewer = (idx) => {
   <div class="js-render">
     <el-row :gutter="20">
       <el-col
-        v-for="(item, idx) in list"
-        :key="item.imgPath"
+        v-for="(item, idx) in handledList"
+        :key="item.handledImg"
         class="js-item"
         :xs="24"
         :sm="12"
@@ -66,7 +68,7 @@ const openFaultViewer = (idx) => {
         @click="openFaultViewer(idx)"
       >
         <div class="img">
-          <el-image :src="handledImgs[idx]" lazy></el-image>
+          <el-image :src="item.handledImg" lazy></el-image>
         </div>
         <div v-if="item.faultFrames.length" class="title">
           <div

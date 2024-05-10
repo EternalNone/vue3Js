@@ -13,10 +13,12 @@ import TrainCarriage from '@/components/TrainCarriage.vue'
 // import KsRender from './KsRender1.vue'
 import KsRender from './KsRender.vue'
 import JsRender from './JsRender.vue'
+import FaultsList from './FaultsList.vue'
 
 const globalStore = useGlobalStore()
 const { moduleType } = storeToRefs(globalStore)
 
+const faultListRef = ref(null)
 const state = reactive({
   searchForm: {
     isFault: false, // 精扫列表是否只看异常图
@@ -139,6 +141,10 @@ const selectLw = (val) => {
   searchForm.value.fullCarNo = val
   getData()
 }
+// 故障列表
+const showFaultList = () => {
+  faultListRef.value?.show(trainInfo.value?.trainNo)
+}
 // 导出故障复核单
 const exportFault = () => {
   if (!trainInfo.value?.trainNo) {
@@ -228,7 +234,7 @@ const exportFault = () => {
             </el-select>
 
             <el-button type="primary" @click="exportFault">故障复核单</el-button>
-            <el-button type="primary">故障详情</el-button>
+            <el-button type="primary" @click="showFaultList">故障列表</el-button>
             <div style="margin-right: 10px" v-show="showType === 'GRID'">
               <span style="padding: 0 10px; font-size: 14px">只看异常图</span>
               <el-switch v-model="searchForm.isFault" @change="getData" />
@@ -268,6 +274,7 @@ const exportFault = () => {
         <el-empty v-else description="暂无数据" />
       </div>
     </div>
+    <FaultsList ref="faultListRef" @refresh="getStatics" />
   </div>
 </template>
 

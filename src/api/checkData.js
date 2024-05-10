@@ -49,3 +49,42 @@ export function getCheckDataStatics(params) {
     params
   })
 }
+/**
+ * @description 获取所有故障列表（快扫加精扫）
+ * @param {*} data 
+
+ */
+
+export function getFaultsList(data) {
+  return request({
+    url: '/api/fine/getFaultsDetails',
+    method: 'post',
+    data
+  })
+}
+
+/**
+ * @description 删除故障
+ * @param {*} id
+ */
+
+export function deleteFault(id) {
+  return request({
+    url: '/api/fine/deleteCarPassFalutDetailByRobot/' + id,
+    method: 'post',
+    data: {}
+  })
+}
+
+/**
+ * @description 单个故障复核单导出 传故障id
+ * @param {*} params
+ */
+export function exportFaultSingle (params) {
+  return request({
+    url: '/api/export/robotFaultDownload',
+    method: 'get',
+    params,
+    responseType: 'blob'
+  })
+}

@@ -54,6 +54,9 @@ watch(moduleType, (newVal, oldVal) => {
     search()
   }
 })
+onMounted(() => {
+  loadTrain()
+})
 onUnmounted(() => {
   if (tranTimer.value) {
     clearTimeout(tranTimer.value)
@@ -222,7 +225,8 @@ const toggleFilter = () => {
         class="list-content"
         v-infinite-scroll="loadTrain"
         :infinite-scroll-disabled="disabled"
-        infinite-scroll-distance="30"
+        :infinite-scroll-distance="30"
+        :infinite-scroll-immediate="false"
       >
         <div
           v-for="(item, indx) in transList"
@@ -233,7 +237,10 @@ const toggleFilter = () => {
           <i
             class="status"
             :style="{
-              background: moduleType === 'OUTSIDE' || item.checkEndDate ? 'var(--el-color-success)' : 'var(--el-color-danger)'
+              background:
+                moduleType === 'OUTSIDE' || item.checkEndDate
+                  ? 'var(--el-color-success)'
+                  : 'var(--el-color-danger)'
             }"
           />
           <div class="checkInDate">{{ item.checkInDate || '--' }}</div>

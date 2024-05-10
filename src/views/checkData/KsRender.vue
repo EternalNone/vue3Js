@@ -1,9 +1,8 @@
 <script setup name="KsRender2">
-import { ElMessageBox } from 'element-plus'
+import FaultViewer from '@/components/FaultViewer.vue'
 
 const worker = new Worker(new URL('@/worker/handleImg.js', import.meta.url)) // 创建Web Worker
 const imgBaseUrl = import.meta.env.VITE_IMAGE_BASE_URL // 对应环境的图片域名及端口
-
 const props = defineProps({
   isVertical: {
     type: Boolean,
@@ -18,48 +17,36 @@ const props = defineProps({
 
 const { isVertical, list } = toRefs(props)
 const scrollContainerRef = ref(null) // 整个容器的模板引用
-const showViewer = ref(false) // 是否显示查看器
-const srcList = ref([]) // 查看器图片列表
-const handledImgs = ref([]) // 处理好的图片列表
-const imgW = ref(1228) // 图片宽度
-const imgH = ref(600) // 图片高度
-const imgRatio = computed(() => imgW.value / imgH.value) // 图像宽高比
-// 所有故障
-const allFaults = computed(() => {
-  let itemRects = []
-  const obj = {}
-  list.value.forEach((item) => {
-    itemRects = itemRects.concat(item.faultFrames)
-  })
-  itemRects = itemRects.reduce((cur, next) => {
-    obj[next.id] ? '' : (obj[next.id] = true && cur.push(next))
-    return cur
-  }, [])
-  return itemRects
+const faultViewerRef = ref(null)
+const state = reactive({
+  showViewer: false, // 是否显示查看器
+  curIdx: 0, // 当前图片查看器查看的图片索引
+  handledList: [], // 处理好的列表
+  imgW: 1228, // 图片宽度
+  imgH: 600 // 图片高度
 })
+const { showViewer, curIdx, handledList, imgW, imgH } = toRefs(state)
+const imgRatio = computed(() => imgW.value / imgH.value) // 图像宽高比
+const handledImgs = computed(() => handledList.value.map((item) => item.handledImg)) // 处理好的图片列表
+
 watch(
   list,
   (newVal) => {
     console.log('ksData', newVal)
-    // 判断是否有故障
-    if (newVal.some((item) => item?.faultFrames?.length)) {
-      worker.postMessage({
-        list: toRaw(newVal),
-        imgBaseUrl,
-        isVertical: isVertical.value,
-        isKs: true // 是否是快扫
-      })
-    } else {
-      handledImgs.value = newVal.map((i) => `${imgBaseUrl}${i?.imgPath}`)
-    }
+    worker.postMessage({
+      list: toRaw(newVal),
+      imgBaseUrl,
+      isVertical: isVertical.value,
+      isKs: true // 是否是快扫
+    })
   },
   { deep: true, immediate: true }
 )
 
 // 监听Web Worker消息
 worker.onmessage = function (event) {
-  const { processedImages, width, height } = event.data
-  handledImgs.value = processedImages
+  const { processedList, width, height } = event.data
+  handledList.value = processedList
   imgW.value = width || imgW.value
   imgH.value = height || imgH.value
 }
@@ -89,25 +76,22 @@ const isPointInRect = (x, y, startX, startY, endX, endY) => {
   return x >= startX && x <= endX && y >= startY && y <= endY
 }
 
-// 预览图片
-const showBigImg = async (e, idx, url) => {
-  console.log('showBigImg', e.offsetX, e.offsetY, idx)
+// 预览图片及故障
+const handlePreview = async (e, idx) => {
+  const currentItem = handledList.value[idx]
+  const currentFaults = currentItem.faultFrames
   const containerW = scrollContainerRef.value.clientWidth
   const scale = imgW.value / containerW // 因为画面等比缩放，计算出缩放的比例
   const offsetX = e.offsetX * scale // 根据原图的尺寸算出x坐标
   const offsetY = e.offsetY * scale // 根据原图的尺寸算出y坐标
-  const imgStartX = isVertical.value ? 0 : idx * imgW.value // 图片的起始x坐标
-  const imgStartY = isVertical.value ? idx * imgH.value : 0 // 图片的起始y坐标
-  // 计算出鼠标的位置在整个容器中的坐标
-  const cursorX = isVertical.value ? offsetX : imgStartX + offsetX
-  const cursorY = isVertical.value ? imgStartY + offsetY : offsetY
+
   // 找出鼠标当前置入的故障框
-  const faultsContainPonit = allFaults.value?.filter((item) => {
+  const faultsContainPonit = currentFaults?.filter((item) => {
     const { coordinateX, coordinateY, width, height } = item
     if (
       isPointInRect(
-        cursorX,
-        cursorY,
+        offsetX,
+        offsetY,
         coordinateX,
         coordinateY,
         coordinateX + width,
@@ -119,28 +103,13 @@ const showBigImg = async (e, idx, url) => {
   })
   if (faultsContainPonit.length) {
     // 鼠标当前置入的故障框
-    ElMessageBox({
-      title: '故障详情',
-      showCancelButton: false,
-      showConfirmButton: false,
-      distinguishCancelAndClose: true,
-      message: h(
-        'div',
-        null,
-        faultsContainPonit.map((fault, index) => [
-          h('h3', { style: 'margin: 10px 0;color:var(--el-color-primary)' }, `故障${index + 1}`),
-          h('p', null, `宽度：${fault.width}`),
-          h('p', null, `高度：${fault.height}`),
-          h('p', null, `顶点坐标：(${fault.coordinateX}，${fault.coordinateY})`),
-          h('p', null, `故障描述：${fault.faultDesc}`)
-        ])
-      )
-    }).catch(() => {
-      console.log('close fault detail box')
+    faultViewerRef.value.show({
+      data: toRaw(handledList.value),
+      idx
     })
     return
   }
-  srcList.value = [url]
+  curIdx.value = idx
   showViewer.value = true
 }
 </script>
@@ -148,16 +117,23 @@ const showBigImg = async (e, idx, url) => {
   <div class="imgs-content" ref="scrollContainerRef" @wheel="handleScroll">
     <div :class="isVertical ? 'pics-wrap-v' : 'pics-wrap-h'">
       <el-image
-        v-for="(url, index) in handledImgs"
-        :key="url"
-        :src="url"
+        v-for="(item, index) in handledList"
+        :key="item.handledImg"
+        :src="item.handledImg"
         lazy
-        @click="showBigImg($event, index, url)"
+        @click="handlePreview($event, index)"
       />
     </div>
   </div>
 
-  <ElImageViewer v-if="showViewer" @close="() => (showViewer = false)" :url-list="srcList" />
+  <ElImageViewer
+    v-if="showViewer"
+    teleported
+    :url-list="handledImgs"
+    :initial-index="curIdx"
+    @close="showViewer = false"
+  />
+  <FaultViewer ref="faultViewerRef" />
 </template>
 
 <style lang="scss" scoped>
