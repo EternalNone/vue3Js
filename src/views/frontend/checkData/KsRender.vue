@@ -161,6 +161,8 @@ const handlePreview = async (e, idx) => {
       height: auto;
       aspect-ratio: v-bind(imgRatio);
       border: none;
+      user-select: none;
+      cursor: pointer;
     }
   }
   .pics-wrap-h {
