@@ -3,6 +3,10 @@ const props = defineProps({
   selector: {
     type: String,
     default: ''
+  },
+  disabled: {
+    type: Boolean,
+    default: false
   }
 })
 const state = reactive({
@@ -23,7 +27,7 @@ const resetFilter = () => {
   state.contrast = 100
   state.saturate = 100
   state.grayscale = 0
-  changeFilter()
+    changeFilter()
 }
 
 defineExpose({
@@ -35,19 +39,43 @@ defineExpose({
   <div class="css-filter">
     <div class="">
       <span style="letter-spacing: 1em">亮度</span>
-      <el-slider v-model="brightness" :min="0" :max="500" @change="changeFilter('brightness')" />
+      <el-slider
+        v-model="brightness"
+        :min="0"
+        :max="500"
+        :disabled="disabled"
+        @change="changeFilter('brightness')"
+      />
     </div>
     <div class="">
       <span>对比度</span>
-      <el-slider v-model="contrast" :min="0" :max="500" @change="changeFilter('contrast')" />
+      <el-slider
+        v-model="contrast"
+        :min="0"
+        :max="500"
+        :disabled="disabled"
+        @change="changeFilter('contrast')"
+      />
     </div>
     <div class="">
       <span>饱和度</span>
-      <el-slider v-model="saturate" :min="0" :max="500" @change="changeFilter('saturate')" />
+      <el-slider
+        v-model="saturate"
+        :min="0"
+        :max="500"
+        :disabled="disabled"
+        @change="changeFilter('saturate')"
+      />
     </div>
     <div class="">
       <span style="letter-spacing: 1em">灰度</span>
-      <el-slider v-model="grayscale" :min="0" :max="100" @change="changeFilter('grayscale')" />
+      <el-slider
+        v-model="grayscale"
+        :min="0"
+        :max="100"
+        :disabled="disabled"
+        @change="changeFilter('grayscale')"
+      />
     </div>
   </div>
 </template>

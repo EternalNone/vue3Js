@@ -9,8 +9,8 @@ const addToCache = (url, imgBitmap) => {
   imageCache.set(url, { imgBitmap, timestamp: Date.now() })
 }
 
-// 获取缓存时检查时间戳，决定是否清除
-const getFromCache = (url, expirationTime = 3600000) => {
+// 获取缓存时检查时间戳，决定是否清除，默认过期时间为14400000毫秒（4小时）
+const getFromCache = (url, expirationTime = 14400000) => {
   const cacheItem = imageCache.get(url)
   if (cacheItem && Date.now() - cacheItem.timestamp < expirationTime) {
     return cacheItem.imgBitmap
@@ -67,8 +67,8 @@ self.onmessage = async (event) => {
   const { list, imgBaseUrl, isVertical = false } = event.data
   let offscreenCanvas = new OffscreenCanvas(0, 0) // 创建离屏canvas
   let offscreenCtx = offscreenCanvas.getContext('2d')
-
   const processedList = []
+  
   for (const item of list) {
     let existW = 1228 // 默认的图片宽度
     let existH = 600 // 默认的图片高度
@@ -77,6 +77,7 @@ self.onmessage = async (event) => {
     let startX = 0
     let startY = 0
     let url = ''
+    let fullPath = ''
     const itemImgs = item?.faultImages || []
     // 将所有的图片转化为bitmap格式，请求或者转换失败，则返回null
     const itemBitmapImgs = await Promise.all(
@@ -131,20 +132,18 @@ self.onmessage = async (event) => {
           drawDefaultImg(offscreenCtx, existW, existH, startX, startY)
         }
       })
-    } else {
-      drawDefaultImg(offscreenCtx, existW, existH)
-      item.imgLoadFail = true // 图片加载失败标识
-    }
-    const fullPath = await canvasToBlob(offscreenCanvas) // 将拼好的图片转成dataUrl
-    // 至少有一个图片正常时才绘制故障
-    if (itemBitmapImgs.some((item) => item?.width && item?.height)) {
+      fullPath = await canvasToBlob(offscreenCanvas) // 将拼好的图片转成dataUrl
+      // 至少有一个图片正常时才绘制故障
       offscreenCtx.strokeStyle = faultStrokeStyle
       offscreenCtx.lineWidth = faultStrokeWidth
       offscreenCtx.strokeRect(Number(item.x), Number(item.y), Number(item.w), Number(item.h))
       url = await canvasToBlob(offscreenCanvas) // 将绘制好的图片及故障一起转成dataUrl
     } else {
-      url = fullPath
+      fullPath = `${imgBaseUrl}${item?.faultImages[0]}`
+      url = `${imgBaseUrl}${item?.faultImages[0]}`
+      item.imgLoadFailed = true
     }
+
     item.handledImg = url
     item.fullPath = fullPath
     item.imgPath = itemImgs.join(';')
@@ -169,5 +168,5 @@ self.onmessage = async (event) => {
   // 处理完所有图片后释放离屏canvas及其他变量
   offscreenCanvas = null
   offscreenCtx = null
-  // processedList.length = 0
+  processedList.length = 0
 }

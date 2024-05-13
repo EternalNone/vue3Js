@@ -13,9 +13,7 @@ import HeaderToolsBar from '../HeaderToolsBar.vue'
           <div class="logo">
             <img src="@/assets/images/logo.png" alt="logo" width="150" />
           </div>
-          <div style="width: 180px">
-            <CheckTypeToggle />
-          </div>
+          <CheckTypeToggle />
         </div>
         <h1>集中控制数字驾驶舱</h1>
         <HeaderToolsBar />

@@ -23,7 +23,7 @@ const CockpitRouter = [
     children: [
       {
         path: 'statistics',
-        component: () => import('@/views/statistics/index.vue'),
+        component: () => import('@/views/frontend/statistics/index.vue'),
         name: 'statistics',
         meta: {
           title: '统计分析',
@@ -32,7 +32,7 @@ const CockpitRouter = [
       },
       {
         path: 'central',
-        component: () => import('@/views/central/index.vue'),
+        component: () => import('@/views/frontend/central/index.vue'),
         name: 'central',
         meta: {
           title: '集中控制',
@@ -41,7 +41,7 @@ const CockpitRouter = [
       },
       {
         path: 'checkData',
-        component: () => import('@/views/checkData/index.vue'),
+        component: () => import('@/views/frontend/checkData/index.vue'),
         name: 'checkData',
         meta: {
           title: '检测数据',
@@ -51,7 +51,7 @@ const CockpitRouter = [
       },
       {
         path: 'abrasion',
-        component: () => import('@/views/abrasion/index.vue'),
+        component: () => import('@/views/frontend/abrasion/index.vue'),
         name: 'abrasion',
         meta: {
           title: '检测预警',

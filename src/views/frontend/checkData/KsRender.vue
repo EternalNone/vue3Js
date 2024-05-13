@@ -37,6 +37,8 @@ watch(
       list: toRaw(newVal),
       imgBaseUrl,
       isVertical: isVertical.value,
+      w: imgW.value,
+      h: imgH.value,
       isKs: true // 是否是快扫
     })
   },
@@ -45,10 +47,14 @@ watch(
 
 // 监听Web Worker消息
 worker.onmessage = function (event) {
-  const { processedList, width, height } = event.data
-  handledList.value = processedList
-  imgW.value = width || imgW.value
-  imgH.value = height || imgH.value
+  const { type, processedList, width, height } = event.data
+  if (type === 'clear') {
+    handledList.value = []
+  } else if (type === 'update') {
+    handledList.value = handledList.value?.concat(processedList)
+    imgW.value = width || imgW.value
+    imgH.value = height || imgH.value
+  }
 }
 onUnmounted(() => {
   worker.terminate()
@@ -121,6 +127,7 @@ const handlePreview = async (e, idx) => {
         :key="item.handledImg"
         :src="item.handledImg"
         lazy
+        crossorigin="anonymous"
         @click="handlePreview($event, index)"
       />
     </div>

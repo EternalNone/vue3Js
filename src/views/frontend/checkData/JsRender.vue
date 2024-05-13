@@ -24,21 +24,26 @@ const imgRatio = computed(() => imgW.value / imgH.value)
 watch(
   list,
   async (newVal) => {
-    if (newVal.length) {
-      worker.postMessage({
-        list: toRaw(newVal),
-        imgBaseUrl
-      })
-    }
+    worker.postMessage({
+      list: toRaw(newVal),
+      imgBaseUrl,
+      w: imgW.value,
+      h: imgH.value,
+      temp: new Date().getTime()
+    })
   },
   { immediate: true, deep: true }
 )
 // 监听Web Worker消息
 worker.onmessage = function (event) {
-  const { processedList, width, height } = event.data
-  handledList.value = processedList
-  imgW.value = width || imgW.value
-  imgH.value = height || imgH.value
+  const { type, processedList, width, height } = event.data
+  if (type === 'clear') {
+    handledList.value = []
+  } else if (type === 'update') {
+    handledList.value = handledList.value?.concat(processedList)
+    imgW.value = width || imgW.value
+    imgH.value = height || imgH.value
+  }
 }
 onUnmounted(() => {
   worker.terminate()
@@ -68,7 +73,7 @@ const openFaultViewer = (idx) => {
         @click="openFaultViewer(idx)"
       >
         <div class="img">
-          <el-image :src="item.handledImg" lazy></el-image>
+          <el-image :src="item.handledImg" crossorigin="anonymous" lazy></el-image>
         </div>
         <div v-if="item.faultFrames.length" class="title">
           <div

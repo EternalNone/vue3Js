@@ -1,5 +1,6 @@
 <script setup>
 import { useAppStore } from '@/store/modules/app'
+import CheckTypeToggle from '@/components/CheckTypeToggle.vue'
 import AppMain from '../AppMain.vue'
 import BackendMenu from './BackendMenu.vue'
 import HeaderToolsBar from '../HeaderToolsBar.vue'
@@ -12,14 +13,19 @@ const { isCollapse } = storeToRefs(appStore)
   <div class="layout-backend">
     <el-container>
       <el-header>
-        <img
-          class="logo"
-          src="@/assets/images/logo.png"
-          alt="logo"
-          width="150"
-          @click="$router.push('/')"
-        />
-        <HeaderToolsBar />
+        <div class="header-left">
+          <img
+            class="logo"
+            src="@/assets/images/logo.png"
+            alt="logo"
+            width="150"
+            @click="$router.push('/')"
+          />
+        </div>
+        <div class="header-right">
+          <CheckTypeToggle />
+          <HeaderToolsBar />
+        </div>
       </el-header>
       <el-container>
         <el-aside :width="isCollapse ? '64px' : '200px'">
@@ -52,8 +58,19 @@ const { isCollapse } = storeToRefs(appStore)
       background: $theme-color;
       @include flex($jc: space-between);
       user-select: none;
-      .logo {
-        cursor: pointer;
+      .header-left {
+        width: 180px;
+        height: 100%;
+        @include flex;
+        flex-shrink: 0;
+        .logo {
+          cursor: pointer;
+        }
+      }
+      .header-right {
+        flex: 1;
+        height: 100%;
+        @include flex($jc: space-between);
       }
     }
     .el-aside {
@@ -75,7 +92,7 @@ const { isCollapse } = storeToRefs(appStore)
         .svg-icon {
           color: var(--el-color-primary);
           font-size: 30px;
-          
+
           &:hover {
             filter: drop-shadow(2px 4px 5px #ffffff);
           }

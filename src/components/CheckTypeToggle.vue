@@ -33,7 +33,7 @@ const handleChange = (val) => {
 
 <style lang="scss" scoped>
 .check-type-wrap {
-  width: 100%;
+  width: min(100%, 180px);
   height: 34px;
   line-height: 34px;
   border-radius: 4px;

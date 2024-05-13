@@ -1,4 +1,4 @@
-<script setup name="FaultViewer">
+<script setup name="JSFaultMark">
 import { ZoomIn, Refresh, DArrowLeft, DArrowRight } from '@element-plus/icons-vue'
 import { useWinResize } from '@/hooks/useWinResize'
 import CssFilter from './CssFilter.vue'
@@ -12,14 +12,55 @@ const state = reactive({
   visible: false, // 弹框是否显示
   viewerVisible: false, // 图片查看器是否显示
   disabled: false, // 是否禁用滤镜等功能
-  scale: 1, //  容器中刚好完整显示图片全部内容的缩放比例，该值用于重置cssScale
-  cssScale: 1 // 容器的css缩放比例，跟绘制图片无关，纯css缩放效果
+  scale: 1, // 容器中刚好完整显示图片全部内容的缩放比例，该值用于重置cssScale
+  cssScale: 1, // 容器的css缩放比例，跟绘制图片无关，纯css缩放效果
+  mousexy: {
+    startX: 0,
+    startY: 0,
+    endX: 0,
+    endY: 0,
+    location: []
+  },
+  isDrawing: false,
+  formData: {
+    caimid: '',
+    part: '',
+    desc: '',
+    faultType: ''
+  },
+  formRules: {
+    caimid: [
+      {
+        required: true,
+        message: '请选择图片通道'
+      }
+    ],
+    faultType: [
+      {
+        required: true,
+        message: '请选择故障类型'
+      }
+    ]
+  }
 })
 
 const cssFilterRef = ref(null)
 const innerRef = ref(null)
 const canvasRef = ref(null)
-const { list, curIdx, visible, viewerVisible, scale, disabled, cssScale } = toRefs(state)
+const formRef = ref(null)
+const {
+  list,
+  curIdx,
+  visible,
+  viewerVisible,
+  scale,
+  disabled,
+  cssScale,
+  formData,
+  formRules,
+  mousexy,
+  isDrawing
+} = toRefs(state)
 const currentItem = computed(() => list.value[curIdx.value])
 const handledImgs = computed(() => list.value.map((item) => item.handledImg)) // 处理好的图片列表
 
@@ -29,6 +70,7 @@ watch(cssScale, (newVal) => {
   }
   innerRef.value.style.transform = `scale(${newVal})`
 })
+
 const show = (obj) => {
   visible.value = true
   list.value = obj?.data || []
@@ -54,6 +96,7 @@ const initAndDraw = () => {
     const imgRatio = imgW / imgH
     const left = (width - imgW) / 2
     const top = (height - imgH) / 2
+
     let drawW = 0,
       drawH = 0
     if (imgRatio - containerRatio > 0) {
@@ -64,9 +107,9 @@ const initAndDraw = () => {
       drawH = height
       drawW = drawH * imgRatio
     }
-
     scale.value = drawW / imgW
     cssScale.value = drawW / imgW
+    console.log('xxxxxxxxxxxx', drawW / imgW)
     if (inner) {
       inner.style.width = `${imgW}px`
       inner.style.height = `${imgH}px`
@@ -75,21 +118,22 @@ const initAndDraw = () => {
       canvas.width = imgW
       canvas.height = imgH
     }
-    if (currentItem.value?.imgLoadFailed) {
-      // 故障列表图片加载失败的场景不绘制故障
-      return
-    }
-
-    const ctx = canvas.getContext('2d')
-    ctx.clearRect(0, 0, canvas.width, canvas.height)
-    ctx.strokeStyle = faultStrokeStyle
-    ctx.lineWidth = faultStrokeWidth
-    if (currentItem.value?.faultFrames?.length > 0) {
-      currentItem.value?.faultFrames?.forEach((fault) => {
-        const { coordinateX, coordinateY, width, height } = fault
-        ctx.strokeRect(coordinateX, coordinateY, width, height)
-      })
-    }
+    initFaults()
+  }
+}
+const initFaults = () => {
+  const canvas = canvasRef.value
+  const ctx = canvas.getContext('2d')
+  const imgW = currentItem.value?.imgW || 0
+  const imgH = currentItem.value?.imgH || 0
+  ctx.clearRect(0, 0, imgW, imgH)
+  ctx.strokeStyle = faultStrokeStyle
+  ctx.lineWidth = faultStrokeWidth
+  if (currentItem.value?.faultFrames?.length > 0) {
+    currentItem.value?.faultFrames?.forEach((fault) => {
+      const { coordinateX, coordinateY, width, height } = fault
+      ctx.strokeRect(coordinateX, coordinateY, width, height)
+    })
   }
 }
 
@@ -120,6 +164,25 @@ const reset = () => {
   cssScale.value = scale.value
   cssFilterRef.value?.resetFilter()
 }
+const drawFault = () => {
+  const { startX, startY, endX, endY } = mousexy.value
+  const ctx = canvasRef.value.getContext('2d')
+  ctx.clearRect(0, 0, canvasRef.value.width, canvasRef.value.height) // 清除之前的绘制
+  initFaults()
+  ctx.beginPath()
+  // 计算矩形的左上角坐标和宽度、高度
+  const x = Math.min(startX, endX)
+  const y = Math.min(startY, endY)
+  const w = Math.abs(endX - startX)
+  const h = Math.abs(endY - startY)
+  ctx.rect(x, y, w, h)
+  ctx.strokeStyle = faultStrokeStyle
+  ctx.lineWidth = faultStrokeWidth
+  ctx.stroke()
+  if (!isDrawing.value) {
+    mousexy.value.location = [x, y, w, h]
+  }
+}
 // 鼠标滚轮缩放
 const mousewheel = (e) => {
   if (disabled.value) {
@@ -132,6 +195,37 @@ const mousewheel = (e) => {
     cssScale.value = cssScale.value - 0.2 >= 0 ? cssScale.value - 0.2 : cssScale.value
   }
 }
+// 标注-鼠标按下
+const mousedownMark = (e) => {
+  isDrawing.value = true
+  mousexy.value.startX = e.offsetX
+  mousexy.value.startY = e.offsetY
+}
+// 标注-鼠标移动
+const mousemoveMark = (e) => {
+  if (!isDrawing.value) return
+  console.log('mousemoveMark', e.offsetX, e.offsetY)
+  mousexy.value.endX = e.offsetX
+  mousexy.value.endY = e.offsetY
+  drawFault()
+}
+// 标注-鼠标抬起
+const mouseupMark = () => {
+  isDrawing.value = false
+  drawFault() // 最后绘制一次以固定最终框
+}
+
+const submitForm = async (formEl) => {
+  console.log('dddddddddd',mousexy.value.location)
+  if (!formEl) return
+  await formEl.validate((valid, fields) => {
+    if (valid) {
+      console.log('submit!')
+    } else {
+      console.log('error submit!', fields)
+    }
+  })
+}
 useWinResize(initAndDraw, 300) // 监听窗口变化，重新绘制
 
 defineExpose({
@@ -142,12 +236,11 @@ defineExpose({
 <template>
   <el-dialog
     v-model="visible"
-    title="故障详情"
-    width="80%"
+    title="精扫故障标记"
+    fullscreen
     lock-scroll
     destroy-on-close
     :close-on-click-modal="false"
-    style="min-width: 650px"
   >
     <div class="fault-viewer">
       <div class="left-content">
@@ -160,7 +253,13 @@ defineExpose({
               @error="handleLoadErr"
               @load="handleLoadSuggess"
             />
-            <canvas ref="canvasRef" class="fault-canvas"></canvas>
+            <canvas
+              ref="canvasRef"
+              class="fault-canvas"
+              @mousedown="mousedownMark"
+              @mouseup="mouseupMark"
+              @mousemove="mousemoveMark"
+            />
           </div>
         </div>
         <div class="toggle-action">
@@ -177,15 +276,33 @@ defineExpose({
       </div>
       <div class="right-content">
         <div class="fault-info">
-          <div v-if="currentItem?.faultFrames?.length" class="info-title">
-            <span>故障描述：</span>
-          </div>
-          <div v-for="item in currentItem?.faultFrames" :key="item?.id">
-            <span :class="item?.affirm === '1' ? 'has-fault' : 'no-fault'">{{
-              item?.affirm === '1' ? '正报' : '误报'
-            }}</span>
-            <span>{{ item?.faultDesc }}</span>
-          </div>
+          <el-form
+            ref="formRef"
+            :model="formData"
+            :rules="formRules"
+            label-width="auto"
+            label-position="right"
+            class="demo-ruleForm"
+            status-icon
+          >
+            <el-form-item label="检测时间"> 2024-04-07 09:28:10 </el-form-item>
+            <el-form-item label="车型车号"> CRH1E-1071 </el-form-item>
+            <el-form-item label="图片通道" prop="caimid">
+              <el-select v-model="formData.caimid" placeholder="请选择">
+                <el-option label="精扫1" value="1" />
+                <el-option label="精扫2" value="2" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="故障类型" prop="faultType">
+              <el-select v-model="formData.faultType" placeholder="请选择">
+                <el-option label="异常" value="1" />
+                <el-option label="松动" value="1" />
+              </el-select>
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" @click="submitForm(formRef)"> 保存 </el-button>
+            </el-form-item>
+          </el-form>
         </div>
         <div class="fault-operation">
           <div class="btns">
@@ -227,7 +344,7 @@ defineExpose({
 <style lang="scss" scoped>
 .fault-viewer {
   width: 100%;
-  height: 68vh;
+  height: calc(100vh - var(--el-dialog-padding-primary) * 3 - 25px);
   overflow: hidden;
   @include flex;
   > div {
@@ -242,8 +359,8 @@ defineExpose({
       .fault-img-wrapper {
         width: 100%;
         height: calc(100% - 45px);
-        position: relative;
         overflow: hidden;
+        position: relative;
         .inner-wrapper {
           position: absolute;
           width: 100%;
@@ -293,22 +410,6 @@ defineExpose({
         text-align: left;
         line-height: 30px;
         font-size: 14px;
-        .info-title {
-          font-size: 16px;
-          color: var(--el-color-primary);
-        }
-        div > span {
-          &:first-child {
-            padding-right: 10px;
-            font-weight: 600;
-          }
-          &.has-fault {
-            color: var(--el-color-danger);
-          }
-          &.no-fault {
-            color: var(--el-color-success);
-          }
-        }
       }
       .btns {
         @include flex;

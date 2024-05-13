@@ -164,7 +164,7 @@ const exportFault = () => {
 <template>
   <div class="checkData">
     <PassTrainFilter @getPassTrainData="getPassTrainData" />
-    <div class="check-data-main">
+    <div class="check-data-main" v-loading="loading" element-loading-background="transparent">
       <div class="check-data-top">
         <div class="train-info">
           <div>
@@ -266,7 +266,7 @@ const exportFault = () => {
           />
         </div>
       </div>
-      <div class="check-data-render" v-loading="loading" element-loading-background="transparent">
+      <div class="check-data-render">
         <template v-if="list.length">
           <JsRender v-if="showType === 'GRID'" :list="list" />
           <KsRender v-else :list="list" :isVertical="isVertical" />

@@ -301,6 +301,7 @@ const showBigImg = async (e, idx, url) => {
         :key="url"
         :src="`${imgBaseUrl}${url}`"
         lazy
+        crossorigin="anonymous"
         @click="showBigImg($event, index, url)"
       />
     </div>

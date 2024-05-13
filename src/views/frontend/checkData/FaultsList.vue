@@ -252,6 +252,7 @@ defineExpose({
                 :src="row?.handledImg"
                 style="width: auto; height: 50px"
                 lazy
+                crossorigin="anonymous"
                 preview-teleported
                 :preview-src-list="handledImgs"
                 :initial-index="$index"
