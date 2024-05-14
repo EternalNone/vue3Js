@@ -256,6 +256,9 @@ defineExpose({
                 preview-teleported
                 :preview-src-list="handledImgs"
                 :initial-index="$index"
+                @dragover.prevent
+                @drop.prevent
+                @dragstart.prevent
               />
               <span v-if="item.slotName === 'lw'">
                 {{ row[item.prop] < 10 ? `0${row[item.prop]}车` : `${row[item.prop]}车` }}

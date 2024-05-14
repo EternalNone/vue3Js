@@ -159,6 +159,9 @@ defineExpose({
               crossorigin="anonymous"
               @error="handleLoadErr"
               @load="handleLoadSuggess"
+              @dragover.prevent
+              @drop.prevent
+              @dragstart.prevent
             />
             <canvas ref="canvasRef" class="fault-canvas"></canvas>
           </div>

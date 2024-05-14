@@ -303,6 +303,9 @@ const showBigImg = async (e, idx, url) => {
         lazy
         crossorigin="anonymous"
         @click="showBigImg($event, index, url)"
+        @dragover.prevent
+        @drop.prevent
+        @dragstart.prevent
       />
     </div>
     <div :class="isVertical ? 'fault-canvas-v faults-canvas' : 'fault-canvas-h faults-canvas'">

@@ -197,6 +197,9 @@ const mousewheel = (e) => {
 }
 // 标注-鼠标按下
 const mousedownMark = (e) => {
+  if (mousexy.value.location.length) {
+    mousexy.value.location = []
+  }
   isDrawing.value = true
   mousexy.value.startX = e.offsetX
   mousexy.value.startY = e.offsetY
@@ -216,7 +219,7 @@ const mouseupMark = () => {
 }
 
 const submitForm = async (formEl) => {
-  console.log('dddddddddd',mousexy.value.location)
+  console.log('dddddddddd', mousexy.value.location)
   if (!formEl) return
   await formEl.validate((valid, fields) => {
     if (valid) {
@@ -252,6 +255,9 @@ defineExpose({
               crossorigin="anonymous"
               @error="handleLoadErr"
               @load="handleLoadSuggess"
+              @dragover.prevent
+              @drop.prevent
+              @dragstart.prevent
             />
             <canvas
               ref="canvasRef"

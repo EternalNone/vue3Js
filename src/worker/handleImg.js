@@ -115,8 +115,8 @@ class TaskQueue {
             const { width, height } = imgBitmap
             existW = width
             existH = height
-            const imgStartX = isKs ? (isVertical ? 0 : index * width) : 0 // 图片的起始x坐标
-            const imgStartY = isKs ? (isVertical ? index * height : 0) : 0 // 图片的起始y坐标
+            const imgStartX = isKs ? (isVertical ? 0 : (index + batchNo) * width) : 0 // 图片的起始x坐标
+            const imgStartY = isKs ? (isVertical ? (index + batchNo) * height : 0) : 0 // 图片的起始y坐标
             // 绘制图片
             offscreenCanvas.width = width
             offscreenCanvas.height = height
@@ -136,8 +136,10 @@ class TaskQueue {
               )
               return {
                 ...fault,
-                coordinateX: coordinateX - imgStartX,
-                coordinateY: coordinateY - imgStartY
+                x: coordinateX, // 整图上的x坐标
+                y: coordinateY, // 整图上的y坐标
+                coordinateX: coordinateX - imgStartX, // 当前图片上的x坐标
+                coordinateY: coordinateY - imgStartY // 当前图片上的y坐标
               }
             })
             // 转成dataUrl用于主线程img展示

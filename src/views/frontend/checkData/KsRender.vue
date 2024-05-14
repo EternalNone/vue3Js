@@ -129,6 +129,9 @@ const handlePreview = async (e, idx) => {
         lazy
         crossorigin="anonymous"
         @click="handlePreview($event, index)"
+        @dragover.prevent
+        @drop.prevent
+        @dragstart.prevent
       />
     </div>
   </div>

@@ -10,8 +10,8 @@ import { useGlobalStore } from '@/store/modules/global'
 import { download } from '@/utils/file.js'
 import PassTrainFilter from '@/components/PassTrainFilter.vue'
 import TrainCarriage from '@/components/TrainCarriage.vue'
-// import KsRender from './KsRender1.vue'
-import KsRender from './KsRender.vue'
+import KsRender1 from './KsRender1.vue'
+// import KsRender from './KsRender.vue'
 import JsRender from './JsRender.vue'
 import FaultsList from './FaultsList.vue'
 
@@ -269,7 +269,8 @@ const exportFault = () => {
       <div class="check-data-render">
         <template v-if="list.length">
           <JsRender v-if="showType === 'GRID'" :list="list" />
-          <KsRender v-else :list="list" :isVertical="isVertical" />
+          <!-- <KsRender v-else :list="list" :isVertical="isVertical" /> -->
+          <KsRender1 v-else :list="list" :isVertical="isVertical" />
         </template>
         <el-empty v-else description="暂无数据" />
       </div>

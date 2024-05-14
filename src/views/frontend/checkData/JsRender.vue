@@ -73,7 +73,14 @@ const openFaultViewer = (idx) => {
         @click="openFaultViewer(idx)"
       >
         <div class="img">
-          <el-image :src="item.handledImg" crossorigin="anonymous" lazy></el-image>
+          <el-image
+            :src="item.handledImg"
+            crossorigin="anonymous"
+            lazy
+            @dragover.prevent
+            @drop.prevent
+            @dragstart.prevent
+          />
         </div>
         <div v-if="item.faultFrames.length" class="title">
           <div
