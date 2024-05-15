@@ -143,11 +143,10 @@ defineExpose({
   <el-dialog
     v-model="visible"
     title="故障详情"
-    width="80%"
+    fullscreen
     lock-scroll
     destroy-on-close
     :close-on-click-modal="false"
-    style="min-width: 650px"
   >
     <div class="fault-viewer">
       <div class="left-content">
@@ -171,7 +170,7 @@ defineExpose({
             <el-icon><DArrowLeft /></el-icon>
             <span style="margin-left: 6px">上一张</span>
           </el-button>
-          <div class="img-path">{{ currentItem?.imgPath }}</div>
+          <div class="img-path">图片路径：{{ currentItem?.imgPath }}</div>
           <el-button type="primary" link :disabled="curIdx >= list.length - 1" @click="next">
             <span style="margin-right: 6px">下一张</span>
             <el-icon><DArrowRight /></el-icon>
@@ -230,14 +229,14 @@ defineExpose({
 <style lang="scss" scoped>
 .fault-viewer {
   width: 100%;
-  height: 68vh;
+  height: calc(100vh - var(--el-dialog-padding-primary) * 3 - 25px);
   overflow: hidden;
   @include flex;
   > div {
     height: 100%;
     &.left-content {
-      width: calc(100% - 300px);
-      min-width: 300px;
+      width: calc(100% - 370px);
+      min-width: 350px;
       height: 100%;
       background: rgba(0, 0, 0, 0.8);
       border-radius: 6px;
@@ -261,6 +260,11 @@ defineExpose({
             display: block;
             width: 100%;
             height: 100%;
+            &.img-wrap {
+              :deep(.el-image__error) {
+                font-size: 40px;
+              }
+            }
           }
         }
       }
@@ -287,7 +291,7 @@ defineExpose({
       }
     }
     &.right-content {
-      width: 300px;
+      width: 350px;
       margin-left: 20px;
       flex-shrink: 0;
       @include flex($dir: column, $jc: space-between);
@@ -313,14 +317,14 @@ defineExpose({
           }
         }
       }
-      .btns {
-        @include flex;
-        .el-button {
-          width: 50%;
-        }
-      }
       .fault-operation {
         width: 100%;
+        .btns {
+          @include flex;
+          .el-button {
+            width: 50%;
+          }
+        }
       }
     }
   }

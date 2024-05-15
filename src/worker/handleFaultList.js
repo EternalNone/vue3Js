@@ -68,68 +68,57 @@ self.onmessage = async (event) => {
   let offscreenCanvas = new OffscreenCanvas(0, 0) // 创建离屏canvas
   let offscreenCtx = offscreenCanvas.getContext('2d')
   const processedList = []
-  
   for (const item of list) {
-    let existW = 1228 // 默认的图片宽度
-    let existH = 600 // 默认的图片高度
-    let width = 0
-    let height = 0
+    let canW = 0
+    let canH = 0
     let startX = 0
     let startY = 0
     let url = ''
     let fullPath = ''
     const itemImgs = item?.faultImages || []
+    const len = itemImgs.length
     // 将所有的图片转化为bitmap格式，请求或者转换失败，则返回null
     const itemBitmapImgs = await Promise.all(
       itemImgs.map(async (imgPath) => {
-        const cachedImg = getFromCache(`${imgBaseUrl}${imgPath}`) // 过期时间为1小时
+        const cachedImg = getFromCache(`${imgBaseUrl}${imgPath}`)
         if (cachedImg) {
           // 缓存中存在从缓存中获取
-          existW = cachedImg.width
-          existH = cachedImg.height
           return cachedImg
         } else {
           // 否则重新加载
           const imgBitmap = await urlToBitmap(`${imgBaseUrl}${imgPath}`)
           if (imgBitmap && imgBitmap.width && imgBitmap.height) {
-            existW = imgBitmap.width
-            existH = imgBitmap.height
             addToCache(`${imgBaseUrl}${imgPath}`, imgBitmap) // 添加到缓存中
           }
           return imgBitmap
         }
       })
     )
-    // 根据拼接方式，计算画布的宽高，对于图片不存在的场景，取默认的宽高
-    itemBitmapImgs.forEach((item) => {
-      if (isVertical) {
-        height += item?.height || existH
-        width = Math.max(width, item?.width || existW)
-      } else {
-        width += item?.width || existW
-        height = Math.max(height, item?.height || existH)
-      }
-    })
-    // 设置画布尺寸
-    offscreenCanvas.width = width
-    offscreenCanvas.height = height
-    offscreenCtx.clearRect(0, 0, width, height)
 
-    if (itemBitmapImgs.some((item) => item?.width && item?.height)) {
+    const existImg = itemBitmapImgs.find((item) => item?.width && item?.height)
+    if (existImg) {
+      const w = existImg.width
+      const h = existImg.height
+      canW = isVertical ? w : w * len
+      canH = isVertical ? h * len : h
+      // 设置画布尺寸
+      offscreenCanvas.width = canW
+      offscreenCanvas.height = canH
+      offscreenCtx.clearRect(0, 0, canW, canH)
       // 绘制图片、图片为null时绘制默认的图片及提示文字
-      itemBitmapImgs.forEach((item) => {
-        if (item?.width && item?.height) {
+      itemBitmapImgs.forEach((img) => {
+        if (img?.width && img?.height) {
           if (isVertical) {
             startX = 0
-            offscreenCtx.drawImage(item, startX, startY, item?.width, item?.height)
-            startY += item?.height || existH
+            offscreenCtx.drawImage(img, startX, startY, w, h)
+            startY += h
           } else {
             startY = 0
-            offscreenCtx.drawImage(item, startX, startY, item?.width, item?.height)
-            startX += item?.width || existW
+            offscreenCtx.drawImage(img, startX, startY, w, h)
+            startX += w
           }
         } else {
-          drawDefaultImg(offscreenCtx, existW, existH, startX, startY)
+          drawDefaultImg(offscreenCtx, w, h, startX, startY)
         }
       })
       fullPath = await canvasToBlob(offscreenCanvas) // 将拼好的图片转成dataUrl
@@ -141,14 +130,16 @@ self.onmessage = async (event) => {
     } else {
       fullPath = `${imgBaseUrl}${item?.faultImages[0]}`
       url = `${imgBaseUrl}${item?.faultImages[0]}`
+      canW = item?.checkTypeRobot === '1' ? 2048 : 1228 // 精扫图片默认宽度取2048，快扫1228
+      canH = item?.checkTypeRobot === '1' ? 1536 : 600 // 精扫图片默认高度取1536，快扫600
       item.imgLoadFailed = true
     }
 
     item.handledImg = url
     item.fullPath = fullPath
-    item.imgPath = itemImgs.join(';')
-    item.imgW = width
-    item.imgH = height
+    item.imgPath = itemImgs.join(' ; ')
+    item.imgW = canW
+    item.imgH = canH
     item.faultFrames = [
       {
         affirm: item.faultAffirm,

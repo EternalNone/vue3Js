@@ -2,142 +2,191 @@
 
 const faultStrokeStyle = '#FA6157' // 故障框线条颜色
 const faultStrokeWidth = 3 // 故障框线条宽度
-// 判断两个矩形是否有重叠
-const isRectOverlap = (rect1, rect2) => {
-  return (
-    rect1.startX <= rect2.endX &&
-    rect1.endX >= rect2.startX &&
-    rect1.startY <= rect2.endY &&
-    rect1.endY >= rect2.startY
-  )
-}
-self.onmessage = async (event) => {
-  const { imgs, faults, imgBaseUrl, batchSize, isVertical } = event.data
-  let offscreenCanvas = new OffscreenCanvas(0, 0) // 创建离屏canvas
-  let offscreenCtx = offscreenCanvas.getContext('2d')
-  let curIdx = 0 // 当前分批处理图片的批次号
-  let processedImages = [] // 存放处理好的图片
+const imageCache = new Map() // 图片缓存
 
-  while (curIdx < imgs.length) {
-    const batchUrls = imgs.slice(curIdx, curIdx + batchSize) // 图片分批
-    const batchData = await Promise.all(
-      batchUrls.map(async (url) => {
-        try {
-          const response = await fetch(`${imgBaseUrl}${url}`)
-          if (!response.ok) {
-            // 图片请求失败
-            console.error(`Error loading image: ${url}`)
-            return null
-          }
-          const blob = await response.blob()
-          if (blob?.type?.includes('image')) {
-            return createImageBitmap(blob)
-          } else {
-            // 非图片文件
-            console.error(`createImageBitmap failed,not image or image not found`)
-            return null
-          }
-        } catch (error) {
-          console.error(`Error loading image: ${url}`, error)
-          return null // 返回null表示图片加载失败
+// 添加图像到缓存，并设置创建时间
+const addToCache = (url, imgBitmap) => {
+  imageCache.set(url, { imgBitmap, timestamp: Date.now() })
+}
+
+// 获取缓存时检查时间戳，决定是否清除，默认过期时间为14400000毫秒（4小时）
+const getFromCache = (url, expirationTime = 14400000) => {
+  const cacheItem = imageCache.get(url)
+  if (cacheItem && Date.now() - cacheItem.timestamp < expirationTime) {
+    return cacheItem.imgBitmap
+  } else {
+    imageCache.delete(url) // 清除过期的缓存
+    return null
+  }
+}
+// 将图片url转成bitmap、失败的场景返回null
+const urlToBitmap = async (url) => {
+  try {
+    const response = await fetch(url, { mode: 'cors' })
+    if (!response.ok) {
+      // 图片请求失败
+      console.error(`Error fetch image: ${url}`)
+      return null
+    }
+    const blob = await response.blob()
+    if (blob?.type?.includes('image')) {
+      const imgBitmap = await createImageBitmap(blob)
+      return imgBitmap
+    } else {
+      console.error(`Invalid image type: ${url}`)
+      return null
+    }
+  } catch (error) {
+    console.error(`Error creating image bitmap: ${error}`)
+    return null
+  }
+}
+// 将canvas转成图片
+const canvasToBlob = async (canvas) => {
+  const blob = await canvas.convertToBlob({ type: 'image/webp', quality: 0.5 })
+  const url = await new Promise((resolve) => {
+    const reader = new FileReader()
+    reader.readAsDataURL(blob)
+    reader.onloadend = () => resolve(reader.result)
+  })
+  return url
+}
+
+class TaskQueue {
+  constructor() {
+    this.queue = []
+    this.isProcessing = false
+    this.shouldStop = false // 新增标志，用于控制是否停止当前任务
+  }
+
+  enqueue(task) {
+    this.clearQueue() // 清空队列中的旧任务
+    this.queue.push(task)
+    this.processQueue()
+  }
+  clearQueue() {
+    this.queue = [] // 清空队列
+    this.shouldStop = true // 设置停止标志，用于中断正在执行的任务
+  }
+  async processQueue() {
+    if (this.isProcessing || this.queue.length === 0) {
+      return
+    }
+    this.isProcessing = true
+    this.shouldStop = false // 重置停止标志
+    // 每次执行新的任务，通知主线程，清空list
+    self.postMessage({ type: 'clear' })
+    const task = this.queue.shift()
+    await this.processTask(task)
+    this.isProcessing = false
+    if (this.queue.length > 0) {
+      this.processQueue() // 如果在处理当前任务时有新任务加入，继续处理
+    }
+  }
+
+  async processTask(data) {
+    const {
+      list,
+      imgBaseUrl,
+      isKs = false,
+      isVertical = false,
+      w,
+      h,
+      batchSize = 10,
+      rotateAngle = (3 * Math.PI) / 2
+    } = data
+    let batchNo = 0
+    let offscreenCanvas = new OffscreenCanvas(0, 0)
+    let offscreenCtx = offscreenCanvas.getContext('2d')
+    let existW = 0
+    let existH = 0
+    let processedList = []
+    while (batchNo < list.length && !this.shouldStop) {
+      const batchList = list.slice(batchNo, batchNo + batchSize) // 列表分批
+      // 具体处理逻辑
+      for (const [index, item] of batchList.entries()) {
+        if (this.shouldStop) break // 在处理每个项目前检查是否应该停止
+        let handledImg = `${imgBaseUrl}${item?.imgPath}` // 故障和图片绘制在一起的图片url，没有故障时，默认原图url
+        const fullPath = `${imgBaseUrl}${item?.imgPath}` // 图片完整路径,包含域名和端口
+        // 该图片中有故障
+        let imgBitmap = null
+        const cachedImg = getFromCache(fullPath)
+        if (cachedImg) {
+          // 缓存中存在从缓存中获取
+          imgBitmap = cachedImg
+        } else {
+          // 否则重新加载
+          imgBitmap = await urlToBitmap(fullPath)
         }
-      })
-    )
-    const existImage = batchData.find((item) => item && item.width && item.height) // 找到一张存在的图片
-    if (existImage) {
-      const { width, height } = existImage
-      offscreenCanvas.width = width
-      offscreenCanvas.height = height
-      processedImages = await Promise.all(
-        batchData.map(async (image, index) => {
-          const curImgIdx = curIdx + index // 当前图片的索引
-          if (image) {
-            const imgStartX = isVertical ? 0 : curImgIdx * width // 图片的起始x坐标
-            const imgStartY = isVertical ? curImgIdx * height : 0 // 图片的起始y坐标
-            const imgEndX = imgStartX + width // 图片的结束x坐标
-            const imgEndY = imgStartY + height // 图片的结束y坐标
-            // 找出故障中与当前图片重叠的故障框
-            const faultsInPics = faults.filter((fault) => {
-              const { coordinateX, coordinateY, width, height } = fault
-              if (
-                isRectOverlap(
-                  {
-                    startX: coordinateX,
-                    endX: coordinateX + width,
-                    startY: coordinateY,
-                    endY: coordinateY + height
-                  },
-                  {
-                    startX: imgStartX,
-                    endX: imgEndX,
-                    startY: imgStartY,
-                    endY: imgEndY
-                  }
-                )
-              ) {
-                return fault
-              }
-            })
-            if (faultsInPics.length) {
-              // 图片中存在故障，需要把图片和故障绘制到一张图中
-              offscreenCtx.drawImage(image, 0, 0, width, height)
-              // 绘制故障
-              offscreenCtx.strokeStyle = faultStrokeStyle
-              offscreenCtx.lineWidth = faultStrokeWidth
-              faultsInPics.forEach((item) => {
-                const { coordinateX, coordinateY, width, height } = item
-                offscreenCtx.strokeRect(
-                  coordinateX - imgStartX,
-                  coordinateY - imgStartY,
-                  width,
-                  height
-                )
-              })
-            } else {
-              // 图片中没有故障，则无需绘制，直接返回原url
-              return `${imgBaseUrl}${imgs[curImgIdx]}`
-            }
-          } else {
-            // 所有图片获取失败的场景，绘制一张默认的图片及提示文字
-            // offscreenCtx.fillStyle = '#f5f7fa'
-            // offscreenCtx.fillRect(0, 0, width, height)
-            // const text = '图片加载失败'
-            // offscreenCtx.fillStyle = '#a8abb2'
-            // offscreenCtx.font = '30px Arial'
-            // const textWidth = offscreenCtx.measureText(text).width
-            // const textX = (width - textWidth) / 2
-            // const textY = height / 2
-            // offscreenCtx.fillText(text, textX, textY)
-            // 所有图片获取失败的场景，直接返回原url
-            return `${imgBaseUrl}${imgs[curImgIdx]}`
-          }
+        if (imgBitmap && imgBitmap.width && imgBitmap.height) {
+          addToCache(fullPath, imgBitmap) // 添加到缓存中
+          const { width, height } = imgBitmap
+          existW = height
+          existH = width
+          const imgStartX = isKs ? (isVertical ? 0 : (index + batchNo) * width) : 0 // 图片的起始x坐标
+          const imgStartY = isKs ? (isVertical ? (index + batchNo) * height : 0) : 0 // 图片的起始y坐标
+          // 绘制图片
+          offscreenCanvas.width = height
+          offscreenCanvas.height = width
+          offscreenCtx.save()
+          // offscreenCtx.clearRect(0, 0, width, height)
+          // 将绘图原点移动到画布中心
+          offscreenCtx.translate(offscreenCanvas.width / 2, offscreenCanvas.height / 2)
+
+          // 旋转90度
+          offscreenCtx.rotate(rotateAngle)
+
+          // 绘制图片,以图片的中心为原点
+          offscreenCtx.drawImage(imgBitmap, -width / 2, -height / 2, width, height)
+
+          // 恢复之前保存的绘图状态
+          offscreenCtx.restore()
+          // 绘制故障
+          // offscreenCtx.strokeStyle = faultStrokeStyle
+          // offscreenCtx.lineWidth = faultStrokeWidth
+          // // 绘制故障，并且把快扫的故障坐标换算成当前图片的坐标
+          // item.faultFrames = item.faultFrames.map((fault) => {
+          //   const { coordinateX, coordinateY, width, height } = fault
+          //   offscreenCtx.strokeRect(coordinateX - imgStartX, coordinateY - imgStartY, width, height)
+          //   return {
+          //     ...fault,
+          //     x: coordinateX, // 整图上的x坐标
+          //     y: coordinateY, // 整图上的y坐标
+          //     coordinateX: coordinateX - imgStartX, // 当前图片上的x坐标
+          //     coordinateY: coordinateY - imgStartY // 当前图片上的y坐标
+          //   }
+          // })
           // 转成dataUrl用于主线程img展示
-          const blob = await new Promise((resolve) => {
-            offscreenCanvas.convertToBlob({ type: 'image/jpeg', quality: 0.8 }).then(resolve)
-          })
-          const url = await new Promise((resolve) => {
-            const reader = new FileReader()
-            reader.readAsDataURL(blob)
-            reader.onloadend = () => {
-              resolve(reader.result)
-            }
-          })
-          return url
+          const url = await canvasToBlob(offscreenCanvas)
           // 如果要用于主线程canvas中绘制，则按下述方式
           // const canvas = offscreenCanvas.transferToImageBitmap()
-          // return canvas
-        })
-      )
-      console.log('processedImages', processedImages)
-      self.postMessage({ processedImages, width, height })
-    }
+          handledImg = url
+        }
 
-    processedImages.length = 0 // 批处理完后清空处理好的图片
-    curIdx += batchSize
+        processedList.push({ ...item, handledImg, fullPath })
+      }
+      if (!this.shouldStop) {
+        // 处理每个图片的尺寸，如果所有图片都加载失败，则取主线程传过来的默认尺寸
+        processedList = processedList.map((item) => {
+          return { ...item, imgW: existW || w, imgH: existH || h }
+        })
+        console.log(list.length)
+        self.postMessage({ type: 'update', processedList, width: existW, height: existH })
+        processedList.length = 0
+        batchNo += batchSize
+      }
+    }
+    offscreenCanvas = null
+    offscreenCtx = null
+    batchNo = 0
+    existW = 0
+    existH = 0
+    processedList.length = 0
   }
-  // 处理完所有图片后释放离屏canvas及其他变量
-  offscreenCanvas = null
-  offscreenCtx = null
-  curIdx = null
-  processedImages.length = 0
+}
+
+const taskQueue = new TaskQueue()
+
+self.onmessage = (event) => {
+  taskQueue.enqueue(event.data)
 }

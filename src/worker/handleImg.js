@@ -102,16 +102,16 @@ class TaskQueue {
         if (item.faultFrames.length) {
           // 该图片中有故障
           let imgBitmap = null
-          const cachedImg = getFromCache(`${imgBaseUrl}${item?.imgPath}`)
+          const cachedImg = getFromCache(fullPath)
           if (cachedImg) {
             // 缓存中存在从缓存中获取
             imgBitmap = cachedImg
           } else {
             // 否则重新加载
-            imgBitmap = await urlToBitmap(`${imgBaseUrl}${item?.imgPath}`)
+            imgBitmap = await urlToBitmap(fullPath)
           }
           if (imgBitmap && imgBitmap.width && imgBitmap.height) {
-            addToCache(`${imgBaseUrl}${item?.imgPath}`, imgBitmap) // 添加到缓存中
+            addToCache(fullPath, imgBitmap) // 添加到缓存中
             const { width, height } = imgBitmap
             existW = width
             existH = height
@@ -144,6 +144,8 @@ class TaskQueue {
             })
             // 转成dataUrl用于主线程img展示
             const url = await canvasToBlob(offscreenCanvas)
+            // 如果要用于主线程canvas中绘制，则按下述方式
+            // const canvas = offscreenCanvas.transferToImageBitmap()
             handledImg = url
           }
         } else {
@@ -151,13 +153,13 @@ class TaskQueue {
           if (existW === 0 && existH === 0) {
             // 防止图片的尺寸未获取到，这里再次获取
             let imgBitmap = null
-            const cachedImg = getFromCache(`${imgBaseUrl}${item?.imgPath}`) // 过期时间为1小时
+            const cachedImg = getFromCache(fullPath) // 过期时间为1小时
             if (cachedImg) {
               // 缓存中存在从缓存中获取
               imgBitmap = cachedImg
             } else {
               // 否则重新加载
-              imgBitmap = await urlToBitmap(`${imgBaseUrl}${item?.imgPath}`)
+              imgBitmap = await urlToBitmap(fullPath)
             }
             if (imgBitmap && imgBitmap.width && imgBitmap.height) {
               existW = imgBitmap.width

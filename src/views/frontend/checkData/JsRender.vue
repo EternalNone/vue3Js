@@ -1,5 +1,6 @@
 <script setup name="JsRender">
 import FaultViewer from '@/components/FaultViewer.vue'
+import JSFaultMark from '@/components/JSFaultMark.vue'
 
 const worker = new Worker(new URL('@/worker/handleImg.js', import.meta.url)) // 创建Web Worker
 const imgBaseUrl = import.meta.env.VITE_IMAGE_BASE_URL // 对应环境的图片域名及端口
@@ -13,6 +14,7 @@ const props = defineProps({
 })
 const { list } = toRefs(props)
 const faultViewerRef = ref(null)
+const jsFaultMarkRef = ref(null)
 const state = reactive({
   handledList: [],
   imgW: 2048,
@@ -51,7 +53,11 @@ onUnmounted(() => {
 
 // 打开故障查看器
 const openFaultViewer = (idx) => {
-  faultViewerRef.value.show({
+  // faultViewerRef.value.show({
+  //   data: toRaw(handledList.value),
+  //   idx
+  // })
+  jsFaultMarkRef.value.show({
     data: toRaw(handledList.value),
     idx
   })
@@ -102,6 +108,7 @@ const openFaultViewer = (idx) => {
     </el-row>
   </div>
   <FaultViewer ref="faultViewerRef" />
+  <JSFaultMark ref="jsFaultMarkRef" />
 </template>
 
 <style lang="scss" scoped>

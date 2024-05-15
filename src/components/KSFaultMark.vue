@@ -1,23 +1,24 @@
-<script setup name="JSFaultMark">
-import { ZoomIn, Refresh, DArrowLeft, DArrowRight, CircleCheck } from '@element-plus/icons-vue'
+<script setup name="KSFaultMark">
+import { ZoomIn, Refresh, CircleCheck } from '@element-plus/icons-vue'
 import { useWinResize } from '@/hooks/useWinResize'
+import { urlToBitmap, canvasToBlob } from '@/utils/img'
 import CssFilter from './CssFilter.vue'
 
 const faultStrokeStyle = '#FA6157' // 故障框线条颜色
 const faultStrokeWidth = 3 // 故障框线条宽度
 
-const cssFilterRef = ref(null)
-const innerRef = ref(null)
-const canvasRef = ref(null)
-const formRef = ref(null)
 const state = reactive({
   list: [],
-  curIdx: 0,
+  previewList: [], // 预览图
   visible: false, // 弹框是否显示
   viewerVisible: false, // 图片查看器是否显示
   disabled: false, // 是否禁用滤镜等功能
   scale: 1, // 容器中刚好完整显示图片全部内容的缩放比例，该值用于重置cssScale
   cssScale: 1, // 容器的css缩放比例，跟绘制图片无关，纯css缩放效果
+  imgW: 1228, // 图片宽度
+  imgH: 600, // 图片高度
+  isVertical: true,
+  firstImgStart: 0,
   mousexy: {
     startX: 0,
     startY: 0,
@@ -27,16 +28,15 @@ const state = reactive({
   },
   isDrawing: false,
   formData: {
-    caimid: '',
     part: '',
     desc: '',
     faultType: ''
   },
   formRules: {
-    caimid: [
+    part: [
       {
         required: true,
-        message: '请选择图片通道'
+        message: '请选择故障部位'
       }
     ],
     faultType: [
@@ -47,37 +47,50 @@ const state = reactive({
     ]
   }
 })
+
+const cssFilterRef = ref(null)
+const innerRef = ref(null)
+const canvasRef = ref(null)
+const formRef = ref(null)
 const {
   list,
-  curIdx,
+  previewList,
   visible,
   viewerVisible,
   scale,
   disabled,
   cssScale,
+  imgW,
+  imgH,
   formData,
   formRules,
   mousexy,
-  isDrawing
+  isDrawing,
+  isVertical,
+  firstImgStart
 } = toRefs(state)
-const currentItem = computed(() => list.value[curIdx.value])
-const handledImgs = computed(() => list.value.map((item) => item.handledImg)) // 处理好的图片列表
-
+const imgRatio = computed(() => imgW.value / imgH.value) // 图像宽高比
+const imgPaths = computed(() => list.value.map((item) => item.imgPath)?.join(' ; '))
 watch(cssScale, (newVal) => {
   if (!innerRef.value) {
     return
   }
   innerRef.value.style.transform = `scale(${newVal})`
 })
-
+// 打开弹框
 const show = (obj) => {
   visible.value = true
   list.value = obj?.data || []
-  curIdx.value = obj?.idx || 0
+  imgW.value = obj?.imgW || imgW.value
+  imgH.value = obj?.imgH || imgH.value
+  isVertical.value = obj?.isVertical
+  mousexy.value.location = obj?.fault ? [obj?.fault] : []
+  firstImgStart.value = obj?.firstImgStart || 0
   cssScale.value = 1
   cssFilterRef.value?.resetFilter()
   nextTick(init)
 }
+// 初始化容器及画布
 const init = () => {
   if (visible.value) {
     const container = document.querySelector('.fault-img-wrapper')
@@ -85,58 +98,37 @@ const init = () => {
     const canvas = canvasRef.value
     const width = container?.clientWidth
     const height = container?.clientHeight
-    const imgW = currentItem.value?.imgW || 0
-    const imgH = currentItem.value?.imgH || 0
-    if (imgW === 0 || imgH === 0) {
-      // 图片加载失败，尺寸获取不到的情况下
-      return
-    }
+    const innerW = isVertical.value ? imgW.value : imgW.value * list.value.length
+    const innerH = isVertical.value ? imgH.value * list.value.length : imgH.value
     const containerRatio = width / height
-    const imgRatio = imgW / imgH
-    const left = (width - imgW) / 2
-    const top = (height - imgH) / 2
+    const innerRatio = innerW / innerH
+    const left = (width - innerW) / 2
+    const top = (height - innerH) / 2
 
     let drawW = 0,
       drawH = 0
-    if (imgRatio - containerRatio > 0) {
+    if (innerRatio - containerRatio > 0) {
       // 原图宽度更宽，按照画布宽度来画
       drawW = width
-      drawH = drawW / imgRatio
+      drawH = drawW / innerRatio
     } else {
       drawH = height
-      drawW = drawH * imgRatio
+      drawW = drawH * innerRatio
     }
-    scale.value = drawW / imgW
-    cssScale.value = drawW / imgW
-    console.log('xxxxxxxxxxxx', drawW / imgW)
+    scale.value = drawW / imgW.value
+    cssScale.value = drawW / innerW
     if (inner) {
-      inner.style.width = `${imgW}px`
-      inner.style.height = `${imgH}px`
+      inner.style.width = `${innerW}px`
+      inner.style.height = `${innerH}px`
       inner.style.left = `${left}px`
       inner.style.top = `${top}px`
-      canvas.width = imgW
-      canvas.height = imgH
+      canvas.width = innerW
+      canvas.height = innerH
     }
-    // initFaults()
+    drawFault()
   }
 }
-// 绘制已有故障
-// const initFaults = () => {
-//   const canvas = canvasRef.value
-//   const ctx = canvas.getContext('2d')
-//   const imgW = currentItem.value?.imgW || 0
-//   const imgH = currentItem.value?.imgH || 0
-//   ctx.clearRect(0, 0, imgW, imgH)
-//   ctx.strokeStyle = faultStrokeStyle
-//   ctx.lineWidth = faultStrokeWidth
-//   if (currentItem.value?.faultFrames?.length > 0) {
-//     currentItem.value?.faultFrames?.forEach((fault) => {
-//       const { coordinateX, coordinateY, width, height } = fault
-//       ctx.strokeRect(coordinateX, coordinateY, width, height)
-//     })
-//   }
-// }
-// 新增故障绘制
+// 绘制故障
 const drawFault = () => {
   const { location } = mousexy.value
   if (!location.length) return
@@ -147,25 +139,12 @@ const drawFault = () => {
   ctx.lineWidth = faultStrokeWidth
   location.forEach((item) => {
     const { x, y, w, h } = item
-    ctx.strokeRect(x, y, w, h)
+    const startX = isVertical.value ? x : x - firstImgStart.value
+    const startY = isVertical.value ? y - firstImgStart.value : y
+    ctx.strokeRect(startX, startY, w, h)
   })
 }
-// 切换下一张精扫图
-const next = () => {
-  if (curIdx.value < list.value.length - 1) {
-    reset()
-    curIdx.value++
-    init()
-  }
-}
-// 切换上一张精扫图
-const prev = () => {
-  if (curIdx.value > 0) {
-    reset()
-    curIdx.value--
-    init()
-  }
-}
+
 // 当前图片加载失败的时候，禁用滤镜等操作
 const handleLoadErr = () => {
   disabled.value = true
@@ -174,6 +153,50 @@ const handleLoadErr = () => {
 const handleLoadSuggess = () => {
   disabled.value = false
 }
+// 点击预览图片和故障
+const handlePreview = async () => {
+  const { location } = mousexy.value
+  let offscreenCanvas = new OffscreenCanvas(0, 0)
+  let offscreenCtx = offscreenCanvas.getContext('2d')
+  offscreenCanvas.width = isVertical.value ? imgW.value : imgW.value * list.value.length
+  offscreenCanvas.height = isVertical.value ? imgH.value * list.value.length : imgH.value
+  offscreenCtx.clearRect(0, 0, offscreenCanvas.width, offscreenCanvas.height)
+  // 请求当前故障涉及的图片
+  const imgs = await Promise.all(
+    list.value.map(async (item) => {
+      const imgBitmap = await urlToBitmap(item.fullPath)
+      return imgBitmap
+    })
+  )
+  // 根据布局绘制图片
+  imgs.forEach(async (item, index) => {
+    if (item && item.width && item.height) {
+      const imgStartX = isVertical.value ? 0 : index * imgW.value // 图片的起始x坐标
+      const imgStartY = isVertical.value ? index * imgH.value : 0 // 图片的起始y坐标
+      offscreenCtx.drawImage(item, imgStartX, imgStartY, imgW.value, imgH.value)
+    }
+  })
+
+  // 故障存在则绘制故障框
+  if (location.length) {
+    offscreenCtx.strokeStyle = faultStrokeStyle
+    offscreenCtx.lineWidth = faultStrokeWidth
+    location.forEach((item) => {
+      const { x, y, w, h } = item
+      // 故障框的坐标是相对于整体的，要转换成相对于当前绘制图片的坐标
+      const startX = isVertical.value ? x : x - firstImgStart.value
+      const startY = isVertical.value ? y - firstImgStart.value : y
+      offscreenCtx.strokeRect(startX, startY, w, h)
+    })
+  }
+  // canvas转图片用于预览
+  const url = await canvasToBlob(offscreenCanvas)
+  previewList.value = [url]
+  viewerVisible.value = true
+  offscreenCanvas = null
+  offscreenCtx = null
+}
+
 // 重置滤镜及缩放
 const reset = () => {
   cssScale.value = scale.value
@@ -194,7 +217,6 @@ const mousewheel = (e) => {
 }
 // 标注-鼠标按下
 const mousedownMark = (e) => {
-  if (disabled.value) return
   if (mousexy.value.location.length) {
     mousexy.value.location = []
   }
@@ -204,14 +226,16 @@ const mousedownMark = (e) => {
 }
 // 标注-鼠标移动
 const mousemoveMark = (e) => {
-  if (!isDrawing.value || e.buttons !== 1 || disabled.value) return
+  if (!isDrawing.value || e.buttons !== 1) return
   const { startX, startY } = mousexy.value
   const endX = e.offsetX
   const endY = e.offsetY
   mousexy.value.endX = endX
   mousexy.value.endY = endY
-  const x = Math.min(startX, endX)
-  const y = Math.min(startY, endY)
+  const minX = Math.min(startX, endX)
+  const minY = Math.min(startY, endY)
+  const x = isVertical.value ? minX : firstImgStart.value + minX
+  const y = isVertical.value ? firstImgStart.value + minY : minY
   const w = Math.abs(endX - startX)
   const h = Math.abs(endY - startY)
   mousexy.value.location = [{ x, y, w, h }]
@@ -219,15 +243,15 @@ const mousemoveMark = (e) => {
 }
 // 标注-鼠标抬起
 const mouseupMark = () => {
-  if (!isDrawing.value || disabled.value) return
+  if (!isDrawing.value) return
   isDrawing.value = false
 }
-// 表单重置
+// 重置表单
 const resetForm = () => {
   if (!formRef.value) return
   formRef.value.resetFields()
 }
-// 表单提交
+// 提交表单
 const submitForm = async () => {
   if (!formRef.value) return
   await formRef.value.validate((valid, fields) => {
@@ -258,9 +282,14 @@ defineExpose({
     <div class="fault-viewer">
       <div class="left-content">
         <div class="fault-img-wrapper" @mousewheel="mousewheel">
-          <div class="inner-wrapper" ref="innerRef">
+          <div
+            :class="isVertical ? 'inner-wrapper inner-wrapper-v' : 'inner-wrapper inner-wrapper-h'"
+            ref="innerRef"
+          >
             <el-image
-              :src="currentItem?.fullPath"
+              v-for="item in list"
+              :key="item.imgPath"
+              :src="item?.fullPath"
               class="img-wrap"
               crossorigin="anonymous"
               @error="handleLoadErr"
@@ -278,17 +307,7 @@ defineExpose({
             />
           </div>
         </div>
-        <div class="toggle-action">
-          <el-button type="primary" link :disabled="curIdx <= 0" @click="prev">
-            <el-icon><DArrowLeft /></el-icon>
-            <span style="margin-left: 6px">上一张</span>
-          </el-button>
-          <div class="img-path">图片路径：{{ currentItem?.imgPath }}</div>
-          <el-button type="primary" link :disabled="curIdx >= list.length - 1" @click="next">
-            <span style="margin-right: 6px">下一张</span>
-            <el-icon><DArrowRight /></el-icon>
-          </el-button>
-        </div>
+        <div class="img-path-list">图片路径：{{ imgPaths }}</div>
       </div>
       <div class="right-content">
         <div class="fault-info">
@@ -303,10 +322,10 @@ defineExpose({
           >
             <el-form-item label="检测时间"> 2024-04-07 09:28:10 </el-form-item>
             <el-form-item label="车型车号"> CRH1E-1071 </el-form-item>
-            <el-form-item label="图片通道" prop="caimid">
-              <el-select v-model="formData.caimid" placeholder="请选择">
-                <el-option label="精扫1" value="1" />
-                <el-option label="精扫2" value="2" />
+            <el-form-item label="图片通道" prop="part">
+              <el-select v-model="formData.part" placeholder="请选择">
+                <el-option label="部位1" value="1" />
+                <el-option label="部位1" value="2" />
               </el-select>
             </el-form-item>
             <el-form-item label="故障类型" prop="faultType">
@@ -337,16 +356,6 @@ defineExpose({
         <div class="fault-operation">
           <div class="btns">
             <el-button
-              type="primary"
-              :icon="ZoomIn"
-              Round
-              auto-insert-space
-              :disabled="disabled"
-              @click="viewerVisible = true"
-            >
-              查看
-            </el-button>
-            <el-button
               type="info"
               :icon="Refresh"
               Round
@@ -355,6 +364,16 @@ defineExpose({
               @click="reset"
             >
               重置
+            </el-button>
+            <el-button
+              type="primary"
+              :icon="ZoomIn"
+              Round
+              auto-insert-space
+              :disabled="disabled"
+              @click="handlePreview"
+            >
+              查看
             </el-button>
           </div>
           <CssFilter ref="cssFilterRef" selector=".img-wrap" :disabled="disabled" />
@@ -365,8 +384,7 @@ defineExpose({
   <el-image-viewer
     v-if="viewerVisible"
     teleported
-    :url-list="handledImgs"
-    :initial-index="curIdx"
+    :url-list="previewList"
     @close="viewerVisible = false"
   />
 </template>
@@ -401,38 +419,44 @@ defineExpose({
             width: 100%;
             height: 100%;
           }
-          .el-image {
-            display: block;
-            width: 100%;
-            height: 100%;
-            &.img-wrap {
-              :deep(.el-image__error) {
-                font-size: 40px;
+          &.inner-wrapper-v {
+            .el-image {
+              display: block;
+              width: 100%;
+              height: auto;
+              aspect-ratio: v-bind(imgRatio);
+              &.img-wrap {
+                :deep(.el-image__error) {
+                  font-size: 40px;
+                }
+              }
+            }
+          }
+          &.inner-wrapper-h {
+            @include flex;
+            .el-image {
+              display: block;
+              width: auto;
+              height: 100%;
+              aspect-ratio: v-bind(imgRatio);
+              &.img-wrap {
+                :deep(.el-image__error) {
+                  font-size: 40px;
+                }
               }
             }
           }
         }
       }
-      .toggle-action {
+      .img-path-list {
         width: 100%;
         padding: 15px 15px 0;
-        flex-shrink: 0;
-        @include flex($jc: space-between);
-        .img-path {
-          width: calc(100% - 150px);
-          color: #fff;
-          font-size: 14px;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          text-align: center;
-        }
-        .el-button {
-          color: #fff;
-          &.is-disabled {
-            color: rgba(255, 255, 255, 0.5);
-          }
-        }
+        color: #fff;
+        font-size: 14px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        text-align: center;
       }
     }
     &.right-content {
@@ -457,6 +481,7 @@ defineExpose({
           }
         }
       }
+
       .fault-operation {
         width: 100%;
         .btns {

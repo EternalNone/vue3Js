@@ -1,5 +1,6 @@
 <script setup name="KsRender1">
 import FaultViewer from '@/components/FaultViewer.vue'
+import KSFaultMark from '@/components/KSFaultMark.vue'
 
 const worker = new Worker(new URL('@/worker/handleImg.js', import.meta.url)) // 创建Web Worker
 const imgBaseUrl = import.meta.env.VITE_IMAGE_BASE_URL // 对应环境的图片域名及端口
@@ -23,6 +24,7 @@ const { isVertical, list } = toRefs(props)
 const scrollContainerRef = ref(null) // canvas容器的模板引用
 const faultCanvasRefs = ref([]) // 故障canvas的模板引用
 const faultViewerRef = ref(null)
+const ksFaultMarkRef = ref(null)
 const state = reactive({
   showViewer: false, // 是否显示查看器
   canvasList: [], // canvas列表
@@ -31,7 +33,7 @@ const state = reactive({
   imgW: 1228, // 图片宽度
   imgH: 600, // 图片高度
   isDrawing: false,
-  editMode: false, // 是否开启标注模式
+  editMode: true, // 是否开启标注模式
   mousexy: {
     point1: {
       x: 0,
@@ -130,6 +132,11 @@ const drawFaults = (isAdd = false) => {
     }
   }
 }
+watch([imgW, imgH, isVertical], () => {
+  // 图片尺寸变化后需要重新初始化画布
+  initCanvas()
+})
+// 数据变化，通知子进程处理数据
 watch(
   list,
   (newVal) => {
@@ -143,18 +150,16 @@ watch(
       h: imgH.value,
       isKs: true // 是否是快扫
     })
-    nextTick(initCanvas)
   },
   { deep: true, immediate: true }
 )
+// 故障变化后重新绘制故障框
 watch(
   allFaults,
   (newVal) => {
     console.log('ksFaults', newVal)
     if (handledList.value.length === list.value.length) {
-      nextTick(() => {
-        drawFaults()
-      })
+      nextTick(drawFaults)
     }
   },
   { immediate: true, deep: true }
@@ -302,6 +307,48 @@ const mouseupMark = () => {
   const { point1, point2, location } = mousexy.value
   if ((point1.x === point2.x && point1.y === point2.y) || !location.length) return
   isDrawing.value = false
+  // 根据location中的坐标和宽高，确定故障所在的图片
+  const { x, y, width, height } = location[0]
+  const imgsWithFault = handledList.value.filter((_, idx) => {
+    const imgStartX = isVertical.value ? 0 : imgW.value * idx
+    const imgStartY = isVertical.value ? imgH.value * idx : 0
+    const imgEndX = imgStartX + imgW.value
+    const imgEndY = imgStartY + imgH.value
+    return isRectOverlap(
+      {
+        startX: x,
+        endX: x + width,
+        startY: y,
+        endY: y + height
+      },
+      {
+        startX: imgStartX,
+        endX: imgEndX,
+        startY: imgStartY,
+        endY: imgEndY
+      }
+    )
+  })
+  if (imgsWithFault.length) {
+    const firstImg = imgsWithFault[0]
+    // 找到第一张图片的索引及起始位置
+    const firstImgIdx = handledList.value.findIndex((item) => item.fullPath === firstImg.fullPath)
+    const firstImgStart = isVertical.value ? firstImgIdx * imgH.value : firstImgIdx * imgW.value
+
+    ksFaultMarkRef.value.show({
+      data: toRaw(imgsWithFault),
+      imgW: imgW.value,
+      imgH: imgH.value,
+      isVertical: isVertical.value,
+      fault: {
+        x,
+        y,
+        w: width,
+        h: height
+      },
+      firstImgStart
+    })
+  }
 }
 </script>
 <template>
@@ -338,6 +385,7 @@ const mouseupMark = () => {
     :initial-index="curIdx"
   />
   <FaultViewer ref="faultViewerRef" />
+  <KSFaultMark ref="ksFaultMarkRef" />
 </template>
 
 <style lang="scss" scoped>

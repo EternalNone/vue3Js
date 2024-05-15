@@ -111,7 +111,6 @@ const handledImgs = computed(() => handledList.value.map((item) => item.handledI
 
 // 监听Web Worker消息
 worker.onmessage = function (event) {
-  console.log('mmmmmmmmmmmmmmmmmmmm')
   const { processedList } = event.data
   handledList.value = processedList
 }
@@ -135,8 +134,8 @@ const close = () => {
 }
 // 获取列表数据
 const getData = () => {
+  handledList.value = []
   if (!trainNo.value) {
-    handledList.value = []
     pagination.value.total = 0
     return
   }
@@ -149,18 +148,16 @@ const getData = () => {
     pageSize
   }
 
-  getFaultsList(param)
-    .then(async (res) => {
-      pagination.value.total = res.total || 0
-      if (res?.records?.length) {
-        worker?.postMessage({
-          list: res.records,
-          imgBaseUrl,
-          isVertical: isVertical.value
-        })
-      }
-    })
-    .finally(() => (loading.value = false))
+  getFaultsList(param).then(async (res) => {
+    pagination.value.total = res.total || 0
+    if (res?.records?.length) {
+      worker?.postMessage({
+        list: res.records,
+        imgBaseUrl,
+        isVertical: isVertical.value
+      })
+    }
+  })
 }
 // 查看故障
 const handleView = (idx) => {
