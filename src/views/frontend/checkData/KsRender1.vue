@@ -1,8 +1,10 @@
 <script setup name="KsRender1">
+import { useIntersectionObserver } from '@vueuse/core'
 import FaultViewer from '@/components/FaultViewer.vue'
 import KSFaultMark from '@/components/KSFaultMark.vue'
+import ImgsSlider from '@/components/ImgsSlider.vue'
 
-const worker = new Worker(new URL('@/worker/handleImg.js', import.meta.url)) // 创建Web Worker
+const worker = new Worker(new URL('@/worker/drawImg.js', import.meta.url)) // 创建Web Worker
 const imgBaseUrl = import.meta.env.VITE_IMAGE_BASE_URL // 对应环境的图片域名及端口
 const batchSize = 10 // 每个canvas展示的图片数量
 const faultStrokeStyle = '#FA6157' // 故障框线条颜色
@@ -13,6 +15,10 @@ const props = defineProps({
     type: Boolean,
     default: true
   },
+  reverse: {
+    type: Boolean,
+    default: false
+  },
   list: {
     type: Array,
     default: () => [],
@@ -20,20 +26,23 @@ const props = defineProps({
   }
 })
 
-const { isVertical, list } = toRefs(props)
+const { isVertical, reverse, list } = toRefs(props)
+
 const scrollContainerRef = ref(null) // canvas容器的模板引用
+const imgsRef = ref([]) // 图片的模板引用
 const faultCanvasRefs = ref([]) // 故障canvas的模板引用
 const faultViewerRef = ref(null)
 const ksFaultMarkRef = ref(null)
+//异或运算符 ^,只有一个为true时才为true，其他场景都为false
+const showVertical = computed(() => Boolean(isVertical.value ^ reverse.value)) // 利用位运算，判断到底横向展示还是纵向
 const state = reactive({
-  showViewer: false, // 是否显示查看器
   canvasList: [], // canvas列表
   curIdx: 0, // 当前图片查看器查看的图片索引
   handledList: [], // 处理好的列表
   imgW: 1228, // 图片宽度
   imgH: 600, // 图片高度
   isDrawing: false,
-  editMode: true, // 是否开启标注模式
+  editMode: false, // 是否开启标注模式
   mousexy: {
     point1: {
       x: 0,
@@ -46,12 +55,16 @@ const state = reactive({
       idx: 0
     },
     location: []
-  }
+  },
+  imgInPortIdx: 0
 })
-const { showViewer, canvasList, curIdx, handledList, imgW, imgH, isDrawing, editMode, mousexy } =
+const { canvasList, curIdx, handledList, imgW, imgH, isDrawing, editMode, mousexy, imgInPortIdx } =
   toRefs(state)
+
 const imgRatio = computed(() => imgW.value / imgH.value) // 图像宽高比
-const handledImgs = computed(() => handledList.value.map((item) => item.handledImg)) // 处理好的图片列表
+const thumbnails = computed(() =>
+  handledList.value.map((item) => (reverse.value ? item.handledImg : item.fullPath))
+) // 处理好的图片列表
 const allFaults = computed(() => {
   let itemRects = []
   const obj = {}
@@ -63,6 +76,27 @@ const allFaults = computed(() => {
   return itemRects
 })
 const pointerEvents = computed(() => (editMode.value ? 'initial' : 'none'))
+const { stop } = useIntersectionObserver(
+  // 要观察的元素列表(这里是图片列表)
+  imgsRef,
+  (entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        if (entry.target) {
+          imgInPortIdx.value = Number(entry.target.getAttribute('data-idx'))
+        }
+      }
+    })
+  },
+  {
+    threshold: 0.8
+  }
+)
+
+onUnmounted(() => {
+  worker.terminate()
+  stop()
+})
 // 初始化画布
 const initCanvas = () => {
   const leftImgs = list.value?.length % batchSize // 计算最后一个canvas中img数量
@@ -73,7 +107,7 @@ const initCanvas = () => {
   for (let j = 0, len = faultCanvasRefs.value.length; j < len; j++) {
     const curCanvas = faultCanvasRefs.value[j]
     const totalImgsCount = j === len - 1 ? leftImgs + j * batchSize : (j + 1) * batchSize // 截止当前画布已经展示的图片数量
-    if (isVertical.value) {
+    if (showVertical.value) {
       curCanvas.width = imgW.value // 当前索引对应画布的宽度
       curCanvas.height = j === len - 1 ? imgH.value * leftImgs : imgH.value * batchSize // 当前索引对应画布的高度
       cEndX = imgW.value
@@ -91,33 +125,38 @@ const initCanvas = () => {
       curCanvas.setAttribute('end', cEndX)
     }
   }
+  drawFaults()
 }
 // 绘制故障框
-const drawFaults = (isAdd = false) => {
+const drawFaults = () => {
   console.log('draw faults', allFaults.value)
   for (let j = 0, len = faultCanvasRefs.value.length; j < len; j++) {
     const curCanvas = faultCanvasRefs.value[j]
     const ctx = curCanvas.getContext('2d')
-    const cStartX = isVertical.value ? 0 : Number(curCanvas.getAttribute('start')) // 当前canvas的起始x坐标
-    const cEndX = isVertical.value ? imgW.value : Number(curCanvas.getAttribute('end')) // 当前canvas的结束x坐标
-    const cStartY = isVertical.value ? Number(curCanvas.getAttribute('start')) : 0 // 当前canvas的起始y坐标
-    const cEndY = isVertical.value ? Number(curCanvas.getAttribute('end')) : imgH.value // 当前canvas的结束y坐标
+    const cStartX = showVertical.value ? 0 : Number(curCanvas.getAttribute('start')) // 当前canvas的起始x坐标
+    const cEndX = showVertical.value ? imgW.value : Number(curCanvas.getAttribute('end')) // 当前canvas的结束x坐标
+    const cStartY = showVertical.value ? Number(curCanvas.getAttribute('start')) : 0 // 当前canvas的起始y坐标
+    const cEndY = showVertical.value ? Number(curCanvas.getAttribute('end')) : imgH.value // 当前canvas的结束y坐标
 
-    ctx.clearRect(0, 0, curCanvas.width, curCanvas.height) // 清空画布
+    // ctx.clearRect(0, 0, curCanvas.width, curCanvas.height) // 清空画布
     ctx.strokeStyle = faultStrokeStyle
     ctx.lineWidth = faultStrokeWidth
-    const faultList = isAdd ? allFaults.value.concat(mousexy.value.location) : allFaults.value
+    const faultList = allFaults.value
     for (let i = 0, len = faultList.length; i < len; i++) {
       const curFault = faultList[i]
-      const { width, height, x, y } = curFault
+      const { w, h, gX, gY, revGx, revGy, revW, revH } = curFault
+      const faultX = reverse.value ? revGx : gX
+      const faultY = reverse.value ? revGy : gY
+      const faultW = reverse.value ? revW : w
+      const faultH = reverse.value ? revH : h
       // 判断故障框是否跟当前canvas重叠
       if (
         isRectOverlap(
           {
-            startX: x,
-            endX: x + width,
-            startY: y,
-            endY: y + height
+            startX: faultX,
+            endX: faultX + faultW,
+            startY: faultY,
+            endY: faultY + faultH
           },
           {
             startX: cStartX,
@@ -127,14 +166,19 @@ const drawFaults = (isAdd = false) => {
           }
         )
       ) {
-        ctx.strokeRect(x - cStartX, y - cStartY, width, height)
+        ctx.strokeRect(faultX - cStartX, faultY - cStartY, faultW, faultH)
       }
     }
   }
 }
-watch([imgW, imgH, isVertical], () => {
-  // 图片尺寸变化后需要重新初始化画布
-  initCanvas()
+watch(reverse, (newVal, oldVal) => {
+  if (newVal !== oldVal) {
+    imgInPortIdx.value = 0
+    const w = imgW.value
+    imgW.value = imgH.value
+    imgH.value = w
+    initCanvas()
+  }
 })
 // 数据变化，通知子进程处理数据
 watch(
@@ -147,41 +191,28 @@ watch(
       imgBaseUrl,
       isVertical: isVertical.value,
       w: imgW.value,
-      h: imgH.value,
-      isKs: true // 是否是快扫
+      h: imgH.value
     })
   },
   { deep: true, immediate: true }
 )
-// 故障变化后重新绘制故障框
-watch(
-  allFaults,
-  (newVal) => {
-    console.log('ksFaults', newVal)
-    if (handledList.value.length === list.value.length) {
-      nextTick(drawFaults)
-    }
-  },
-  { immediate: true, deep: true }
-)
+
 // 监听Web Worker消息
 worker.onmessage = function (event) {
-  const { type, processedList, width, height } = event.data
+  const { type, processedList, normalW, normalH, reverseW, reverseH } = event.data
   if (type === 'clear') {
     handledList.value = []
   } else if (type === 'update') {
     handledList.value = handledList.value?.concat(processedList)
-    imgW.value = width || imgW.value
-    imgH.value = height || imgH.value
+    imgW.value = reverse.value ? reverseW || imgW.value : normalW || imgW.value
+    imgH.value = reverse.value ? reverseH || imgH.value : normalH || imgH.value
   }
+  initCanvas()
 }
 
-onUnmounted(() => {
-  worker.terminate()
-})
 // 横向滚动事件
 const handleScroll = (e) => {
-  if (isVertical.value) {
+  if (showVertical.value) {
     return
   }
   // 检查是否按住了水平滚动条，如果是则不处理
@@ -216,7 +247,6 @@ const isRectOverlap = (rect1, rect2) => {
 const handlePreview = async (e, idx) => {
   const currentItem = handledList.value[idx]
   const currentFaults = currentItem.faultFrames
-  console.log('xxxxxxxxxxxx', currentItem)
   const containerW = scrollContainerRef.value.clientWidth
   const scale = imgW.value / containerW // 因为画面等比缩放，计算出缩放的比例
   const offsetX = e.offsetX * scale // 根据原图的尺寸算出x坐标
@@ -246,7 +276,6 @@ const handlePreview = async (e, idx) => {
     return
   }
   curIdx.value = idx
-  showViewer.value = true
 }
 
 const addNewFault = () => {
@@ -273,7 +302,6 @@ const addNewFault = () => {
   const width = Math.abs(sX - eX)
   const height = Math.abs(sY - eY)
   mousexy.value.location = [{ x, y, width, height }]
-  drawFaults(true)
 }
 // 标注-鼠标按下
 const mousedownMark = (idx, e) => {
@@ -350,23 +378,36 @@ const mouseupMark = () => {
     })
   }
 }
+// 滑块定位
+const sliderChange = (idx) => {
+  const ele = imgsRef.value[idx]
+  if (ele) {
+    ele?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+}
 </script>
 <template>
   <div class="canvas-content" ref="scrollContainerRef" @wheel="handleScroll">
-    <div :class="isVertical ? 'pics-wrap-v' : 'pics-wrap-h'">
-      <el-image
+    <div :class="showVertical ? 'pics-wrap-v' : 'pics-wrap-h'">
+      <div
+        class="img-wrap"
         v-for="(item, index) in handledList"
-        :key="item.fullPath"
-        :src="item.fullPath"
-        lazy
-        crossorigin="anonymous"
-        @click="handlePreview($event, index)"
-        @dragover.prevent
-        @drop.prevent
-        @dragstart.prevent
-      />
+        :key="reverse ? item.handledImg : item.fullPath"
+        :ref="(el) => (imgsRef[index] = el)"
+        :data-idx="index"
+      >
+        <el-image
+          :src="reverse ? item.handledImg : item.fullPath"
+          lazy
+          crossorigin="anonymous"
+          @click="handlePreview($event, index)"
+          @dragover.prevent
+          @drop.prevent
+          @dragstart.prevent
+        />
+      </div>
     </div>
-    <div :class="isVertical ? 'fault-canvas-v faults-canvas' : 'fault-canvas-h faults-canvas'">
+    <div :class="showVertical ? 'fault-canvas-v faults-canvas' : 'fault-canvas-h faults-canvas'">
       <canvas
         v-for="(_, index) in canvasList"
         :ref="(el) => (faultCanvasRefs[index] = el)"
@@ -378,14 +419,16 @@ const mouseupMark = () => {
     </div>
   </div>
 
-  <ElImageViewer
-    v-if="showViewer"
-    @close="() => (showViewer = false)"
-    :url-list="handledImgs"
-    :initial-index="curIdx"
-  />
   <FaultViewer ref="faultViewerRef" />
   <KSFaultMark ref="ksFaultMarkRef" />
+  <ImgsSlider
+    :images="thumbnails"
+    :step="10"
+    v-model="imgInPortIdx"
+    :vertical="showVertical"
+    :scrollRef="scrollContainerRef"
+    @change="sliderChange"
+  />
 </template>
 
 <style lang="scss" scoped>
@@ -398,26 +441,37 @@ const mouseupMark = () => {
   .pics-wrap-v {
     width: 100%;
     height: auto;
-    .el-image {
-      display: block;
+    .img-wrap {
       width: 100%;
       height: auto;
       aspect-ratio: v-bind(imgRatio);
-      border: none;
-      user-select: none;
-      cursor: pointer;
+      .el-image {
+        display: block;
+        width: 100%;
+        height: 100%;
+        // aspect-ratio: v-bind(imgRatio);
+        border: none;
+        user-select: none;
+        cursor: pointer;
+      }
     }
   }
   .pics-wrap-h {
     width: auto;
     height: 100%;
     @include flex($jc: flex-start);
-    .el-image {
-      display: block;
+    .img-wrap {
       width: auto;
       height: 100%;
       aspect-ratio: v-bind(imgRatio);
-      flex-shrink: 0;
+      .el-image {
+        display: block;
+        // width: auto;
+        width: 100%;
+        height: 100%;
+        // aspect-ratio: v-bind(imgRatio);
+        flex-shrink: 0;
+      }
     }
   }
   .faults-canvas {

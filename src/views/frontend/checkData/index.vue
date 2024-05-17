@@ -1,5 +1,6 @@
 <script setup name="CheckData">
 import { ElMessage } from 'element-plus'
+import { useFullscreen } from '@vueuse/core'
 import {
   getCheckDataPicList,
   getPassageway,
@@ -19,6 +20,7 @@ const globalStore = useGlobalStore()
 const { moduleType } = storeToRefs(globalStore)
 
 const faultListRef = ref(null)
+const checkeDataRenderRef = ref(null)
 const state = reactive({
   searchForm: {
     isFault: false, // 精扫列表是否只看异常图
@@ -31,7 +33,8 @@ const state = reactive({
   trainCarList: [], // 车厢列表
   loading: false, // 加载状态
   showType: 'VERTICAL', // 布局方式，横向、纵向、网格
-  list: [] // 图片及故障列表
+  list: [], // 图片及故障列表
+  reverse: false
 })
 const {
   searchForm,
@@ -41,10 +44,11 @@ const {
   loading,
   showType,
   list,
-  trainCarList
+  trainCarList,
+  reverse
 } = toRefs(state)
 const isVertical = computed(() => showType.value === 'VERTICAL')
-
+const { isFullscreen, toggle } = useFullscreen(checkeDataRenderRef)
 watch(moduleType, (newVal, oldVal) => {
   if (newVal !== oldVal) {
     getPassWayList()
@@ -166,58 +170,76 @@ const exportFault = () => {
     <PassTrainFilter @getPassTrainData="getPassTrainData" />
     <div class="check-data-main" v-loading="loading" element-loading-background="transparent">
       <div class="check-data-top">
-        <div class="train-info">
-          <div>
-            <span>检测状态：</span>
-            <span
-              :style="{
-                color:
-                  moduleType === 'OUTSIDE' || trainInfo.checkEndDate
-                    ? 'var(--el-color-success)'
-                    : 'var(--el-color-danger)'
-              }"
-            >
-              {{ moduleType === 'OUTSIDE' || trainInfo.checkEndDate ? '已完成' : '未完成' }}
-            </span>
-          </div>
-          <div>
+        <div class="info-status">
+          <div class="train-info">
+            <div>
+              <span>检测状态：</span>
+              <span
+                :style="{
+                  color:
+                    moduleType === 'OUTSIDE' || trainInfo.checkEndDate
+                      ? 'var(--el-color-success)'
+                      : 'var(--el-color-danger)'
+                }"
+              >
+                {{ moduleType === 'OUTSIDE' || trainInfo.checkEndDate ? '已完成' : '未完成' }}
+              </span>
+            </div>
+            <!-- <div>
             <span>车型车号：</span>
             <span>{{ `${trainInfo?.vehicleModel || '-'} ${trainInfo?.carNo || '-'}` }}</span>
-          </div>
-          <div v-show="moduleType === 'INSIDE'">
-            <span>端位：</span>
-            <span>{{ `0${trainInfo.endPosition ?? 0}` }}</span>
-          </div>
-          <div>
-            <span>编组类型：</span>
-            <span>
-              {{ getType(trainInfo.columnPosition, trainInfo.carNo) }}
-            </span>
-          </div>
-          <div v-show="moduleType === 'INSIDE'">
+          </div> -->
+            <div v-show="moduleType === 'INSIDE'">
+              <span>端位：</span>
+              <span>{{ `0${trainInfo.endPosition ?? 0}` }}</span>
+            </div>
+            <div>
+              <span>编组类型：</span>
+              <span>
+                {{ getType(trainInfo.columnPosition, trainInfo.carNo) }}
+              </span>
+            </div>
+            <!-- <div v-show="moduleType === 'INSIDE'">
             <span>股道：</span>
             <span>{{ trainInfo.trackNo || '--' }}</span>
-          </div>
-          <div v-if="trainInfo.columnPosition === '1' || trainInfo.columnPosition === '2'">
-            <span>列位：</span>
-            <span>{{ trainInfo.columnPosition || '--' }}</span>
-          </div>
-          <div class="date">
+          </div> -->
+            <div v-if="trainInfo.columnPosition === '1' || trainInfo.columnPosition === '2'">
+              <span>列位：</span>
+              <span>{{ trainInfo.columnPosition || '--' }}</span>
+            </div>
+            <!-- <div class="date">
             <span>{{ moduleType === 'OUTSIDE' ? '过车时间：' : '开始时间：' }}</span>
             <span>{{ trainInfo.checkStartDate || '--' }}</span>
           </div>
           <div class="date" v-show="moduleType === 'INSIDE'">
             <span>结束时间：</span>
             <span>{{ trainInfo.checkEndDate || '--' }}</span>
+          </div> -->
+            <div>
+              <span>故障数：</span>
+              <span style="color: var(--el-color-danger)">
+                {{ warningInfo.totalFaultCount ?? '--' }}
+              </span>
+            </div>
           </div>
-          <div>
-            <span>故障数：</span>
-            <span style="color: var(--el-color-danger)">
-              {{ warningInfo.totalFaultCount ?? '--' }}
-            </span>
+          <div class="status">
+            <div>
+              <i class="point" style="background: var(--el-color-primary)" />
+              待复核（{{ warningInfo.reviewCount || 0 }}）
+            </div>
+            <div>
+              <i class="point" style="background: var(--el-color-danger)" />
+              确报故障（{{ warningInfo.confirmCount || 0 }}）
+            </div>
+            <div>
+              <i class="point" style="background: var(--el-color-warning)" /> 误报故障{{
+                warningInfo.falseCount || 0
+              }}）
+            </div>
           </div>
         </div>
-        <div class="actions-status-wrap">
+
+        <div class="actions-wrap">
           <div class="actions">
             <el-select
               v-model="searchForm.code"
@@ -240,19 +262,27 @@ const exportFault = () => {
               <el-switch v-model="searchForm.isFault" @change="getData" />
             </div>
           </div>
-          <div class="status">
-            <div>
-              <i class="point" style="background: var(--el-color-primary)" />
-              待复核（{{ warningInfo.reviewCount || 0 }}）
+          <div class="imgs-show-tools">
+            <div class="tool-item" @click="reverse = !reverse">
+              <el-tooltip
+                effect="dark"
+                :content="Boolean(isVertical ^ reverse) ? '纵向看图' : '横向看图'"
+                placement="bottom"
+              >
+                <SvgIcon
+                  name="horizontal"
+                  :class="Boolean(isVertical ^ reverse) ? 'svg-icon-v' : ''"
+                />
+              </el-tooltip>
             </div>
-            <div>
-              <i class="point" style="background: var(--el-color-danger)" />
-              确报故障（{{ warningInfo.confirmCount || 0 }}）
-            </div>
-            <div>
-              <i class="point" style="background: var(--el-color-warning)" /> 误报故障{{
-                warningInfo.falseCount || 0
-              }}）
+            <div class="tool-item" @click="toggle">
+              <el-tooltip
+                effect="dark"
+                :content="isFullscreen ? '退出全屏' : '全屏看图'"
+                placement="bottom"
+              >
+                <SvgIcon :name="isFullscreen ? 'fullscreen-exit' : 'fullscreen'" />
+              </el-tooltip>
             </div>
           </div>
         </div>
@@ -266,11 +296,11 @@ const exportFault = () => {
           />
         </div>
       </div>
-      <div class="check-data-render">
+      <div class="check-data-render" ref="checkeDataRenderRef">
         <template v-if="list.length">
           <JsRender v-if="showType === 'GRID'" :list="list" />
           <!-- <KsRender v-else :list="list" :isVertical="isVertical" /> -->
-          <KsRender1 v-else :list="list" :isVertical="isVertical" />
+          <KsRender1 v-else :list="list" :isVertical="isVertical" :reverse="reverse" />
         </template>
         <el-empty v-else description="暂无数据" />
       </div>
@@ -296,25 +326,17 @@ const exportFault = () => {
       border-radius: 4px;
       padding: 10px 0;
       color: #fff;
-      .train-info {
-        padding: 0 10px;
-        @include flex($jc: flex-start) {
-          flex-wrap: wrap;
-        }
-        > div {
-          line-height: 30px;
-          font-size: 14px;
-          padding: 0 10px;
-        }
-      }
-      .actions-status-wrap {
-        padding: 0 20px;
+      .info-status {
         @include flex($jc: space-between);
-        flex-wrap: wrap;
-        .actions {
-          @include flex($jc: flex-start);
-          .el-button {
-            margin-left: 10px;
+        .train-info {
+          padding: 0 10px;
+          @include flex($jc: flex-start) {
+            flex-wrap: wrap;
+          }
+          > div {
+            line-height: 30px;
+            font-size: 14px;
+            padding: 0 10px;
           }
         }
         .status {
@@ -325,6 +347,36 @@ const exportFault = () => {
             width: 10px;
             height: 10px;
             border-radius: 50%;
+          }
+        }
+      }
+      .actions-wrap {
+        padding: 10px 20px 0;
+        @include flex($jc: space-between);
+        flex-wrap: wrap;
+        .actions {
+          @include flex($jc: flex-start);
+          .el-button {
+            margin-left: 10px;
+          }
+        }
+        .imgs-show-tools {
+          @include flex($jc: flex-end);
+          .tool-item {
+            padding: 10px;
+            color: #fff;
+            font-size: 16px;
+            cursor: pointer;
+            .svg-icon {
+              font-size: 20px;
+              color: #fff;
+              &:focus {
+                outline: none;
+              }
+              &.svg-icon-v {
+                transform: rotate(90deg);
+              }
+            }
           }
         }
       }

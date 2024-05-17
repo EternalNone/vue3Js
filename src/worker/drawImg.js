@@ -85,22 +85,16 @@ class TaskQueue {
   }
 
   async processTask(data) {
-    const {
-      list,
-      imgBaseUrl,
-      isKs = false,
-      isVertical = false,
-      w,
-      h,
-      batchSize = 10,
-      rotateAngle = (3 * Math.PI) / 2
-    } = data
+    const { list, imgBaseUrl, isVertical = false, w, h, batchSize = 10 } = data
     let batchNo = 0
     let offscreenCanvas = new OffscreenCanvas(0, 0)
     let offscreenCtx = offscreenCanvas.getContext('2d')
-    let existW = 0
-    let existH = 0
+    let normalW = 0 // 原图的宽
+    let normalH = 0 // 原图的高
+    let reverseW = 0 // 反转之后图片的宽
+    let reverseH = 0 // 反转之后图片的宽
     let processedList = []
+    const angle = isVertical ? 1.5 * Math.PI : 0.5 * Math.PI // 反转的角度，竖图转横图，横图转竖图
     while (batchNo < list.length && !this.shouldStop) {
       const batchList = list.slice(batchNo, batchNo + batchSize) // 列表分批
       // 具体处理逻辑
@@ -108,7 +102,6 @@ class TaskQueue {
         if (this.shouldStop) break // 在处理每个项目前检查是否应该停止
         let handledImg = `${imgBaseUrl}${item?.imgPath}` // 故障和图片绘制在一起的图片url，没有故障时，默认原图url
         const fullPath = `${imgBaseUrl}${item?.imgPath}` // 图片完整路径,包含域名和端口
-        // 该图片中有故障
         let imgBitmap = null
         const cachedImg = getFromCache(fullPath)
         if (cachedImg) {
@@ -121,20 +114,27 @@ class TaskQueue {
         if (imgBitmap && imgBitmap.width && imgBitmap.height) {
           addToCache(fullPath, imgBitmap) // 添加到缓存中
           const { width, height } = imgBitmap
-          existW = height
-          existH = width
-          const imgStartX = isKs ? (isVertical ? 0 : (index + batchNo) * width) : 0 // 图片的起始x坐标
-          const imgStartY = isKs ? (isVertical ? (index + batchNo) * height : 0) : 0 // 图片的起始y坐标
-          // 绘制图片
+
+          // 图片宽高互换
+          normalW = width
+          normalH = height
+          reverseW = height
+          reverseH = width
+          console.log('aaaaaaaaa', reverseW, reverseH)
+
+          const imgStartX = isVertical ? 0 : (index + batchNo) * normalW // 图片的起始x坐标
+          const imgStartY = isVertical ? (index + batchNo) * normalH : 0 // 图片的起始y坐标
+          const reverseImgStartX = isVertical ? (index + batchNo) * reverseW : 0 // 反转图片的起始x坐标
+          const reverseImgStartY = isVertical ? 0 : (index + batchNo) * reverseH // 反转图片的起始y坐标
+          // 绘制反转后的图片
           offscreenCanvas.width = height
           offscreenCanvas.height = width
           offscreenCtx.save()
-          // offscreenCtx.clearRect(0, 0, width, height)
           // 将绘图原点移动到画布中心
           offscreenCtx.translate(offscreenCanvas.width / 2, offscreenCanvas.height / 2)
 
-          // 旋转90度
-          offscreenCtx.rotate(rotateAngle)
+          // 旋转rotateAngle度
+          offscreenCtx.rotate(angle)
 
           // 绘制图片,以图片的中心为原点
           offscreenCtx.drawImage(imgBitmap, -width / 2, -height / 2, width, height)
@@ -144,23 +144,50 @@ class TaskQueue {
           // 绘制故障
           // offscreenCtx.strokeStyle = faultStrokeStyle
           // offscreenCtx.lineWidth = faultStrokeWidth
-          // // 绘制故障，并且把快扫的故障坐标换算成当前图片的坐标
-          // item.faultFrames = item.faultFrames.map((fault) => {
-          //   const { coordinateX, coordinateY, width, height } = fault
-          //   offscreenCtx.strokeRect(coordinateX - imgStartX, coordinateY - imgStartY, width, height)
-          //   return {
-          //     ...fault,
-          //     x: coordinateX, // 整图上的x坐标
-          //     y: coordinateY, // 整图上的y坐标
-          //     coordinateX: coordinateX - imgStartX, // 当前图片上的x坐标
-          //     coordinateY: coordinateY - imgStartY // 当前图片上的y坐标
-          //   }
-          // })
+          // 绘制故障，并且把快扫的故障坐标换算成当前图片的坐标
+
           // 转成dataUrl用于主线程img展示
           const url = await canvasToBlob(offscreenCanvas)
           // 如果要用于主线程canvas中绘制，则按下述方式
           // const canvas = offscreenCanvas.transferToImageBitmap()
           handledImg = url
+          item.faultFrames = item.faultFrames.map((fault) => {
+            const { coordinateX, coordinateY } = fault
+            // 图片旋转-90度时，故障宽高互换，坐标需要转换
+
+            // offscreenCtx.strokeRect(coordinateX - imgStartX, coordinateY - imgStartY, width, height)
+            return {
+              ...fault,
+              gX: coordinateX, // 原图整图x坐标
+              gY: coordinateY, // 原图整图y坐标
+              cX: coordinateX - imgStartX, // 原图当前图片上的x坐标
+              cY: coordinateY - imgStartY, // 原图当前图片上的y坐标
+              w: fault.width, // 原图故障的宽
+              h: fault.height, // 原图故障的高
+              revGx: isVertical ? coordinateY : reverseW - fault.height - coordinateY, // 反转图整图x坐标
+              revGy: isVertical ? reverseH - fault.width - coordinateX : coordinateX, // 反转图整图x坐标
+              revCx: isVertical
+                ? coordinateY - reverseImgStartX
+                : reverseW - fault.height - coordinateY - reverseImgStartX, // 反转图当前图片上的x坐标
+              revCy: isVertical
+                ? reverseH - fault.width - coordinateX - reverseImgStartY
+                : coordinateX - reverseImgStartY, // 反转图当前图片上的y坐标
+              revW: fault.height, // 反转图故障的宽
+              revH: fault.width // 反转图故障的高
+              // ghX: coordinateY, // 横向展示时整图上的x坐标
+              // ghY: width - fault.width - coordinateX + imgStartY, // 横向展示时整图上的x坐标
+              // chX: coordinateY - imgStartX, // 横向展示时当前图片上的x坐标
+              // chY: width - fault.width - coordinateX, // 横向展示时当前图片上的y坐标
+              // hw: fault.height, // 横向展示时故障的宽
+              // hh: fault.width, // 横向展示时故障的高
+              // gvX: coordinateX, // 纵向展示时整图上的x坐标
+              // gvY: coordinateY, // 纵向展示时整图上的x坐标
+              // cvX: coordinateY - imgStartX, // 纵向展示时当前图片上的x坐标
+              // cvY: width - fault.width - coordinateX, // 纵向展示时当前图片上的y坐标
+              // vw: fault.width, // 纵向展示时故障的宽
+              // vh: fault.height // 纵向展示时故障的高
+            }
+          })
         }
 
         processedList.push({ ...item, handledImg, fullPath })
@@ -168,10 +195,16 @@ class TaskQueue {
       if (!this.shouldStop) {
         // 处理每个图片的尺寸，如果所有图片都加载失败，则取主线程传过来的默认尺寸
         processedList = processedList.map((item) => {
-          return { ...item, imgW: existW || w, imgH: existH || h }
+          return {
+            ...item,
+            imgW: normalW || w,
+            imgH: normalH || h,
+            rImgW: reverseW || h,
+            rImgH: reverseH || w
+          }
         })
         console.log(list.length)
-        self.postMessage({ type: 'update', processedList, width: existW, height: existH })
+        self.postMessage({ type: 'update', processedList, normalW, normalH, reverseW, reverseH })
         processedList.length = 0
         batchNo += batchSize
       }
@@ -179,8 +212,8 @@ class TaskQueue {
     offscreenCanvas = null
     offscreenCtx = null
     batchNo = 0
-    existW = 0
-    existH = 0
+    normalW = 0
+    normalH = 0
     processedList.length = 0
   }
 }
