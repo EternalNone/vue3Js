@@ -1,7 +1,5 @@
 // worker.js
 
-const faultStrokeStyle = '#FA6157' // 故障框线条颜色
-const faultStrokeWidth = 3 // 故障框线条宽度
 const imageCache = new Map() // 图片缓存
 
 // 添加图像到缓存，并设置创建时间
@@ -114,48 +112,50 @@ class TaskQueue {
         if (imgBitmap && imgBitmap.width && imgBitmap.height) {
           addToCache(fullPath, imgBitmap) // 添加到缓存中
           const { width, height } = imgBitmap
-
           // 图片宽高互换
           normalW = width
           normalH = height
           reverseW = height
           reverseH = width
-          console.log('aaaaaaaaa', reverseW, reverseH)
 
           const imgStartX = isVertical ? 0 : (index + batchNo) * normalW // 图片的起始x坐标
           const imgStartY = isVertical ? (index + batchNo) * normalH : 0 // 图片的起始y坐标
           const reverseImgStartX = isVertical ? (index + batchNo) * reverseW : 0 // 反转图片的起始x坐标
           const reverseImgStartY = isVertical ? 0 : (index + batchNo) * reverseH // 反转图片的起始y坐标
-          // 绘制反转后的图片
-          offscreenCanvas.width = height
-          offscreenCanvas.height = width
-          offscreenCtx.save()
-          // 将绘图原点移动到画布中心
-          offscreenCtx.translate(offscreenCanvas.width / 2, offscreenCanvas.height / 2)
 
-          // 旋转rotateAngle度
-          offscreenCtx.rotate(angle)
+          // 尝试从缓存中获取旋转后的图片
+          const reverseUrl = getFromCache(`${fullPath}?reverse=1`)
+          if (reverseUrl) {
+            handledImg = reverseUrl
+          } else {
+            // 缓存中不存在，则重新在canvas中完成旋转
+            // 绘制反转后的图片
+            offscreenCanvas.width = height
+            offscreenCanvas.height = width
+            offscreenCtx.save()
+            // 将绘图原点移动到画布中心
+            offscreenCtx.translate(offscreenCanvas.width / 2, offscreenCanvas.height / 2)
 
-          // 绘制图片,以图片的中心为原点
-          offscreenCtx.drawImage(imgBitmap, -width / 2, -height / 2, width, height)
+            // 旋转rotateAngle度
+            offscreenCtx.rotate(angle)
 
-          // 恢复之前保存的绘图状态
-          offscreenCtx.restore()
-          // 绘制故障
-          // offscreenCtx.strokeStyle = faultStrokeStyle
-          // offscreenCtx.lineWidth = faultStrokeWidth
-          // 绘制故障，并且把快扫的故障坐标换算成当前图片的坐标
+            // 绘制图片,以图片的中心为原点
+            offscreenCtx.drawImage(imgBitmap, -width / 2, -height / 2, width, height)
 
-          // 转成dataUrl用于主线程img展示
-          const url = await canvasToBlob(offscreenCanvas)
-          // 如果要用于主线程canvas中绘制，则按下述方式
-          // const canvas = offscreenCanvas.transferToImageBitmap()
-          handledImg = url
+            // 恢复之前保存的绘图状态
+            offscreenCtx.restore()
+
+            // 转成dataUrl用于主线程img展示
+            const url = await canvasToBlob(offscreenCanvas)
+            // 如果要用于主线程canvas中绘制，则按下述方式
+            // const canvas = offscreenCanvas.transferToImageBitmap()
+            addToCache(`${fullPath}?reverse=1`, url) // 将旋转后的图片添加到缓存中
+            handledImg = url
+          }
+          // 格式化故障数据，分别计算原图、旋转图全局的坐标及相对于当前图的坐标
           item.faultFrames = item.faultFrames.map((fault) => {
             const { coordinateX, coordinateY } = fault
             // 图片旋转-90度时，故障宽高互换，坐标需要转换
-
-            // offscreenCtx.strokeRect(coordinateX - imgStartX, coordinateY - imgStartY, width, height)
             return {
               ...fault,
               gX: coordinateX, // 原图整图x坐标
@@ -174,18 +174,6 @@ class TaskQueue {
                 : coordinateX - reverseImgStartY, // 反转图当前图片上的y坐标
               revW: fault.height, // 反转图故障的宽
               revH: fault.width // 反转图故障的高
-              // ghX: coordinateY, // 横向展示时整图上的x坐标
-              // ghY: width - fault.width - coordinateX + imgStartY, // 横向展示时整图上的x坐标
-              // chX: coordinateY - imgStartX, // 横向展示时当前图片上的x坐标
-              // chY: width - fault.width - coordinateX, // 横向展示时当前图片上的y坐标
-              // hw: fault.height, // 横向展示时故障的宽
-              // hh: fault.width, // 横向展示时故障的高
-              // gvX: coordinateX, // 纵向展示时整图上的x坐标
-              // gvY: coordinateY, // 纵向展示时整图上的x坐标
-              // cvX: coordinateY - imgStartX, // 纵向展示时当前图片上的x坐标
-              // cvY: width - fault.width - coordinateX, // 纵向展示时当前图片上的y坐标
-              // vw: fault.width, // 纵向展示时故障的宽
-              // vh: fault.height // 纵向展示时故障的高
             }
           })
         }
@@ -203,7 +191,6 @@ class TaskQueue {
             rImgH: reverseH || w
           }
         })
-        console.log(list.length)
         self.postMessage({ type: 'update', processedList, normalW, normalH, reverseW, reverseH })
         processedList.length = 0
         batchNo += batchSize

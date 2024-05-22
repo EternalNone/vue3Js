@@ -30,14 +30,15 @@ const props = defineProps({
     default: 10
   }
 })
-const imgIdx = ref(0)
-const emits = defineEmits(['change', 'update:modelValue'])
+
 const { scrollRef, modelValue, images, vertical, step, space } = toRefs(props)
-const { isScrolling } = useScroll(scrollRef)
+const emits = defineEmits(['change', 'update:modelValue'])
 const container = ref(null) // 容器
 const slider = ref(null) // 滑块
 const thumbnails = ref(null) // 缩略图
 const position = ref(space.value) // 滑块位置
+const imgIdx = ref(0) // 当前视口中的图片索引
+const { isScrolling } = useScroll(scrollRef)
 const { left, top } = useElementBounding(container) // 响应式的获取容器位置
 const { width, height } = useElementSize(thumbnails) // 获取缩略图尺寸
 const imgSize = computed(() => `${step.value}px`)
@@ -46,6 +47,7 @@ const containerH = computed(() => `${height.value + space.value * 2}px`)
 const containerPadding = computed(() => `${space.value}px`)
 const positionWithUnit = computed(() => `${position.value}px`)
 
+// 监听滚动条状态及当前图片的索引，停止滚动时计算滑块距离
 watch([isScrolling, modelValue], ([newFlag, newVal]) => {
   if (!newFlag) {
     imgIdx.value = newVal
@@ -144,7 +146,7 @@ onUnmounted(() => {
   height: v-bind(containerH);
   padding: v-bind(containerPadding);
   border-radius: 8px;
-  background: var(--el-color-primary-light-3);
+  background-color: rgba(64, 158, 255, 0.5);
   @include flex;
 
   .slider {

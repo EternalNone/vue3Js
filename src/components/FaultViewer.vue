@@ -86,8 +86,8 @@ const initAndDraw = () => {
     ctx.lineWidth = faultStrokeWidth
     if (currentItem.value?.faultFrames?.length > 0) {
       currentItem.value?.faultFrames?.forEach((fault) => {
-        const { coordinateX, coordinateY, width, height } = fault
-        ctx.strokeRect(coordinateX, coordinateY, width, height)
+        const { w, h, cX, cY } = fault
+        ctx.strokeRect(cX, cY, w, h)
       })
     }
   }
