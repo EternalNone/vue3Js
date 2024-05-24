@@ -27,7 +27,7 @@ const resetFilter = () => {
   state.contrast = 100
   state.saturate = 100
   state.grayscale = 0
-    changeFilter()
+  changeFilter()
 }
 
 defineExpose({
@@ -37,7 +37,7 @@ defineExpose({
 
 <template>
   <div class="css-filter">
-    <div class="">
+    <div>
       <span style="letter-spacing: 1em">亮度</span>
       <el-slider
         v-model="brightness"
@@ -47,7 +47,7 @@ defineExpose({
         @change="changeFilter('brightness')"
       />
     </div>
-    <div class="">
+    <div>
       <span>对比度</span>
       <el-slider
         v-model="contrast"
@@ -57,7 +57,7 @@ defineExpose({
         @change="changeFilter('contrast')"
       />
     </div>
-    <div class="">
+    <div>
       <span>饱和度</span>
       <el-slider
         v-model="saturate"
@@ -67,7 +67,7 @@ defineExpose({
         @change="changeFilter('saturate')"
       />
     </div>
-    <div class="">
+    <div>
       <span style="letter-spacing: 1em">灰度</span>
       <el-slider
         v-model="grayscale"
@@ -82,12 +82,14 @@ defineExpose({
 
 <style lang="scss" scoped>
 .css-filter {
-  width: max(100%, 300px);
-  padding-right: 12px;
+  width: 100%;
+  @include flex($jc: flex-start) {
+    gap: 15px;
+  }
   > div {
-    width: 100%;
+    width: 25%;
     @include flex($jc: flex-start);
-    margin-top: 10px;
+    color: #fff;
     > span {
       width: 60px;
       font-size: 14px;

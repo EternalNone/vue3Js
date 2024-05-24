@@ -26,6 +26,7 @@ const state = reactive({
   vehicleModel: '', // 车型
   type: '', // 检测类型：TODAY—当天数据，LATEST_TEN_COUNT-最新10条数据，LATEST_FIFTEEN_DAY-最近15天
   carNo: '', // 车号
+  gd: '', // 股道
   transDate: [], // 日期
   pageInfo: {
     page: 0,
@@ -45,6 +46,7 @@ const {
   vehicleModel,
   type,
   carNo,
+  gd,
   transDate,
   tranTimer
 } = toRefs(state)
@@ -207,6 +209,7 @@ const toggleFilter = () => {
       <div class="train-type-no">
         <el-input v-model="vehicleModel" placeholder="车型" clearable @keydown.enter="search" />
         <el-input v-model="carNo" placeholder="车号" clearable @keydown.enter="search" />
+        <el-input v-model="gd" placeholder="股道" clearable @keydown.enter="search" />
       </div>
       <div class="btns">
         <el-button type="primary" @click="search">搜索</el-button>
@@ -301,6 +304,7 @@ const toggleFilter = () => {
       line-height: 34px;
       border-radius: 4px;
       overflow: hidden;
+      font-size: 14px;
       .quick-search-item {
         width: 50%;
         height: 100%;
@@ -345,8 +349,8 @@ const toggleFilter = () => {
         --el-input-text-color: #fff;
         --el-input-border-color: #fff;
         --el-input-hover-border-color: #fff;
-        &:last-child {
-          margin-left: 10px;
+        &:nth-child(2) {
+          margin: 0 10px;
         }
       }
     }

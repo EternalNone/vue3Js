@@ -10,7 +10,8 @@ import { useGlobalStore } from '@/store/modules/global'
 import { download } from '@/utils/file.js'
 import PassTrainFilter from '@/components/PassTrainFilter.vue'
 import TrainCarriage from '@/components/TrainCarriage.vue'
-import KsRender1 from './KsRender1.vue'
+import PassagewaySelect from '@/components/PassagewaySelect.vue'
+import KsRender2 from './KsRender2.vue'
 // import KsRender from './KsRender.vue'
 import JsRender from './JsRender.vue'
 import FaultsList from './FaultsList.vue'
@@ -46,6 +47,7 @@ const {
   reverse
 } = toRefs(state)
 const isVertical = computed(() => showType.value === 'VERTICAL')
+
 watch(moduleType, (newVal, oldVal) => {
   if (newVal !== oldVal) {
     getPassWayList()
@@ -166,8 +168,15 @@ const exportFault = () => {
   <div class="checkData">
     <PassTrainFilter @getPassTrainData="getPassTrainData" />
     <div class="check-data-main" v-loading="loading" element-loading-background="transparent">
-      <div class="check-data-top">
-        <div class="info-status">
+      <div class="check-data-info">
+        <div class="info-warp">
+          <PassagewaySelect
+            v-model="searchForm.code"
+            :moduleType="moduleType"
+            :list="passagewayList"
+            style="width: 100px"
+            @change="changePassageway"
+          />
           <div class="train-info">
             <div>
               <span>检测状态：</span>
@@ -203,7 +212,15 @@ const exportFault = () => {
               </span>
             </div>
           </div>
-          <div class="status">
+          <div class="actions">
+            <div style="margin-right: 10px" v-show="showType === 'GRID'">
+              <span style="padding: 0 10px; font-size: 14px">只看异常图</span>
+              <el-switch v-model="searchForm.isFault" />
+            </div>
+            <el-button type="primary" @click="exportFault">故障复核单</el-button>
+            <el-button type="primary" @click="showFaultList">故障列表</el-button>
+          </div>
+          <!-- <div class="status">
             <div>
               <i class="point" style="background: var(--el-color-primary)" />
               待复核（{{ warningInfo.reviewCount || 0 }}）
@@ -217,43 +234,15 @@ const exportFault = () => {
                 warningInfo.falseCount || 0
               }}）
             </div>
-          </div>
-        </div>
-
-        <div class="actions-wrap">
-          <div class="actions">
-            <el-select
-              v-model="searchForm.code"
-              placeholder="Select"
-              style="width: 100px"
-              @change="changePassageway"
-            >
-              <el-option
-                v-for="item in passagewayList"
-                :key="item.code"
-                :label="item.name"
-                :value="item.code"
-              />
-            </el-select>
-
-            <el-button type="primary" @click="exportFault">故障复核单</el-button>
-            <el-button type="primary" @click="showFaultList">故障列表</el-button>
-            <div style="margin-right: 10px" v-show="showType === 'GRID'">
-              <span style="padding: 0 10px; font-size: 14px">只看异常图</span>
-              <el-switch v-model="searchForm.isFault" @change="getData" />
-            </div>
-          </div>
-          <div class="imgs-show-tools">
-            
-          </div>
+          </div> -->
         </div>
         <div class="train-carriage-wrap">
           <TrainCarriage
-            :trainCarList="trainCarList"
-            :selectedCarNo="searchForm.fullCarNo"
+            :list="trainCarList"
+            v-model="searchForm.fullCarNo"
             :showAll="false"
             showSatus
-            @selectLw="selectLw"
+            @change="selectLw"
           />
         </div>
       </div>
@@ -261,7 +250,7 @@ const exportFault = () => {
         <template v-if="list.length">
           <JsRender v-if="showType === 'GRID'" :list="list" />
           <!-- <KsRender v-else :list="list" :isVertical="isVertical" /> -->
-          <KsRender1 v-else :list="list" :isVertical="isVertical" :reverse="reverse" />
+          <KsRender2 v-else :list="list" :isVertical="isVertical" :reverse="reverse" />
         </template>
         <el-empty v-else description="暂无数据" />
       </div>
@@ -281,24 +270,31 @@ const exportFault = () => {
     height: 100%;
     overflow: hidden;
     @include flex($dir: column, $al: stretch);
-    .check-data-top {
+    .check-data-info {
       background: rgba(255, 255, 255, 0.1);
       backdrop-filter: blur(10px);
       border-radius: 4px;
       padding: 10px 0;
       color: #fff;
-      .info-status {
-        @include flex($jc: space-between);
+      .info-warp {
+        padding: 0 20px;
+        @include flex($jc: flex-start);
         .train-info {
           padding: 0 10px;
           @include flex($jc: flex-start) {
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
           }
           > div {
+            white-space: nowrap;
+            overflow: hidden;
             line-height: 30px;
             font-size: 14px;
             padding: 0 10px;
           }
+        }
+        .actions {
+          margin-left: auto;
+          @include flex($jc: flex-end);
         }
         .status {
           @include flex($jc: flex-end);
@@ -309,21 +305,6 @@ const exportFault = () => {
             height: 10px;
             border-radius: 50%;
           }
-        }
-      }
-      .actions-wrap {
-        padding: 10px 20px 0;
-        @include flex($jc: space-between);
-        flex-wrap: wrap;
-        .actions {
-          @include flex($jc: flex-start);
-          .el-button {
-            margin-left: 10px;
-          }
-        }
-        .imgs-show-tools {
-          @include flex($jc: flex-end);
-          
         }
       }
       .train-carriage-wrap {

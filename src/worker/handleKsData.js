@@ -7,8 +7,8 @@ const addToCache = (url, imgBitmap) => {
   imageCache.set(url, { imgBitmap, timestamp: Date.now() })
 }
 
-// 获取缓存时检查时间戳，决定是否清除，默认过期时间为14400000毫秒（4小时）
-const getFromCache = (url, expirationTime = 14400000) => {
+// 获取缓存时检查时间戳，决定是否清除，默认过期时间为86400000毫秒（24小时）
+const getFromCache = (url, expirationTime = 86400000) => {
   const cacheItem = imageCache.get(url)
   if (cacheItem && Date.now() - cacheItem.timestamp < expirationTime) {
     return cacheItem.imgBitmap

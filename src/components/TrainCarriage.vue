@@ -1,11 +1,12 @@
 <script setup name="TrainCarriage">
+import { useVModel } from '@vueuse/core'
 const props = defineProps({
-  selectedCarNo: {
+  modelValue: {
     type: String,
     required: true,
     default: ''
   },
-  trainCarList: {
+  list: {
     type: Array,
     default: () => [],
     required: true
@@ -19,15 +20,18 @@ const props = defineProps({
     default: false
   }
 })
-const emits = defineEmits(['selectLw'])
-const selectItem = (sId) => {
-  if (sId !== props.selectedCarNo) {
-    emits('selectLw', sId)
+const emits = defineEmits(['change', 'update:modelValue'])
+const selected = useVModel(props, 'modelValue', emits)
+const selectItem = (val) => {
+  if (val !== selected.value) {
+    selected.value = val
+    emits('change', val)
   }
 }
 const selectAll = () => {
-  if (props.showAll) {
-    emits('selectLw', '')
+  if (props.showAll && '' !== selected.value) {
+    selected.value = ''
+    emits('change', '')
   }
 }
 </script>
@@ -35,16 +39,16 @@ const selectAll = () => {
 <template>
   <div class="train-carriage">
     <div
-      :class="selectedCarNo === '' ? 'train-header train-header-active' : 'train-header'"
+      :class="modelValue === '' ? 'train-header train-header-active' : 'train-header'"
       @click="selectAll"
     >
       <span v-if="showAll">全部</span>
     </div>
     <div
-      v-for="item in trainCarList"
+      v-for="item in list"
       :key="item.fullCarNo"
       @click="selectItem(item.fullCarNo)"
-      :class="['train-item', selectedCarNo === item.fullCarNo ? 'active' : '']"
+      :class="['train-item', modelValue === item.fullCarNo ? 'active' : '']"
     >
       <div class="no">{{ `${item.carriageNo}车` }}</div>
       <div v-if="showSatus" :class="['status', item.count !== 0 ? 'error' : '']">
@@ -59,6 +63,7 @@ const selectAll = () => {
 <style lang="scss" scoped>
 .train-carriage {
   @include flex($jc: flex-start);
+  user-select: none;
   gap: 2px;
   > div {
     &.train-header {

@@ -26,6 +26,7 @@ const imgRatio = computed(() => imgW.value / imgH.value)
 watch(
   list,
   async (newVal) => {
+    console.log('kkkkkkkkkkkk',newVal)
     worker.postMessage({
       list: toRaw(newVal),
       imgBaseUrl,

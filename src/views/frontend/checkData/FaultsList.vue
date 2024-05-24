@@ -12,13 +12,6 @@ const emits = defineEmits(['refresh'])
 
 const columns = [
   {
-    label: '预览',
-    minWidth: 120,
-    align: 'center',
-    slotName: 'preview',
-    fixed: 'left'
-  },
-  {
     label: '过车序号',
     prop: 'lcxxBh',
     minWidth: 120,
@@ -107,11 +100,11 @@ const globalStore = useGlobalStore()
 const { moduleType } = storeToRefs(globalStore)
 const faultViewerRef = ref(null)
 const isVertical = computed(() => moduleType.value === 'INSIDE') // 拼图方式，接口里未返回，暂时先按库内竖向、库外横向处理
-const handledImgs = computed(() => handledList.value.map((item) => item.handledImg)) // 处理好的图片列表
 
 // 监听Web Worker消息
 worker.onmessage = function (event) {
   const { processedList } = event.data
+  console.log('fffffffffff',processedList)
   handledList.value = processedList
 }
 onUnmounted(() => {
@@ -157,6 +150,8 @@ const getData = () => {
         isVertical: isVertical.value
       })
     }
+  }).finally(() => {
+    loading.value = false
   })
 }
 // 查看故障
@@ -244,19 +239,6 @@ defineExpose({
         >
           <template #default="{ row, $index }">
             <template v-if="item.slotName">
-              <el-image
-                v-if="item.slotName === 'preview'"
-                :src="row?.handledImg"
-                style="width: auto; height: 50px"
-                lazy
-                crossorigin="anonymous"
-                preview-teleported
-                :preview-src-list="handledImgs"
-                :initial-index="$index"
-                @dragover.prevent
-                @drop.prevent
-                @dragstart.prevent
-              />
               <span v-if="item.slotName === 'lw'">
                 {{ row[item.prop] < 10 ? `0${row[item.prop]}车` : `${row[item.prop]}车` }}
               </span>
@@ -264,7 +246,7 @@ defineExpose({
                 {{ row[item.prop] === '0' ? '未处理' : '已处理' }}
               </span>
               <span v-if="item.slotName === 'faultAffirm'">
-                {{ row[item.prop] === '0' ? '' : row[item.prop] === '1' ? '正报' : '误报' }}
+                {{ row[item.prop] === '0' ? '待复核' : row[item.prop] === '1' ? '正报' : '误报' }}
               </span>
               <template v-if="item.slotName === 'action'">
                 <el-button type="primary" link size="small" @click="handleView($index)">

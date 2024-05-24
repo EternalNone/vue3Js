@@ -1,10 +1,15 @@
 <script setup name="CanvasToolsBar">
+import { ElMessage } from 'element-plus'
 import { useFullscreen } from '@vueuse/core'
 
 const props = defineProps({
   showVertical: {
     type: Boolean,
     default: true
+  },
+  showEditMode: {
+    type: Boolean,
+    default: false
   },
   compare: {
     type: Boolean,
@@ -24,26 +29,59 @@ const props = defineProps({
   }
 })
 const { showVertical, compare, magnify, editMode, fullScreenContainer } = toRefs(props)
-defineEmits(['toggleFunc'])
+const emits = defineEmits(['toggleFunc'])
 
 const { isFullscreen, toggle } = useFullscreen(fullScreenContainer)
+
+const toggleMagnify = () => {
+  if (editMode.value) {
+    ElMessage.warning('请先退出故障标记模式')
+    return
+  }
+  emits('toggleFunc', 'magnify')
+}
+const toggleReverse = () => {
+  if (editMode.value) {
+    ElMessage.warning('请先退出故障标记模式')
+    return
+  }
+  emits('toggleFunc', 'reverse')
+}
+const toggleEditMode = () => {
+  if (!editMode.value) {
+    // 开启标图模式，则关闭反转看图功能和放大镜功能
+    emits('toggleFunc', 'reverse', false)
+    emits('toggleFunc', 'magnify', false)
+  }
+  emits('toggleFunc', 'editMode')
+}
 </script>
 
 <template>
   <div class="tools-bar">
-    <div class="tool-item">
-      <span class="tool-item-title">历史图</span>
-      <el-switch :model-value="compare" size="small" @change="$emit('toggleFunc', 'compare')" />
+    <div
+      v-if="showEditMode"
+      :class="editMode ? 'tool-item tool-item-active' : 'tool-item'"
+      @click="toggleEditMode"
+    >
+      <el-tooltip effect="dark" content="故障标记" placement="bottom">
+        <SvgIcon name="markFault" :size="20" />
+      </el-tooltip>
     </div>
-    <div class="tool-item">
-      <span class="tool-item-title">放大镜</span>
-      <el-switch :model-value="magnify" size="small" @change="$emit('toggleFunc', 'magnify')" />
+    <div
+      :class="compare ? 'tool-item tool-item-active' : 'tool-item'"
+      @click="$emit('toggleFunc', 'compare')"
+    >
+      <el-tooltip effect="dark" content="历史图" placement="bottom">
+        <SvgIcon name="compare" :size="20" />
+      </el-tooltip>
     </div>
-    <div class="tool-item">
-      <span class="tool-item-title">标记故障</span>
-      <el-switch :model-value="editMode" size="small" @change="$emit('toggleFunc', 'editMode')" />
+    <div :class="magnify ? 'tool-item tool-item-active' : 'tool-item'" @click="toggleMagnify">
+      <el-tooltip effect="dark" content="放大镜" placement="bottom">
+        <SvgIcon name="zoomIn" :size="20" />
+      </el-tooltip>
     </div>
-    <div class="tool-item" @click="$emit('toggleFunc', 'reverse')">
+    <div class="tool-item" @click="toggleReverse">
       <el-tooltip
         effect="dark"
         :content="showVertical ? '横向看图' : '纵向看图'"
@@ -69,15 +107,19 @@ const { isFullscreen, toggle } = useFullscreen(fullScreenContainer)
   position: absolute;
   left: 0;
   top: 0;
-  height: 30px;
-  background-color: rgba(64, 158, 255, 0.5);
   z-index: 101;
   @include flex;
+  pointer-events: none;
   .tool-item {
-    padding: 0 10px;
+    background-color: rgba(64, 158, 255, 0.5);
+    padding: 2px 10px;
+    margin: 0 2px;
     color: #fff;
     font-size: 16px;
     cursor: pointer;
+    pointer-events: initial;
+    border-radius: 4px;
+    transition: all 0.3s;
     .tool-item-title {
       color: #fff;
       font-size: 14px;
@@ -91,6 +133,10 @@ const { isFullscreen, toggle } = useFullscreen(fullScreenContainer)
       &.svg-icon-v {
         transform: rotate(90deg);
       }
+    }
+    &:hover,
+    &.tool-item-active {
+      background-color: var(--el-color-primary);
     }
   }
 }

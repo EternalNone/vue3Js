@@ -141,7 +141,8 @@ onUnmounted(() => {
 
 <style lang="scss" scoped>
 .thumbnail-slider {
-  position: fixed;
+  position: absolute;
+  z-index: 102;
   width: v-bind(containerW);
   height: v-bind(containerH);
   padding: v-bind(containerPadding);
@@ -160,8 +161,9 @@ onUnmounted(() => {
     }
   }
   &.thumbnail-slider-v {
-    right: 30px;
-    bottom: 80px;
+    right: 8px;
+    bottom: 50%;
+    transform: translateY(50%);
     .thumbnails {
       @include flex($dir: column);
       img {
@@ -178,9 +180,9 @@ onUnmounted(() => {
     }
   }
   &.thumbnail-slider-h {
-    bottom: 90px;
-    right: 0;
-    transform: translateX(-50%);
+    bottom: 8px;
+    right: 50%;
+    transform: translateX(50%);
     .thumbnails {
       @include flex;
       img {

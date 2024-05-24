@@ -3,7 +3,9 @@ import {
   useIntersectionObserver,
   useMouseInElement,
   useTimeoutFn,
-  useElementSize
+  useElementSize,
+  useArrayFind,
+  useMagicKeys
 } from '@vueuse/core'
 import { useWebWorker } from '@/hooks/useWebWorker.js'
 import { useCanvasToolsBar } from '@/hooks/useCanvasToolsBar.js'
@@ -15,7 +17,7 @@ import Magnify from '@/components/Magnify.vue'
 
 const imgBaseUrl = import.meta.env.VITE_IMAGE_BASE_URL // 对应环境的图片域名及端口
 const batchSize = 10 // 每个canvas展示的图片数量
-
+let animateId = null
 const props = defineProps({
   isVertical: {
     type: Boolean,
@@ -43,10 +45,13 @@ const state = reactive({
   imgW: 1228, // 图片宽度
   imgH: 600, // 图片高度
   imgInPortIdx: 0, // 当前可视区域的图片索引
-  magnifySize: 250 // 放大镜尺寸
+  magnifySize: 250, // 放大镜尺寸
+  isDrawing: false,
+  newFaults: [] // 新增故障框
 })
 
-const { canvasList, handledList, imgW, imgH, imgInPortIdx, magnifySize } = toRefs(state)
+const { canvasList, handledList, imgW, imgH, imgInPortIdx, magnifySize, isDrawing, newFaults } =
+  toRefs(state)
 // web worker
 const { post, workerData, terminate } = useWebWorker(
   new URL('@/worker/handleKsData.js', import.meta.url)
@@ -78,9 +83,17 @@ const { elementX, elementY, isOutside, stop: stopWatchMouseIn } = useMouseInElem
 const { start, stop: clearTimeoutFn } = useTimeoutFn(() => {
   imgInPortIdx.value = 0
 }, 50)
+// 按键跟踪
+const { shift } = useMagicKeys()
 //异或运算符 ^,只有一个为true时才为true，其他场景都为false
 const showVertical = computed(() => Boolean(isVertical.value ^ reverse.value)) // 利用位运算，判断到底横向展示还是纵向
 const imgRatio = computed(() => imgW.value / imgH.value) // 图像宽高比
+// 计算页面缩放比例
+const scale = computed(() => {
+  const containerW = compare.value ? width.value / 2 : width.value
+  const containerH = compare.value ? height.value / 2 : height.value
+  return isVertical.value ? imgW.value / containerW : imgH.value / containerH
+})
 const pointerEvents = computed(() => (editMode.value ? 'initial' : 'none'))
 // 图片滚动条的图片
 const thumbnails = computed(() =>
@@ -107,12 +120,17 @@ const existingFaults = computed(() => {
   })
   return rects
 })
+const allFaults = computed(() => existingFaults.value.concat(newFaults.value))
 
 onUnmounted(() => {
   terminate()
   stop()
   clearTimeoutFn()
   stopWatchMouseIn()
+  if (animateId) {
+    cancelAnimationFrame(animateId)
+    animateId = null
+  }
 })
 // 初始化画布
 const initCanvas = () => {
@@ -144,10 +162,12 @@ const initCanvas = () => {
   }
   drawFaults()
 }
-
 // 绘制故障框
 const drawFaults = () => {
-  console.log('drawFaults')
+  console.log('drawFaults', newFaults.value)
+  if (isDrawing.value && editMode.value && !animateId) {
+    animateId = requestAnimationFrame(drawFaults)
+  }
   for (let j = 0, len = faultCanvasRefs.value.length; j < len; j++) {
     const cvs = faultCanvasRefs.value[j]
     const ctx = cvs.getContext('2d')
@@ -155,8 +175,9 @@ const drawFaults = () => {
     const cEndX = showVertical.value ? imgW.value : Number(cvs.getAttribute('end')) // 当前canvas的结束x坐标
     const cStartY = showVertical.value ? Number(cvs.getAttribute('start')) : 0 // 当前canvas的起始y坐标
     const cEndY = showVertical.value ? Number(cvs.getAttribute('end')) : imgH.value // 当前canvas的结束y坐标
+
     ctx.clearRect(0, 0, cvs.width, cvs.height)
-    existingFaults.value.forEach((rect) => {
+    allFaults.value.forEach((rect) => {
       if (
         rect.isRectOverlap({
           startX: cStartX,
@@ -172,7 +193,6 @@ const drawFaults = () => {
     })
   }
 }
-
 // 数据变化，通知子进程处理数据
 watch(
   list,
@@ -231,6 +251,10 @@ watch(isOutside, (newVal) => {
   if (newVal) {
     toggleFunc('magnify', false)
   }
+})
+watch(editMode, () => {
+  newFaults.value = []
+  drawFaults()
 })
 // 横向滚动事件
 const handleScroll = (e) => {
@@ -303,6 +327,96 @@ const handleMousemove = (idx, e) => {
   }
   Object.assign(magnifyRef.value.$el.style, style)
 }
+// 根据canvas的索引，及其上一个点的坐标获取相对于全图的坐标
+const getGlobalPosition = (cvsIdx, offsetX, offsetY) => {
+  const cvs = faultCanvasRefs.value[cvsIdx]
+  const cvsStart = Number(cvs.getAttribute('start'))
+  // 局部坐标转全图坐标
+  const x = isVertical.value ? offsetX * scale.value : offsetX * scale.value + cvsStart
+  const y = isVertical.value ? offsetY * scale.value + cvsStart : offsetY * scale.value
+  return { x, y }
+}
+// 开始标注-鼠标按下
+const startMark = (idx, e) => {
+  isDrawing.value = true
+  const { x, y } = getGlobalPosition(idx, e.offsetX, e.offsetY)
+  const rect = new Rect(x, y, true)
+  newFaults.value.push(rect)
+}
+// 标注-鼠标移动
+const mousemoveMark = (idx, e) => {
+  // mouseup触发会有问题，isDrawing状态不一定能及时变更，结合e.buttons !== 1判断鼠标左键是否按下
+  if (!isDrawing.value || !editMode.value || e.buttons !== 1 || newFaults.value.length === 0) return
+  // 局部坐标转全图坐标
+  const curRect = newFaults.value[newFaults.value.length - 1]
+  const { x, y } = getGlobalPosition(idx, e.offsetX, e.offsetY)
+  curRect.endX = x
+  curRect.endY = y
+  drawFaults()
+}
+// 停止标注-鼠标抬起、鼠标离开
+const stopMark = () => {
+  if (!isDrawing.value || !editMode.value) return
+  isDrawing.value = false
+  if (animateId) {
+    cancelAnimationFrame(animateId)
+    animateId = null
+  }
+  if (newFaults.value.length > 0) {
+    // 太小的故障框直接删除
+    const curRect = newFaults.value[newFaults.value.length - 1]
+    if (curRect.width <= 10 || curRect.height <= 10) {
+      newFaults.value.pop()
+      drawFaults()
+    }
+  }
+}
+// 单击选中已有的故障框
+const selectFault = (idx, e) => {
+  let isInside = false
+  if (!editMode.value) return
+  const { x, y } = getGlobalPosition(idx, e.offsetX, e.offsetY)
+  existingFaults.value.forEach((rect) => {
+    if (rect.isInSide(x, y)) {
+      isInside = true
+      rect.selected = !rect.selected
+    }
+  })
+  if (isInside) {
+    drawFaults()
+  }
+}
+// 双击删除故障框
+const deleteNewFault = async (idx, e) => {
+  if (!editMode.value) return
+  const { x, y } = getGlobalPosition(idx, e.offsetX, e.offsetY)
+  // 优先删除新增的故障中后绘制的
+  for (let i = newFaults.value.length - 1; i >= 0; i--) {
+    const rect = newFaults.value[i]
+    if (rect.isInSide(x, y)) {
+      newFaults.value.splice(i, 1)
+      drawFaults()
+      return
+    }
+  }
+
+  const curFault = useArrayFind(existingFaults, (rect) => rect.isInSide(x, y))
+  if (curFault.value) {
+    try {
+      await ElMessageBox.confirm('确定删除该故障?', '', {
+        confirmButtonText: '确认',
+        cancelButtonText: '取消',
+        type: 'error',
+        customStyle: { width: '300px' }
+      })
+      console.log('用户确认了操作')
+      console.log('调用接口')
+      drawFaults()
+    } catch (error) {
+      console.log('用户取消了操作')
+    }
+  }
+}
 </script>
 <template>
   <div
@@ -314,6 +428,7 @@ const handleMousemove = (idx, e) => {
       :compare="compare"
       :magnify="magnify"
       :editMode="editMode"
+      showEditMode
       :fullScreenContainer="ksContainerRef"
       @toggleFunc="toggleFunc"
     />
@@ -375,6 +490,11 @@ const handleMousemove = (idx, e) => {
             v-for="(_, index) in canvasList"
             :ref="(el) => (faultCanvasRefs[index] = el)"
             :key="index"
+            @mousedown="startMark(index, $event)"
+            @mouseup="stopMark"
+            @mousemove="mousemoveMark(index, $event)"
+            @click="selectFault(index, $event)"
+            @dblclick="deleteNewFault(index, $event)"
           />
         </div>
       </div>
