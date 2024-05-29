@@ -34,10 +34,6 @@ const emits = defineEmits(['toggleFunc'])
 const { isFullscreen, toggle } = useFullscreen(fullScreenContainer)
 
 const toggleMagnify = () => {
-  if (editMode.value) {
-    ElMessage.warning('请先退出故障标记模式')
-    return
-  }
   emits('toggleFunc', 'magnify')
 }
 const toggleReverse = () => {
@@ -49,9 +45,8 @@ const toggleReverse = () => {
 }
 const toggleEditMode = () => {
   if (!editMode.value) {
-    // 开启标图模式，则关闭反转看图功能和放大镜功能
+    // 开启标图模式，则关闭反转看图功能
     emits('toggleFunc', 'reverse', false)
-    emits('toggleFunc', 'magnify', false)
   }
   emits('toggleFunc', 'editMode')
 }
@@ -64,7 +59,7 @@ const toggleEditMode = () => {
       :class="editMode ? 'tool-item tool-item-active' : 'tool-item'"
       @click="toggleEditMode"
     >
-      <el-tooltip effect="dark" content="故障标记" placement="bottom">
+      <el-tooltip effect="dark" content="故障标记" placement="bottom" :enterable="false">
         <SvgIcon name="markFault" :size="20" />
       </el-tooltip>
     </div>
@@ -72,29 +67,31 @@ const toggleEditMode = () => {
       :class="compare ? 'tool-item tool-item-active' : 'tool-item'"
       @click="$emit('toggleFunc', 'compare')"
     >
-      <el-tooltip effect="dark" content="历史图" placement="bottom">
+      <el-tooltip effect="dark" content="历史图" placement="bottom" :enterable="false">
         <SvgIcon name="compare" :size="20" />
       </el-tooltip>
     </div>
     <div :class="magnify ? 'tool-item tool-item-active' : 'tool-item'" @click="toggleMagnify">
-      <el-tooltip effect="dark" content="放大镜" placement="bottom">
+      <el-tooltip effect="dark" content="放大镜" placement="bottom" :enterable="false">
         <SvgIcon name="zoomIn" :size="20" />
       </el-tooltip>
     </div>
-    <div class="tool-item" @click="toggleReverse">
+    <div class="tool-item tool-item-active" @click="toggleReverse">
       <el-tooltip
         effect="dark"
         :content="showVertical ? '横向看图' : '纵向看图'"
         placement="bottom"
+        :enterable="false"
       >
         <SvgIcon name="horizontal" :class="showVertical ? '' : 'svg-icon-v'" :size="18" />
       </el-tooltip>
     </div>
-    <div class="tool-item" @click="toggle">
+    <div class="tool-item tool-item-active" @click="toggle">
       <el-tooltip
         effect="dark"
         :content="isFullscreen ? '退出全屏' : '全屏看图'"
         placement="bottom"
+        :enterable="false"
       >
         <SvgIcon :name="isFullscreen ? 'fullscreen-exit' : 'fullscreen'" :size="20" />
       </el-tooltip>

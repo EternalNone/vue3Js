@@ -1,8 +1,8 @@
 <script setup name="JsRender">
+import { useWebWorker } from '@/hooks/useWebWorker.js'
 import FaultViewer from '@/components/FaultViewer.vue'
 import JSFaultMark from '@/components/JSFaultMark.vue'
 
-const worker = new Worker(new URL('@/worker/handleImg.js', import.meta.url)) // 创建Web Worker
 const imgBaseUrl = import.meta.env.VITE_IMAGE_BASE_URL // 对应环境的图片域名及端口
 
 const props = defineProps({
@@ -21,13 +21,16 @@ const state = reactive({
   imgH: 1536
 })
 const { handledList, imgW, imgH } = toRefs(state)
+// web worker
+const { post, workerData, terminate } = useWebWorker(
+  new URL('@/worker/handleJsData.js', import.meta.url)
+)
 const imgRatio = computed(() => imgW.value / imgH.value)
 
 watch(
   list,
   async (newVal) => {
-    console.log('kkkkkkkkkkkk',newVal)
-    worker.postMessage({
+    post({
       list: toRaw(newVal),
       imgBaseUrl,
       w: imgW.value,
@@ -37,9 +40,10 @@ watch(
   },
   { immediate: true, deep: true }
 )
-// 监听Web Worker消息
-worker.onmessage = function (event) {
-  const { type, processedList, width, height } = event.data
+// 监听web worker数据变化
+watch(workerData, (newVal) => {
+  const { type, processedList, width, height } = newVal
+  console.log('xxxxxxxxxx', processedList)
   if (type === 'clear') {
     handledList.value = []
   } else if (type === 'update') {
@@ -47,21 +51,23 @@ worker.onmessage = function (event) {
     imgW.value = width || imgW.value
     imgH.value = height || imgH.value
   }
-}
+})
+
 onUnmounted(() => {
-  worker.terminate()
+  terminate()
 })
 
 // 打开故障查看器
 const openFaultViewer = (idx) => {
-  // faultViewerRef.value.show({
+  faultViewerRef.value.show({
+    data: toRaw(handledList.value),
+    idx,
+    isKs: false
+  })
+  // jsFaultMarkRef.value.show({
   //   data: toRaw(handledList.value),
   //   idx
   // })
-  jsFaultMarkRef.value.show({
-    data: toRaw(handledList.value),
-    idx
-  })
 }
 </script>
 
@@ -73,10 +79,10 @@ const openFaultViewer = (idx) => {
         :key="item.handledImg"
         class="js-item"
         :xs="24"
-        :sm="12"
-        :md="8"
-        :lg="6"
-        :xl="4"
+        :sm="24"
+        :md="12"
+        :lg="8"
+        :xl="6"
         @click="openFaultViewer(idx)"
       >
         <div class="img">
@@ -118,6 +124,7 @@ const openFaultViewer = (idx) => {
   height: 100%;
   overflow-x: hidden;
   overflow-y: auto;
+  flex: 1;
   @include scrollBar(
     $color: var(--el-color-primary-light-5),
     $activeColor: var(--el-color-primary)
@@ -130,7 +137,7 @@ const openFaultViewer = (idx) => {
     width: calc(100% + 20px);
     height: 100%;
     .js-item {
-      margin: 10px 0;
+      margin-bottom: 20px;
       position: relative;
       cursor: pointer;
       .img {

@@ -66,7 +66,7 @@ export class Rect {
     ctx.lineWidth = this.faultStrokeWidth
     ctx.strokeRect(this.minX - this.offsetX, this.minY - this.offsetY, this.width, this.height)
     if (this.selected) {
-      ctx.fillStyle = this.fillColor
+      ctx.fillStyle = this.add ? this.fillColorAdd : this.fillColor
       ctx.fillRect(this.minX - this.offsetX, this.minY - this.offsetY, this.width, this.height)
     }
   }

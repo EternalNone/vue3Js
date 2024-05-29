@@ -7,6 +7,7 @@ import vueJsx from '@vitejs/plugin-vue-jsx'
 import VueDevTools from 'vite-plugin-vue-devtools'
 import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
+import removeConsole from 'vite-plugin-remove-console'
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 import { createSvgIconsPlugin } from 'vite-plugin-svg-icons'
 import VueSetupExtend from 'vite-plugin-vue-setup-extend'
@@ -33,6 +34,10 @@ export default defineConfig({
     createSvgIconsPlugin({
       iconDirs: [path.resolve(process.cwd(), `src/assets/svgs`)], //文件路径一定需要写对
       symbolId: 'icon-[dir]-[name]'
+    }),
+    removeConsole({
+      // 允许 console.error 通过
+      allowedMethods: ['error']
     })
   ],
   resolve: {
@@ -61,8 +66,8 @@ export default defineConfig({
     strictPort: false,
     /** 接口代理 */
     proxy: {
-      "/api": {
-        target: "http://192.168.21.125:8500/",
+      '/api': {
+        target: 'http://192.168.21.125:8500/',
         ws: true,
         /** 是否允许跨域 */
         changeOrigin: true
@@ -70,7 +75,7 @@ export default defineConfig({
     },
     /** 预热常用文件，提高初始页面加载速度 */
     warmup: {
-      clientFiles: ["./src/layouts/**/*.vue"]
+      clientFiles: ['./src/layouts/**/*.vue']
     }
-  },
+  }
 })

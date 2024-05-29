@@ -85,7 +85,7 @@ class TaskQueue {
   }
 
   async processTask(data) {
-    const { list, imgBaseUrl, isKs = false, isVertical = false, w, h, batchSize = 10 } = data
+    const { list, imgBaseUrl, w, h, batchSize = 10 } = data
     let batchNo = 0
     let offscreenCanvas = new OffscreenCanvas(0, 0)
     let offscreenCtx = offscreenCanvas.getContext('2d')
@@ -95,7 +95,7 @@ class TaskQueue {
     while (batchNo < list.length && !this.shouldStop) {
       const batchList = list.slice(batchNo, batchNo + batchSize) // 列表分批
       // 具体处理逻辑
-      for (const [index, item] of batchList.entries()) {
+      for (const item of batchList) {
         if (this.shouldStop) break // 在处理每个项目前检查是否应该停止
         let handledImg = `${imgBaseUrl}${item?.imgPath}` // 故障和图片绘制在一起的图片url，没有故障时，默认原图url
         let fullPath = `${imgBaseUrl}${item?.imgPath}` // 图片完整路径,包含域名和端口
@@ -115,8 +115,6 @@ class TaskQueue {
             const { width, height } = imgBitmap
             existW = width
             existH = height
-            const imgStartX = isKs ? (isVertical ? 0 : (index + batchNo) * width) : 0 // 图片的起始x坐标
-            const imgStartY = isKs ? (isVertical ? (index + batchNo) * height : 0) : 0 // 图片的起始y坐标
             // 绘制图片
             offscreenCanvas.width = width
             offscreenCanvas.height = height
@@ -126,21 +124,9 @@ class TaskQueue {
             offscreenCtx.strokeStyle = faultStrokeStyle
             offscreenCtx.lineWidth = faultStrokeWidth
             // 绘制故障，并且把快扫的故障坐标换算成当前图片的坐标
-            item.faultFrames = item.faultFrames.map((fault) => {
+            item.faultFrames.forEach((fault) => {
               const { coordinateX, coordinateY, width, height } = fault
-              offscreenCtx.strokeRect(
-                coordinateX - imgStartX,
-                coordinateY - imgStartY,
-                width,
-                height
-              )
-              return {
-                ...fault,
-                x: coordinateX, // 整图上的x坐标
-                y: coordinateY, // 整图上的y坐标
-                coordinateX: coordinateX - imgStartX, // 当前图片上的x坐标
-                coordinateY: coordinateY - imgStartY // 当前图片上的y坐标
-              }
+              offscreenCtx.strokeRect(coordinateX, coordinateY, width, height)
             })
             // 转成dataUrl用于主线程img展示
             const url = await canvasToBlob(offscreenCanvas)
@@ -153,7 +139,7 @@ class TaskQueue {
           if (existW === 0 && existH === 0) {
             // 防止图片的尺寸未获取到，这里再次获取
             let imgBitmap = null
-            const cachedImg = getFromCache(fullPath) // 过期时间为1小时
+            const cachedImg = getFromCache(fullPath)
             if (cachedImg) {
               // 缓存中存在从缓存中获取
               imgBitmap = cachedImg
@@ -174,7 +160,6 @@ class TaskQueue {
         processedList = processedList.map((item) => {
           return { ...item, imgW: existW || w, imgH: existH || h }
         })
-        console.log(list.length)
         self.postMessage({ type: 'update', processedList, width: existW, height: existH })
         processedList.length = 0
         batchNo += batchSize

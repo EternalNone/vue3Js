@@ -154,7 +154,6 @@ self.onmessage = async (event) => {
     ]
     processedList.push(item)
   }
-  console.log('xxxxxxxxxxxxx',processedList)
   self.postMessage({ processedList })
 
   // 处理完所有图片后释放离屏canvas及其他变量

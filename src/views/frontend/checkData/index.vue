@@ -11,8 +11,9 @@ import { download } from '@/utils/file.js'
 import PassTrainFilter from '@/components/PassTrainFilter.vue'
 import TrainCarriage from '@/components/TrainCarriage.vue'
 import PassagewaySelect from '@/components/PassagewaySelect.vue'
-import KsRender2 from './KsRender2.vue'
-// import KsRender from './KsRender.vue'
+import JsFilter from '@/components/JsFilter.vue'
+// import KsRender2 from './KsRender2.vue'
+import KsRender from './KsRender.vue'
 import JsRender from './JsRender.vue'
 import FaultsList from './FaultsList.vue'
 
@@ -215,7 +216,7 @@ const exportFault = () => {
           <div class="actions">
             <div style="margin-right: 10px" v-show="showType === 'GRID'">
               <span style="padding: 0 10px; font-size: 14px">只看异常图</span>
-              <el-switch v-model="searchForm.isFault" />
+              <el-switch v-model="searchForm.isFault" @change="getData" />
             </div>
             <el-button type="primary" @click="exportFault">故障复核单</el-button>
             <el-button type="primary" @click="showFaultList">故障列表</el-button>
@@ -248,9 +249,12 @@ const exportFault = () => {
       </div>
       <div class="check-data-render">
         <template v-if="list.length">
-          <JsRender v-if="showType === 'GRID'" :list="list" />
-          <!-- <KsRender v-else :list="list" :isVertical="isVertical" /> -->
-          <KsRender2 v-else :list="list" :isVertical="isVertical" :reverse="reverse" />
+          <div class="js-content" v-if="showType === 'GRID'">
+            <JsFilter />
+            <JsRender :list="list" />
+          </div>
+          <KsRender v-else :list="list" :isVertical="isVertical" :reverse="reverse" />
+          <!-- <KsRender2 v-else :list="list" :isVertical="isVertical" :reverse="reverse" @refresh="getData" /> -->
         </template>
         <el-empty v-else description="暂无数据" />
       </div>
@@ -316,7 +320,15 @@ const exportFault = () => {
       width: 100%;
       flex: 1;
       overflow: hidden;
-      @include flex;
+      .js-content {
+        width: 100%;
+        height: 100%;
+        padding-top: 10px;
+        @include flex($jc: flex-start, $al: flex-start);
+        :deep(.js-filter) {
+          margin-right: 20px;
+        }
+      }
     }
   }
 }

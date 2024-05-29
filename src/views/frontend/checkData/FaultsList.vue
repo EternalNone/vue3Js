@@ -104,7 +104,7 @@ const isVertical = computed(() => moduleType.value === 'INSIDE') // 拼图方式
 // 监听Web Worker消息
 worker.onmessage = function (event) {
   const { processedList } = event.data
-  console.log('fffffffffff',processedList)
+  console.log('fffffffffff', processedList)
   handledList.value = processedList
 }
 onUnmounted(() => {
@@ -141,24 +141,27 @@ const getData = () => {
     pageSize
   }
 
-  getFaultsList(param).then(async (res) => {
-    pagination.value.total = res.total || 0
-    if (res?.records?.length) {
-      worker?.postMessage({
-        list: res.records,
-        imgBaseUrl,
-        isVertical: isVertical.value
-      })
-    }
-  }).finally(() => {
-    loading.value = false
-  })
+  getFaultsList(param)
+    .then(async (res) => {
+      pagination.value.total = res.total || 0
+      if (res?.records?.length) {
+        worker?.postMessage({
+          list: res.records,
+          imgBaseUrl,
+          isVertical: isVertical.value
+        })
+      }
+    })
+    .finally(() => {
+      loading.value = false
+    })
 }
 // 查看故障
 const handleView = (idx) => {
   faultViewerRef.value.show({
     data: toRaw(handledList.value),
-    idx
+    idx,
+    isKs: false
   })
 }
 // 删除故障

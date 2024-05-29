@@ -1,59 +1,113 @@
 <script setup name="FaultViewer">
-import { ZoomIn, Refresh, DArrowLeft, DArrowRight } from '@element-plus/icons-vue'
+import { Refresh, DArrowLeft, DArrowRight, ZoomIn } from '@element-plus/icons-vue'
+import { onKeyStroke } from '@vueuse/core'
 import { useWinResize } from '@/hooks/useWinResize'
 import CssFilter from './CssFilter.vue'
+import Magnify from '@/components/Magnify.vue'
+import { computed } from 'vue'
 
 const faultStrokeStyle = '#FA6157' // 故障框线条颜色
 const faultStrokeWidth = 3 // 故障框线条宽度
+const columns = [
+  {
+    label: '序号',
+    minWidth: 60,
+    type: 'index',
+    align: 'center'
+  },
+  {
+    label: '故障类型',
+    prop: 'type',
+    minWidth: 100,
+    align: 'center',
+    ellipsis: true
+  },
+  {
+    label: '故障部位',
+    prop: 'checkItem',
+    minWidth: 150,
+    align: 'center',
+    ellipsis: true
+  },
+  {
+    label: '故障描述',
+    prop: 'faultDesc',
+    minWidth: 150,
+    align: 'center',
+    ellipsis: true
+  },
+  {
+    label: '故障状态',
+    prop: 'affirm',
+    minWidth: 100,
+    align: 'center',
+    ellipsis: true,
+    slotName: 'affirm'
+  }
+]
+
+const containerRef = ref(null)
+const innerRef = ref(null)
+const canvasRef = ref(null)
+const cssFilterRef = ref(null) // 滤镜组件
+const magnifyRef = ref(null) // 放大镜组件
 
 const state = reactive({
   list: [],
   curIdx: 0,
+  isKs: true, // 是否是快扫
+  reverse: false, // 是否反转看图
   visible: false, // 弹框是否显示
-  viewerVisible: false, // 图片查看器是否显示
   disabled: false, // 是否禁用滤镜等功能
-  scale: 1, //  容器中刚好完整显示图片全部内容的缩放比例，该值用于重置cssScale
-  cssScale: 1 // 容器的css缩放比例，跟绘制图片无关，纯css缩放效果
+  cssScale: 1, // css缩放比例
+  magnify: false // 是否显示放大镜
 })
 
-const cssFilterRef = ref(null)
-const innerRef = ref(null)
-const canvasRef = ref(null)
-const { list, curIdx, visible, viewerVisible, scale, disabled, cssScale } = toRefs(state)
+const { list, curIdx, isKs, reverse, visible, disabled, cssScale, magnify } = toRefs(state)
+const magnifySize = computed(() => 200 / cssScale.value)
 const currentItem = computed(() => list.value[curIdx.value])
-const handledImgs = computed(() => list.value.map((item) => item.handledImg)) // 处理好的图片列表
-
-watch(cssScale, (newVal) => {
-  if (!innerRef.value) {
-    return
+const currentPath = computed(() => {
+  if (isKs.value) {
+    return reverse.value ? currentItem.value?.handledImg : currentItem.value?.fullPath
+  } else {
+    return currentItem.value?.fullPath
   }
-  innerRef.value.style.transform = `scale(${newVal})`
+})
+const imgW = computed(() => {
+  if (isKs.value) {
+    return reverse.value ? currentItem.value?.rImgW : currentItem.value?.imgW
+  } else {
+    return currentItem.value?.imgW
+  }
+})
+const imgH = computed(() => {
+  if (isKs.value) {
+    return reverse.value ? currentItem.value?.rImgH : currentItem.value?.imgH
+  } else {
+    return currentItem.value?.imgH
+  }
 })
 const show = (obj) => {
   visible.value = true
   list.value = obj?.data || []
-  curIdx.value = obj?.idx || 0
-  cssScale.value = 1
+  curIdx.value = obj?.idx ?? 0
+  isKs.value = obj?.isKs ?? true
+  reverse.value = obj?.reverse ?? false
+  magnify.value = false
   cssFilterRef.value?.resetFilter()
-  nextTick(initAndDraw)
+  nextTick(init)
 }
-const initAndDraw = () => {
+// 初始化容器
+const init = () => {
   if (visible.value) {
-    const container = document.querySelector('.fault-img-wrapper')
+    const container = containerRef.value
     const inner = innerRef.value
-    const canvas = canvasRef.value
     const width = container?.clientWidth
     const height = container?.clientHeight
-    const imgW = currentItem.value?.imgW || 0
-    const imgH = currentItem.value?.imgH || 0
-    if (imgW === 0 || imgH === 0) {
-      // 图片加载失败，尺寸获取不到的情况下
-      return
-    }
     const containerRatio = width / height
-    const imgRatio = imgW / imgH
-    const left = (width - imgW) / 2
-    const top = (height - imgH) / 2
+    const imgRatio = imgW.value / imgH.value
+    const left = (width - imgW.value) / 2
+    const top = (height - imgH.value) / 2
     let drawW = 0,
       drawH = 0
     if (imgRatio - containerRatio > 0) {
@@ -64,48 +118,71 @@ const initAndDraw = () => {
       drawH = height
       drawW = drawH * imgRatio
     }
-
-    scale.value = drawW / imgW
-    cssScale.value = drawW / imgW
+    cssScale.value = drawW / imgW.value
     if (inner) {
-      inner.style.width = `${imgW}px`
-      inner.style.height = `${imgH}px`
-      inner.style.left = `${left}px`
-      inner.style.top = `${top}px`
-      canvas.width = imgW
-      canvas.height = imgH
-    }
-    if (currentItem.value?.imgLoadFailed) {
-      // 故障列表图片加载失败的场景不绘制故障
-      return
-    }
-
-    const ctx = canvas.getContext('2d')
-    ctx.clearRect(0, 0, canvas.width, canvas.height)
-    ctx.strokeStyle = faultStrokeStyle
-    ctx.lineWidth = faultStrokeWidth
-    if (currentItem.value?.faultFrames?.length > 0) {
-      currentItem.value?.faultFrames?.forEach((fault) => {
-        const { w, h, cX, cY } = fault
-        ctx.strokeRect(cX, cY, w, h)
+      Object.assign(inner.style, {
+        width: `${imgW.value}px`,
+        height: `${imgH.value}px`,
+        transform: `translate(${left}px, ${top}px) scale(${cssScale.value})`
       })
+      drawFaults()
     }
   }
 }
-
+// 绘制故障
+const drawFaults = () => {
+  const canvas = canvasRef.value
+  canvas.width = imgW.value
+  canvas.height = imgH.value
+  const ctx = canvas.getContext('2d')
+  ctx.clearRect(0, 0, imgW.value, imgH.value)
+  if (currentItem.value?.imgLoadFailed) {
+    // 故障列表图片加载失败的场景不绘制故障
+    return
+  }
+  ctx.strokeStyle = faultStrokeStyle
+  ctx.lineWidth = faultStrokeWidth
+  ctx.fillStyle = faultStrokeStyle
+  ctx.font = '20px Arial'
+  if (currentItem.value?.faultFrames?.length > 0) {
+    currentItem.value?.faultFrames?.forEach((fault, idx) => {
+      if (isKs.value) {
+        const { w, h, cX, cY, revCx, revCy, revW, revH } = fault
+        const faultX = reverse.value ? revCx : cX
+        const faultY = reverse.value ? revCy : cY
+        const faultW = reverse.value ? revW : w
+        const faultH = reverse.value ? revH : h
+        ctx.strokeRect(faultX, faultY, faultW, faultH)
+        ctx.fillText(idx + 1, faultX + 10, faultY + 20)
+      } else {
+        const { coordinateX, coordinateY, width, height } = fault
+        ctx.strokeRect(coordinateX, coordinateY, width, height)
+        ctx.fillText(idx + 1, coordinateX + 10, coordinateY + 20)
+      }
+    })
+  }
+}
+// 下一张
 const next = () => {
   if (curIdx.value < list.value.length - 1) {
-    reset()
     curIdx.value++
-    initAndDraw()
+    reset()
+    init()
   }
 }
+// 上一张
 const prev = () => {
   if (curIdx.value > 0) {
-    reset()
     curIdx.value--
-    initAndDraw()
+    reset()
+    init()
   }
+}
+// 回到第一张或者最后一张
+const toggleStartOrEnd = (start = true) => {
+  curIdx.value = start ? 0 : list.value.length - 1
+  reset()
+  init()
 }
 // 当前图片加载失败的时候，禁用滤镜等操作
 const handleLoadErr = () => {
@@ -115,24 +192,55 @@ const handleLoadErr = () => {
 const handleLoadSuggess = () => {
   disabled.value = false
 }
-// 重置滤镜及缩放
+// 重置滤镜
 const reset = () => {
-  cssScale.value = scale.value
   cssFilterRef.value?.resetFilter()
 }
-// 鼠标滚轮缩放
-const mousewheel = (e) => {
-  if (disabled.value) {
-    return
-  }
+// 键盘事件
+onKeyStroke(['ArrowLeft', 'ArrowUp'], (e) => {
   e.preventDefault()
-  if (e.deltaY < 0) {
-    cssScale.value = cssScale.value + 0.2 <= 4 ? cssScale.value + 0.2 : cssScale.value
-  } else {
-    cssScale.value = cssScale.value - 0.2 >= 0 ? cssScale.value - 0.2 : cssScale.value
+  prev()
+})
+onKeyStroke(['ArrowRight', 'ArrowDown'], (e) => {
+  e.preventDefault()
+  next()
+})
+onKeyStroke('Home', (e) => {
+  e.preventDefault()
+  toggleStartOrEnd()
+})
+onKeyStroke('End', (e) => {
+  e.preventDefault()
+  toggleStartOrEnd(false)
+})
+
+// 放大镜功能
+const handleMousemove = (e) => {
+  if (!magnify.value) return
+  const magnifyScale = 1.5
+  const largeW = imgW.value * magnifyScale
+  const largeH = imgH.value * magnifyScale
+  let x = e.offsetX * magnifyScale - magnifySize.value / 2 // 根据原图的尺寸算出x坐标
+  let y = e.offsetY * magnifyScale - magnifySize.value / 2 // 根据原图的尺寸算出y坐标
+  x = Math.max(x, 0)
+  y = Math.max(y, 0)
+  x = Math.min(x, largeW - magnifySize.value)
+  y = Math.min(y, largeH - magnifySize.value)
+  let left = e.offsetX - magnifySize.value / 2
+  let top = e.offsetY - magnifySize.value / 2
+  left = Math.max(left, 0)
+  top = Math.max(top, 0)
+  left = Math.min(left, imgW.value - magnifySize.value)
+  top = Math.min(top, imgH.value - magnifySize.value)
+  const style = {
+    transform: `translate(${left}px, ${top}px)`,
+    backgroundPosition: `-${x}px -${y}px`,
+    backgroundSize: `${largeW}px ${largeH}px`
   }
+  Object.assign(magnifyRef.value.$el.style, style)
 }
-useWinResize(initAndDraw, 300) // 监听窗口变化，重新绘制
+// 监听窗口变化，重新绘制
+useWinResize(init, 300)
 
 defineExpose({
   show
@@ -150,27 +258,50 @@ defineExpose({
   >
     <div class="fault-viewer">
       <div class="left-content">
-        <div class="fault-img-wrapper" @mousewheel="mousewheel">
+        <div class="info-wrapper">
+          <div>编组号：xxx</div>
+          <div>车厢号：xxx</div>
+          <div class="img-path">图片路径：{{ currentItem?.imgPath }}</div>
+        </div>
+        <div class="fault-img-wrapper" ref="containerRef">
           <div class="inner-wrapper" ref="innerRef">
             <el-image
-              :src="currentItem?.fullPath"
+              :src="currentPath"
               class="img-wrap"
               crossorigin="anonymous"
               @error="handleLoadErr"
               @load="handleLoadSuggess"
+              @mousemove.passive="handleMousemove"
               @dragover.prevent
               @drop.prevent
               @dragstart.prevent
             />
             <canvas ref="canvasRef" class="fault-canvas"></canvas>
+            <Magnify v-show="magnify" ref="magnifyRef" :size="magnifySize" :bgPath="currentPath" />
           </div>
+        </div>
+        <div class="effect-wrapper">
+          <el-tooltip effect="light" content="放大镜" placement="top">
+            <el-button
+              :type="magnify ? 'primary' : 'info'"
+              :icon="ZoomIn"
+              circle
+              :disabled="disabled"
+              @click="magnify = !magnify"
+            />
+          </el-tooltip>
+          <div>
+            <CssFilter ref="cssFilterRef" selector=".img-wrap" :disabled="disabled" />
+          </div>
+          <el-tooltip effect="light" content="重置" placement="top">
+            <el-button type="info" :icon="Refresh" circle :disabled="disabled" @click="reset" />
+          </el-tooltip>
         </div>
         <div class="toggle-action">
           <el-button type="primary" link :disabled="curIdx <= 0" @click="prev">
             <el-icon><DArrowLeft /></el-icon>
             <span style="margin-left: 6px">上一张</span>
           </el-button>
-          <div class="img-path">图片路径：{{ currentItem?.imgPath }}</div>
           <el-button type="primary" link :disabled="curIdx >= list.length - 1" @click="next">
             <span style="margin-right: 6px">下一张</span>
             <el-icon><DArrowRight /></el-icon>
@@ -178,76 +309,80 @@ defineExpose({
         </div>
       </div>
       <div class="right-content">
-        <div class="fault-info">
-          <div v-if="currentItem?.faultFrames?.length" class="info-title">
-            <span>故障描述：</span>
-          </div>
-          <div v-for="item in currentItem?.faultFrames" :key="item?.id">
-            <span :class="item?.affirm === '1' ? 'has-fault' : 'no-fault'">{{
-              item?.affirm === '1' ? '正报' : '误报'
-            }}</span>
-            <span>{{ item?.faultDesc }}</span>
-          </div>
-        </div>
-        <div class="fault-operation">
-          <div class="btns">
-            <el-button
-              type="primary"
-              :icon="ZoomIn"
-              Round
-              auto-insert-space
-              :disabled="disabled"
-              @click="viewerVisible = true"
-            >
-              查看
-            </el-button>
-            <el-button
-              type="info"
-              :icon="Refresh"
-              Round
-              auto-insert-space
-              :disabled="disabled"
-              @click="reset"
-            >
-              重置
-            </el-button>
-          </div>
-          <CssFilter ref="cssFilterRef" selector=".img-wrap" :disabled="disabled" />
-        </div>
+        <el-table :data="currentItem?.faultFrames" stripe :border="true" width="100%">
+          <el-table-column
+            v-for="item in columns"
+            :key="item.prop"
+            :prop="item.prop"
+            :type="item.type || 'default'"
+            :label="item.label"
+            :min-width="item.minWidth"
+            :fixed="item.fixed"
+            :align="item.align"
+            :show-overflow-tooltip="item.ellipsis"
+          >
+            <template #default="{ row, $index }">
+              <template v-if="item.slotName">
+                <span v-if="item.slotName === 'affirm'">
+                  {{ row[item.prop] === '0' ? '待复核' : row[item.prop] === '1' ? '正报' : '误报' }}
+                </span>
+              </template>
+              <template v-else-if="item.type === 'index'">
+                {{ $index + 1 }}
+              </template>
+              <template v-else>
+                {{ row[item.prop] }}
+              </template>
+            </template>
+          </el-table-column>
+        </el-table>
       </div>
     </div>
   </el-dialog>
-  <el-image-viewer
-    v-if="viewerVisible"
-    teleported
-    :url-list="handledImgs"
-    :initial-index="curIdx"
-    @close="viewerVisible = false"
-  />
 </template>
 
 <style lang="scss" scoped>
 .fault-viewer {
   width: 100%;
-  height: calc(100vh - var(--el-dialog-padding-primary) * 3 - 25px);
+  height: calc(100vh - var(--el-dialog-padding-primary) * 3 - 30px);
   overflow: hidden;
   @include flex;
   > div {
     height: 100%;
     &.left-content {
-      width: calc(100% - 370px);
-      min-width: 350px;
+      flex: 1;
       height: 100%;
       background: rgba(0, 0, 0, 0.8);
       border-radius: 6px;
       padding: 15px 0;
+      .info-wrapper {
+        width: 100%;
+        height: 30px;
+        line-height: 30px;
+        padding: 0 15px;
+        margin-bottom: 15px;
+        @include flex($jc: space-between);
+        color: #fff;
+        font-size: 14px;
+        .img-path {
+          color: #fff;
+          font-size: 14px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          text-align: center;
+        }
+      }
+
       .fault-img-wrapper {
         width: 100%;
-        height: calc(100% - 45px);
+        height: calc(100% - 130px);
         position: relative;
         overflow: hidden;
         .inner-wrapper {
           position: absolute;
+          left: 0;
+          top: 0;
           width: 100%;
           height: 100%;
           .fault-canvas {
@@ -255,6 +390,7 @@ defineExpose({
             inset: 0;
             width: 100%;
             height: 100%;
+            pointer-events: none;
           }
           .el-image {
             display: block;
@@ -268,20 +404,24 @@ defineExpose({
           }
         }
       }
+      .effect-wrapper {
+        padding: 0 15px;
+        margin-top: 15px;
+        @include flex($jc: space-between);
+        > div {
+          max-width: 800px;
+          flex: 1;
+          padding: 0 15px;
+        }
+        .el-button {
+          flex-shrink: 0;
+        }
+      }
       .toggle-action {
         width: 100%;
         padding: 15px 15px 0;
         flex-shrink: 0;
         @include flex($jc: space-between);
-        .img-path {
-          width: calc(100% - 150px);
-          color: #fff;
-          font-size: 14px;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          text-align: center;
-        }
         .el-button {
           color: #fff;
           &.is-disabled {
@@ -291,41 +431,9 @@ defineExpose({
       }
     }
     &.right-content {
-      width: 350px;
+      width: 40%;
       margin-left: 20px;
       flex-shrink: 0;
-      @include flex($dir: column, $jc: space-between);
-      .fault-info {
-        width: 100%;
-        text-align: left;
-        line-height: 30px;
-        font-size: 14px;
-        .info-title {
-          font-size: 16px;
-          color: var(--el-color-primary);
-        }
-        div > span {
-          &:first-child {
-            padding-right: 10px;
-            font-weight: 600;
-          }
-          &.has-fault {
-            color: var(--el-color-danger);
-          }
-          &.no-fault {
-            color: var(--el-color-success);
-          }
-        }
-      }
-      .fault-operation {
-        width: 100%;
-        .btns {
-          @include flex;
-          .el-button {
-            width: 50%;
-          }
-        }
-      }
     }
   }
 }

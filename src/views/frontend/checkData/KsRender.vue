@@ -1,14 +1,22 @@
-<script setup name="KsRender1">
-import { useIntersectionObserver, useFullscreen } from '@vueuse/core'
+<script setup name="KsRender">
+import {
+  useIntersectionObserver,
+  useMouseInElement,
+  useTimeoutFn,
+  useArrayFind,
+  useElementBounding
+} from '@vueuse/core'
+import { useWebWorker } from '@/hooks/useWebWorker.js'
+import { useCanvasToolsBar } from '@/hooks/useCanvasToolsBar.js'
+import { Rect } from '@/utils/canvas.js'
 import FaultViewer from '@/components/FaultViewer.vue'
-import KSFaultMark from '@/components/KSFaultMark.vue'
 import ImgsSlider from '@/components/ImgsSlider.vue'
+import CanvasToolsBar from '@/components/CanvasToolsBar.vue'
+import Magnify from '@/components/Magnify.vue'
+import FaultTip from '@/components/FaultTip.vue'
 
-const worker = new Worker(new URL('@/worker/drawImg.js', import.meta.url)) // 创建Web Worker
 const imgBaseUrl = import.meta.env.VITE_IMAGE_BASE_URL // 对应环境的图片域名及端口
 const batchSize = 10 // 每个canvas展示的图片数量
-const faultStrokeStyle = '#FA6157' // 故障框线条颜色
-const faultStrokeWidth = 3 // 故障框线条宽度
 
 const props = defineProps({
   isVertical: {
@@ -24,67 +32,35 @@ const props = defineProps({
 
 const { isVertical, list } = toRefs(props)
 
-const ksContainerRef = ref(null)
-const scrollContainerRef = ref(null) // canvas容器的模板引用
+const ksContainerRef = ref(null) // 快扫看图容器区域
+const scrollContainerRef = ref(null) // 滚动容器区域
 const imgsRef = ref([]) // 图片的模板引用
+const magnifyRef = ref(null) // 放大镜
 const faultCanvasRefs = ref([]) // 故障canvas的模板引用
-const faultViewerRef = ref(null)
-const ksFaultMarkRef = ref(null)
+const faultViewerRef = ref(null) // 故障查看器
+const faultTipRef = ref(null) // 故障提示框
 
-//异或运算符 ^,只有一个为true时才为true，其他场景都为false
-const showVertical = computed(() => Boolean(isVertical.value ^ reverse.value)) // 利用位运算，判断到底横向展示还是纵向
 const state = reactive({
   canvasList: [], // canvas列表
-  curIdx: 0, // 当前图片查看器查看的图片索引
   handledList: [], // 处理好的列表
   imgW: 1228, // 图片宽度
   imgH: 600, // 图片高度
-  isDrawing: false,
-  editMode: false, // 是否开启标注模式
-  reverse: false,
-  mousexy: {
-    point1: {
-      x: 0,
-      y: 0,
-      idx: 0
-    },
-    point2: {
-      x: 0,
-      y: 0,
-      idx: 0
-    },
-    location: []
-  },
-  imgInPortIdx: 0
+  imgInPortIdx: 0, // 当前可视区域的图片索引
+  magnifySize: 250 // 放大镜尺寸
 })
-const {
-  canvasList,
-  curIdx,
-  handledList,
-  imgW,
-  imgH,
-  isDrawing,
-  editMode,
-  mousexy,
-  imgInPortIdx,
-  reverse
-} = toRefs(state)
 
-const imgRatio = computed(() => imgW.value / imgH.value) // 图像宽高比
-const thumbnails = computed(() =>
-  handledList.value.map((item) => (reverse.value ? item.handledImg : item.fullPath))
-) // 处理好的图片列表
-const allFaults = computed(() => {
-  let itemRects = []
-  const obj = {}
-  handledList.value.forEach((item) => (itemRects = itemRects.concat(item.faultFrames)))
-  itemRects = itemRects.reduce((cur, next) => {
-    obj[next.id] ? '' : (obj[next.id] = true && cur.push(next))
-    return cur
-  }, [])
-  return itemRects
-})
-const pointerEvents = computed(() => (editMode.value ? 'initial' : 'none'))
+const { canvasList, handledList, imgW, imgH, imgInPortIdx, magnifySize } = toRefs(state)
+// web worker
+const { post, workerData, terminate } = useWebWorker(
+  new URL('@/worker/handleKsData.js', import.meta.url)
+)
+// 获取滚动容器尺寸
+const { width, height } = useElementBounding(scrollContainerRef)
+// 获取故障提示框尺寸
+const { width: tipW, height: tipH } = useElementBounding(faultTipRef)
+// canvas相关操作
+const { compare, magnify, reverse, editMode, toggleFunc } = useCanvasToolsBar()
+// 观察图片是否在可视区域
 const { stop } = useIntersectionObserver(
   // 要观察的元素列表(这里是图片列表)
   imgsRef,
@@ -98,13 +74,56 @@ const { stop } = useIntersectionObserver(
     })
   },
   {
-    threshold: 0.8
+    threshold: 0.6,
+    root: scrollContainerRef
   }
 )
-const { isFullscreen, toggle } = useFullscreen(ksContainerRef)
+const { elementX, elementY, isOutside, stop: stopWatchMouseIn } = useMouseInElement(ksContainerRef)
+// 重置滚动条
+const { start, stop: clearTimeoutFn } = useTimeoutFn(() => {
+  imgInPortIdx.value = 0
+}, 50)
+//异或运算符 ^,只有一个为true时才为true，其他场景都为false
+const showVertical = computed(() => Boolean(isVertical.value ^ reverse.value)) // 利用位运算，判断到底横向展示还是纵向
+const imgRatio = computed(() => imgW.value / imgH.value) // 图像宽高比
+// 计算页面缩放比例
+const scale = computed(() => {
+  const containerW = compare.value ? width.value / 2 : width.value
+  const containerH = compare.value ? height.value / 2 : height.value
+  return showVertical.value ? containerW / imgW.value : containerH / imgH.value
+})
+const pointerEvents = computed(() => (editMode.value && !magnify.value ? 'initial' : 'none'))
+// 图片滚动条的图片
+const thumbnails = computed(() =>
+  handledList.value.map((item) => (reverse.value ? item.handledImg : item.fullPath))
+)
+// 已有故障
+const existingFaults = computed(() => {
+  const rects = []
+  handledList.value.forEach((item) => {
+    item.faultFrames.forEach((fault) => {
+      if (rects?.findIndex((f) => f.info?.id === fault.id) === -1) {
+        const { w, h, gX, gY, revGx, revGy, revW, revH } = fault
+        const faultX = reverse.value ? revGx : gX
+        const faultY = reverse.value ? revGy : gY
+        const faultW = reverse.value ? revW : w
+        const faultH = reverse.value ? revH : h
+        const react = new Rect(faultX, faultY)
+        react.endX = faultX + faultW
+        react.endY = faultY + faultH
+        react.info = fault
+        rects.push(react)
+      }
+    })
+  })
+  return rects
+})
+
 onUnmounted(() => {
-  worker.terminate()
+  terminate()
   stop()
+  clearTimeoutFn()
+  stopWatchMouseIn()
 })
 // 初始化画布
 const initCanvas = () => {
@@ -136,66 +155,42 @@ const initCanvas = () => {
   }
   drawFaults()
 }
+
 // 绘制故障框
 const drawFaults = () => {
-  console.log('draw faults', allFaults.value)
+  console.log('drawFaults')
   for (let j = 0, len = faultCanvasRefs.value.length; j < len; j++) {
-    const curCanvas = faultCanvasRefs.value[j]
-    const ctx = curCanvas.getContext('2d')
-    const cStartX = showVertical.value ? 0 : Number(curCanvas.getAttribute('start')) // 当前canvas的起始x坐标
-    const cEndX = showVertical.value ? imgW.value : Number(curCanvas.getAttribute('end')) // 当前canvas的结束x坐标
-    const cStartY = showVertical.value ? Number(curCanvas.getAttribute('start')) : 0 // 当前canvas的起始y坐标
-    const cEndY = showVertical.value ? Number(curCanvas.getAttribute('end')) : imgH.value // 当前canvas的结束y坐标
-
-    // ctx.clearRect(0, 0, curCanvas.width, curCanvas.height) // 清空画布
-    ctx.strokeStyle = faultStrokeStyle
-    ctx.lineWidth = faultStrokeWidth
-    const faultList = allFaults.value
-    for (let i = 0, len = faultList.length; i < len; i++) {
-      const curFault = faultList[i]
-      const { w, h, gX, gY, revGx, revGy, revW, revH } = curFault
-      const faultX = reverse.value ? revGx : gX
-      const faultY = reverse.value ? revGy : gY
-      const faultW = reverse.value ? revW : w
-      const faultH = reverse.value ? revH : h
-      // 判断故障框是否跟当前canvas重叠
+    const cvs = faultCanvasRefs.value[j]
+    const ctx = cvs.getContext('2d')
+    const cStartX = showVertical.value ? 0 : Number(cvs.getAttribute('start')) // 当前canvas的起始x坐标
+    const cEndX = showVertical.value ? imgW.value : Number(cvs.getAttribute('end')) // 当前canvas的结束x坐标
+    const cStartY = showVertical.value ? Number(cvs.getAttribute('start')) : 0 // 当前canvas的起始y坐标
+    const cEndY = showVertical.value ? Number(cvs.getAttribute('end')) : imgH.value // 当前canvas的结束y坐标
+    ctx.clearRect(0, 0, cvs.width, cvs.height)
+    existingFaults.value.forEach((rect) => {
       if (
-        isRectOverlap(
-          {
-            startX: faultX,
-            endX: faultX + faultW,
-            startY: faultY,
-            endY: faultY + faultH
-          },
-          {
-            startX: cStartX,
-            endX: cEndX,
-            startY: cStartY,
-            endY: cEndY
-          }
-        )
+        rect.isRectOverlap({
+          startX: cStartX,
+          endX: cEndX,
+          startY: cStartY,
+          endY: cEndY
+        })
       ) {
-        ctx.strokeRect(faultX - cStartX, faultY - cStartY, faultW, faultH)
+        rect.offsetX = cStartX
+        rect.offsetY = cStartY
+        rect.draw(ctx)
       }
-    }
+    })
   }
 }
-watch(reverse, (newVal, oldVal) => {
-  if (newVal !== oldVal) {
-    imgInPortIdx.value = 0
-    const w = imgW.value
-    imgW.value = imgH.value
-    imgH.value = w
-    initCanvas()
-  }
-})
+
 // 数据变化，通知子进程处理数据
 watch(
   list,
   (newVal) => {
     console.log('ksData', newVal)
     canvasList.value = Array.from({ length: Math.ceil(newVal?.length / batchSize) }, (_, i) => i) // 重置canvas列表
-    worker.postMessage({
+    post({
       list: toRaw(newVal),
       imgBaseUrl,
       isVertical: isVertical.value,
@@ -205,10 +200,9 @@ watch(
   },
   { deep: true, immediate: true }
 )
-
-// 监听Web Worker消息
-worker.onmessage = function (event) {
-  const { type, processedList, normalW, normalH, reverseW, reverseH } = event.data
+// 监听web worker数据变化
+watch(workerData, (newVal) => {
+  const { type, processedList, normalW, normalH, reverseW, reverseH } = newVal
   if (type === 'clear') {
     handledList.value = []
   } else if (type === 'update') {
@@ -217,10 +211,42 @@ worker.onmessage = function (event) {
     imgH.value = reverse.value ? reverseH || imgH.value : normalH || imgH.value
   }
   initCanvas()
-}
-
+})
+// 看图方式切换，图片宽高需要互换，重新绘制故障
+watch(reverse, (newVal, oldVal) => {
+  if (newVal !== oldVal) {
+    imgInPortIdx.value = 0
+    const temp = imgW.value
+    imgW.value = imgH.value
+    imgH.value = temp
+    initCanvas()
+    if (showVertical.value) {
+      scrollContainerRef.value.scrollTop = 0
+    } else {
+      scrollContainerRef.value.scrollLeft = 0
+    }
+    start()
+  }
+})
+// 切换显示历史图，重置滚动条
+watch(compare, () => {
+  if (showVertical.value) {
+    scrollContainerRef.value.scrollTop = 0
+  } else {
+    scrollContainerRef.value.scrollLeft = 0
+  }
+  start()
+})
+// 鼠标离开图片区域，则关掉放大镜
+watch(isOutside, (newVal) => {
+  if (newVal) {
+    toggleFunc('magnify', false)
+  }
+})
 // 横向滚动事件
 const handleScroll = (e) => {
+  // 滚动时隐藏提示框
+  faultTipRef.value.hide()
   if (showVertical.value) {
     return
   }
@@ -228,8 +254,6 @@ const handleScroll = (e) => {
   if (e.shiftKey) {
     return
   }
-  // 阻止默认的垂直滚动行为
-  e.preventDefault()
   // 获取滚动容器元素
   const scrollContainer = scrollContainerRef.value
   // 横向滚动距离
@@ -237,156 +261,21 @@ const handleScroll = (e) => {
   // 设置横向滚动条位置
   scrollContainer.scrollLeft += delta
 }
-// 判断一个点是否在矩形区域内
-const isPointInRect = (x, y, startX, startY, endX, endY) => {
-  console.log('isPointInRect', x, y, startX, startY, endX, endY)
-  return x >= startX && x <= endX && y >= startY && y <= endY
-}
-// 判断两个矩形是否有重叠
-const isRectOverlap = (rect1, rect2) => {
-  return (
-    rect1.startX <= rect2.endX &&
-    rect1.endX >= rect2.startX &&
-    rect1.startY <= rect2.endY &&
-    rect1.endY >= rect2.startY
-  )
-}
 
 // 预览图片
-const handlePreview = async (e, idx) => {
-  const currentItem = handledList.value[idx]
-  const currentFaults = currentItem.faultFrames
-  const containerW = scrollContainerRef.value.clientWidth
-  const scale = imgW.value / containerW // 因为画面等比缩放，计算出缩放的比例
-  const offsetX = e.offsetX * scale // 根据原图的尺寸算出x坐标
-  const offsetY = e.offsetY * scale // 根据原图的尺寸算出y坐标
-  // 找出鼠标当前置入的故障框
-  const faultsContainPonit = currentFaults?.filter((item) => {
-    const { coordinateX, coordinateY, width, height } = item
-    if (
-      isPointInRect(
-        offsetX,
-        offsetY,
-        coordinateX,
-        coordinateY,
-        coordinateX + width,
-        coordinateY + height
-      )
-    ) {
-      return item
-    }
-  })
-  if (faultsContainPonit.length) {
-    // 鼠标当前置入的故障框
-    faultViewerRef.value.show({
-      data: toRaw(handledList.value),
-      idx
-    })
+const handlePreview = async (idx) => {
+  if (editMode.value && magnify.value) {
+    toggleFunc('magnify', false)
     return
   }
-  curIdx.value = idx
-}
-
-const addNewFault = () => {
-  const { point1, point2 } = mousexy.value
-  const container = document.querySelector('.faults-canvas')
-  if (!container) return
-  // 计算页面缩放比例
-  const scale = isVertical.value
-    ? imgW.value / container.clientWidth
-    : imgH.value / container.clientHeight
-  const can1 = faultCanvasRefs.value[point1.idx]
-  const can2 = faultCanvasRefs.value[point2.idx]
-  const can1Start = Number(can1.getAttribute('start'))
-  const can2Start = Number(can2.getAttribute('start'))
-  // 把第一个canvas中点的坐标转为全图坐标
-  const sX = isVertical.value ? point1.x * scale : point1.x * scale + can1Start
-  const sY = isVertical.value ? point1.y * scale + can1Start : point1.y * scale
-  // 把第二个canvas中点的坐标转为全图坐标
-  const eX = isVertical.value ? point2.x * scale : point2.x * scale + can2Start
-  const eY = isVertical.value ? point2.y * scale + can2Start : point2.y * scale
-  // 计算矩形的左上角坐标和宽度、高度
-  const x = Math.min(sX, eX)
-  const y = Math.min(sY, eY)
-  const width = Math.abs(sX - eX)
-  const height = Math.abs(sY - eY)
-  mousexy.value.location = [{ x, y, width, height }]
-}
-// 标注-鼠标按下
-const mousedownMark = (idx, e) => {
-  if (mousexy.value.location.length) {
-    mousexy.value.location = []
-  }
-  // 记录第一个点的坐标及所在canvas的索引
-  mousexy.value.point1 = {
-    x: e.offsetX,
-    y: e.offsetY,
-    idx
-  }
-  isDrawing.value = true
-}
-// 标注-鼠标移动
-const mousemoveMark = (idx, e) => {
-  console.error(isDrawing.value, e.buttons)
-  // mouseup触发会有问题，isDrawing状态不一定能及时变更，结合e.buttons !== 1判断鼠标左键是否按下
-  if (!isDrawing.value || !editMode.value || e.buttons !== 1) return
-  // 记录第二个点的坐标及所在canvas的索引
-  mousexy.value.point2 = {
-    x: e.offsetX,
-    y: e.offsetY,
-    idx
-  }
-  addNewFault()
-}
-// 标注-鼠标抬起
-const mouseupMark = () => {
-  if (!isDrawing.value || !editMode.value) return
-  const { point1, point2, location } = mousexy.value
-  if ((point1.x === point2.x && point1.y === point2.y) || !location.length) return
-  isDrawing.value = false
-  // 根据location中的坐标和宽高，确定故障所在的图片
-  const { x, y, width, height } = location[0]
-  const imgsWithFault = handledList.value.filter((_, idx) => {
-    const imgStartX = isVertical.value ? 0 : imgW.value * idx
-    const imgStartY = isVertical.value ? imgH.value * idx : 0
-    const imgEndX = imgStartX + imgW.value
-    const imgEndY = imgStartY + imgH.value
-    return isRectOverlap(
-      {
-        startX: x,
-        endX: x + width,
-        startY: y,
-        endY: y + height
-      },
-      {
-        startX: imgStartX,
-        endX: imgEndX,
-        startY: imgStartY,
-        endY: imgEndY
-      }
-    )
+  faultViewerRef.value.show({
+    data: toRaw(handledList.value),
+    idx,
+    reverse: reverse.value,
+    isKs: true
   })
-  if (imgsWithFault.length) {
-    const firstImg = imgsWithFault[0]
-    // 找到第一张图片的索引及起始位置
-    const firstImgIdx = handledList.value.findIndex((item) => item.fullPath === firstImg.fullPath)
-    const firstImgStart = isVertical.value ? firstImgIdx * imgH.value : firstImgIdx * imgW.value
-
-    ksFaultMarkRef.value.show({
-      data: toRaw(imgsWithFault),
-      imgW: imgW.value,
-      imgH: imgH.value,
-      isVertical: isVertical.value,
-      fault: {
-        x,
-        y,
-        w: width,
-        h: height
-      },
-      firstImgStart
-    })
-  }
 }
+
 // 滑块定位
 const sliderChange = (idx) => {
   const ele = imgsRef.value[idx]
@@ -394,66 +283,123 @@ const sliderChange = (idx) => {
     ele?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 }
+// 放大镜功能、故障详情查看
+const handleMousemove = (idx, e) => {
+  if (magnify.value) {
+    const curImg = reverse.value
+      ? handledList.value[idx]?.handledImg
+      : handledList.value[idx]?.fullPath
+    const magnifyScale = Math.max(scale.value * 1.5, 1)
+    const largeW = imgW.value * magnifyScale
+    const largeH = imgH.value * magnifyScale
+    let x = (e.offsetX / scale.value) * magnifyScale - magnifySize.value / 2 // 根据原图的尺寸算出x坐标
+    let y = (e.offsetY / scale.value) * magnifyScale - magnifySize.value / 2 // 根据原图的尺寸算出y坐标
+    x = Math.max(x, 0)
+    y = Math.max(y, 0)
+    x = Math.min(x, largeW - magnifySize.value)
+    y = Math.min(y, largeH - magnifySize.value)
+    let left = elementX.value - magnifySize.value / 2
+    let top = elementY.value - magnifySize.value / 2
+    left = Math.max(left, 0)
+    top = Math.max(top, 0)
+    left = Math.min(left, width.value - magnifySize.value)
+    top = Math.min(top, height.value - magnifySize.value)
+    const style = {
+      transform: `translate(${left}px, ${top}px)`,
+      backgroundImage: `url(${curImg})`,
+      backgroundPosition: `-${x}px -${y}px`,
+      backgroundSize: `${largeW}px ${largeH}px`
+    }
+    Object.assign(magnifyRef.value.$el.style, style)
+  } else {
+    const imgStart = showVertical.value ? idx * imgH.value : idx * imgW.value
+    const x = showVertical.value ? e.offsetX / scale.value : e.offsetX / scale.value + imgStart
+    const y = showVertical.value ? e.offsetY / scale.value + imgStart : e.offsetY / scale.value
+    const curFault = useArrayFind(existingFaults.value.reverse(), (rect) => rect.isInSide(x, y))
+    if (curFault.value) {
+      let left = elementX.value - tipW.value / 2 + curFault.value.width
+      let top = elementY.value - tipH.value / 2
+      left = Math.max(left, 0)
+      top = Math.max(top, 0)
+      left = Math.min(left, width.value - tipW.value)
+      top = Math.min(top, height.value - tipH.value)
+      faultTipRef.value.show(curFault.value.info)
+      Object.assign(faultTipRef.value.$el.style, {
+        transform: `translate(${left}px, ${top}px)`
+      })
+    } else {
+      faultTipRef.value.hide()
+    }
+  }
+}
 </script>
 <template>
-  <div class="ks-container" ref="ksContainerRef">
-    <div class="tools-bar">
-      <div class="tool-item" @click="reverse = !reverse">
-        <el-tooltip
-          effect="dark"
-          :content="Boolean(isVertical ^ reverse) ? '横向看图' : '纵向看图'"
-          placement="bottom"
-        >
-          <SvgIcon
-            name="horizontal"
-            :class="Boolean(isVertical ^ reverse) ? '' : 'svg-icon-v'"
-            :size="18"
-          />
-        </el-tooltip>
+  <div
+    :class="showVertical ? 'ks-container ks-container-v' : 'ks-container ks-container-h'"
+    ref="ksContainerRef"
+  >
+    <div class="scroll-container" ref="scrollContainerRef" @wheel.passive="handleScroll">
+      <div v-show="compare" :class="compare ? 'compare-wrap' : ''">
+        <div class="pics-wrap">
+          <div
+            class="img-wrap"
+            v-for="(item, index) in handledList"
+            :key="reverse ? item.handledImg : item.fullPath"
+            :data-idx="index"
+          >
+            <el-image
+              :src="reverse ? item.handledImg : item.fullPath"
+              lazy
+              scroll-container=".scroll-container"
+              crossorigin="anonymous"
+              @mousemove.passive="handleMousemove(index, $event)"
+              @dragover.prevent
+              @drop.prevent
+              @dragstart.prevent
+            />
+          </div>
+        </div>
       </div>
-      <div class="tool-item" @click="toggle">
-        <el-tooltip
-          effect="dark"
-          :content="isFullscreen ? '退出全屏' : '全屏看图'"
-          placement="bottom"
-        >
-          <SvgIcon :name="isFullscreen ? 'fullscreen-exit' : 'fullscreen'" :size="20" />
-        </el-tooltip>
-      </div>
-    </div>
-    <div class="canvas-content" ref="scrollContainerRef" @wheel="handleScroll">
-      <div :class="showVertical ? 'pics-wrap-v' : 'pics-wrap-h'">
-        <div
-          class="img-wrap"
-          v-for="(item, index) in handledList"
-          :key="reverse ? item.handledImg : item.fullPath"
-          :ref="(el) => (imgsRef[index] = el)"
-          :data-idx="index"
-        >
-          <el-image
-            :src="reverse ? item.handledImg : item.fullPath"
-            lazy
-            crossorigin="anonymous"
-            @click="handlePreview($event, index)"
-            @dragover.prevent
-            @drop.prevent
-            @dragstart.prevent
+      <div :class="compare ? 'compare-wrap' : ''">
+        <div class="pics-wrap">
+          <div
+            class="img-wrap"
+            v-for="(item, index) in handledList"
+            :key="reverse ? item.handledImg : item.fullPath"
+            :ref="(el) => (imgsRef[index] = el)"
+            :data-idx="index"
+          >
+            <el-image
+              :src="reverse ? item.handledImg : item.fullPath"
+              lazy
+              scroll-container=".scroll-container"
+              crossorigin="anonymous"
+              @click="handlePreview(index)"
+              @mousemove.passive="handleMousemove(index, $event)"
+              @dragover.prevent
+              @drop.prevent
+              @dragstart.prevent
+            />
+          </div>
+        </div>
+        <div class="faults-canvas">
+          <canvas
+            v-for="(_, index) in canvasList"
+            :ref="(el) => (faultCanvasRefs[index] = el)"
+            :key="index"
           />
         </div>
       </div>
-      <div :class="showVertical ? 'fault-canvas-v faults-canvas' : 'fault-canvas-h faults-canvas'">
-        <canvas
-          v-for="(_, index) in canvasList"
-          :ref="(el) => (faultCanvasRefs[index] = el)"
-          :key="index"
-          @mousedown="mousedownMark(index, $event)"
-          @mouseup="mouseupMark(index, $event)"
-          @mousemove="mousemoveMark(index, $event)"
-        />
-      </div>
     </div>
-    <FaultViewer ref="faultViewerRef" />
-    <KSFaultMark ref="ksFaultMarkRef" />
+    <CanvasToolsBar
+      :showVertical="showVertical"
+      :compare="compare"
+      :magnify="magnify"
+      :editMode="editMode"
+      :fullScreenContainer="ksContainerRef"
+      @toggleFunc="toggleFunc"
+    />
+    <Magnify v-show="magnify" ref="magnifyRef" :size="magnifySize" />
     <ImgsSlider
       :images="thumbnails"
       :step="10"
@@ -462,6 +408,8 @@ const sliderChange = (idx) => {
       :scrollRef="scrollContainerRef"
       @change="sliderChange"
     />
+    <FaultViewer ref="faultViewerRef" />
+    <FaultTip ref="faultTipRef" />
   </div>
 </template>
 
@@ -471,101 +419,118 @@ const sliderChange = (idx) => {
   height: 100%;
   position: relative;
   overflow: hidden;
-  .tools-bar {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: calc(100% - 8px);
-    height: 30px;
-    background-color: rgba(64, 158, 255, 0.5);
-    z-index: 101;
-    @include flex;
-    .tool-item {
-      padding: 0 10px;
-      color: #fff;
-      font-size: 16px;
-      cursor: pointer;
-      .svg-icon {
-        color: #fff;
-        &:focus {
-          outline: none;
+
+  &.ks-container-v {
+    .tools-bar {
+      width: calc(100% - 8px);
+    }
+    .scroll-container {
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      @include scrollBar($color: rgba(17, 209, 251, 0.5), $activeColor: rgba(17, 209, 251, 1));
+      @include flex($jc: flex-start, $al: flex-start);
+      > div {
+        width: 100%;
+        height: auto;
+        position: relative;
+        &.compare-wrap {
+          width: 50%;
+          height: auto;
+          border-right: 2px solid var(--el-color-primary);
         }
-        &.svg-icon-v {
-          transform: rotate(90deg);
+        .pics-wrap {
+          width: 100%;
+          height: auto;
+          .img-wrap {
+            width: 100%;
+            height: auto;
+            aspect-ratio: v-bind(imgRatio);
+            .el-image {
+              display: block;
+              width: 100%;
+              height: 100%;
+              // aspect-ratio: v-bind(imgRatio);
+              border: none;
+              user-select: none;
+              cursor: pointer;
+            }
+          }
+        }
+        .faults-canvas {
+          position: absolute;
+          top: 0;
+          left: 0;
+          z-index: 100;
+          width: 100%;
+          height: auto;
+          pointer-events: v-bind(pointerEvents);
+          canvas {
+            margin: 0;
+            border: 0;
+            padding: 0;
+            display: block;
+            width: 100%;
+            height: auto;
+          }
         }
       }
     }
   }
-  .canvas-content {
-    width: 100%;
-    height: 100%;
-    position: relative;
-    overflow: auto;
-    @include scrollBar($color: rgba(17, 209, 251, 0.5), $activeColor: rgba(17, 209, 251, 1));
-
-    .pics-wrap-v {
+  &.ks-container-h {
+    .tools-bar {
       width: 100%;
-      height: auto;
-      .img-wrap {
-        width: 100%;
-        height: auto;
-        aspect-ratio: v-bind(imgRatio);
-        .el-image {
-          display: block;
-          width: 100%;
-          height: 100%;
-          // aspect-ratio: v-bind(imgRatio);
-          border: none;
-          user-select: none;
-          cursor: pointer;
-        }
-      }
     }
-    .pics-wrap-h {
-      width: auto;
+    .scroll-container {
+      width: 100%;
       height: 100%;
-      @include flex($jc: flex-start);
-      .img-wrap {
+      overflow: auto;
+      @include scrollBar($color: rgba(17, 209, 251, 0.5), $activeColor: rgba(17, 209, 251, 1));
+      @include flex($dir: column, $jc: flex-start, $al: flex-start);
+      > div {
         width: auto;
         height: 100%;
-        aspect-ratio: v-bind(imgRatio);
-        .el-image {
-          display: block;
-          // width: auto;
-          width: 100%;
-          height: 100%;
-          // aspect-ratio: v-bind(imgRatio);
-          flex-shrink: 0;
+        position: relative;
+        &.compare-wrap {
+          width: auto;
+          height: 50%;
+          border-bottom: 2px solid var(--el-color-primary);
         }
-      }
-    }
-    .faults-canvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      z-index: 100;
-      pointer-events: v-bind(pointerEvents);
-      canvas {
-        margin: 0;
-        border: 0;
-        padding: 0;
-        display: block;
-      }
-      &.fault-canvas-v {
-        width: 100%;
-        height: auto;
-        canvas {
-          width: 100%;
-          height: auto;
-        }
-      }
-      &.fault-canvas-h {
-        height: auto;
-        height: 100%;
-        @include flex($jc: flex-start);
-        canvas {
+        .pics-wrap {
           width: auto;
           height: 100%;
+          @include flex($jc: flex-start);
+          .img-wrap {
+            width: auto;
+            height: 100%;
+            aspect-ratio: v-bind(imgRatio);
+            .el-image {
+              display: block;
+              // width: auto;
+              width: 100%;
+              height: 100%;
+              // aspect-ratio: v-bind(imgRatio);
+              flex-shrink: 0;
+            }
+          }
+        }
+        .faults-canvas {
+          position: absolute;
+          top: 0;
+          left: 0;
+          z-index: 100;
+          height: auto;
+          height: 100%;
+          pointer-events: v-bind(pointerEvents);
+          @include flex($jc: flex-start);
+          canvas {
+            margin: 0;
+            border: 0;
+            padding: 0;
+            display: block;
+            width: auto;
+            height: 100%;
+          }
         }
       }
     }
