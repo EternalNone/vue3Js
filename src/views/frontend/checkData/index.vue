@@ -12,7 +12,6 @@ import PassTrainFilter from '@/components/PassTrainFilter.vue'
 import TrainCarriage from '@/components/TrainCarriage.vue'
 import PassagewaySelect from '@/components/PassagewaySelect.vue'
 import JsFilter from '@/components/JsFilter.vue'
-// import KsRender2 from './KsRender2.vue'
 import KsRender from './KsRender.vue'
 import JsRender from './JsRender.vue'
 import FaultsList from './FaultsList.vue'
@@ -253,8 +252,14 @@ const exportFault = () => {
             <JsFilter />
             <JsRender :list="list" />
           </div>
-          <KsRender v-else :list="list" :isVertical="isVertical" :reverse="reverse" />
-          <!-- <KsRender2 v-else :list="list" :isVertical="isVertical" :reverse="reverse" @refresh="getData" /> -->
+          <KsRender
+            v-else
+            :list="list"
+            :isVertical="isVertical"
+            :reverse="reverse"
+            showEditMode
+            @refresh="getData"
+          />
         </template>
         <el-empty v-else description="暂无数据" />
       </div>

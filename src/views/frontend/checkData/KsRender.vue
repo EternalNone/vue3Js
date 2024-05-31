@@ -1,27 +1,39 @@
 <script setup name="KsRender">
+import { h } from 'vue'
+import { ElMessage } from 'element-plus'
+import { Delete, Remove, Edit, RefreshRight, CircleCheck } from '@element-plus/icons-vue'
 import {
   useIntersectionObserver,
   useMouseInElement,
   useTimeoutFn,
-  useArrayFind,
+  useArrayFindLast,
+  useElementSize,
   useElementBounding
 } from '@vueuse/core'
 import { useWebWorker } from '@/hooks/useWebWorker.js'
 import { useCanvasToolsBar } from '@/hooks/useCanvasToolsBar.js'
+import ContextMenu from '@imengyu/vue3-context-menu'
 import { Rect } from '@/utils/canvas.js'
+import { deleteFault } from '@/api/checkData'
 import FaultViewer from '@/components/FaultViewer.vue'
 import ImgsSlider from '@/components/ImgsSlider.vue'
 import CanvasToolsBar from '@/components/CanvasToolsBar.vue'
 import Magnify from '@/components/Magnify.vue'
+import FaultMarkDialog from '@/components/FaultMarkDialog.vue'
 import FaultTip from '@/components/FaultTip.vue'
 
 const imgBaseUrl = import.meta.env.VITE_IMAGE_BASE_URL // 对应环境的图片域名及端口
 const batchSize = 10 // 每个canvas展示的图片数量
-
+let animateId = null
 const props = defineProps({
   isVertical: {
     type: Boolean,
     default: true
+  },
+  // 是否显示故障标注按钮
+  showEditMode: {
+    type: Boolean,
+    default: false
   },
   list: {
     type: Array,
@@ -29,7 +41,7 @@ const props = defineProps({
     required: true
   }
 })
-
+const emits = defineEmits(['refresh'])
 const { isVertical, list } = toRefs(props)
 
 const ksContainerRef = ref(null) // 快扫看图容器区域
@@ -38,6 +50,7 @@ const imgsRef = ref([]) // 图片的模板引用
 const magnifyRef = ref(null) // 放大镜
 const faultCanvasRefs = ref([]) // 故障canvas的模板引用
 const faultViewerRef = ref(null) // 故障查看器
+const ksFaultMarkRef = ref(null) // 快扫故障标注表单
 const faultTipRef = ref(null) // 故障提示框
 
 const state = reactive({
@@ -46,17 +59,30 @@ const state = reactive({
   imgW: 1228, // 图片宽度
   imgH: 600, // 图片高度
   imgInPortIdx: 0, // 当前可视区域的图片索引
-  magnifySize: 250 // 放大镜尺寸
+  magnifySize: 250, // 放大镜尺寸
+  isDrawing: false,
+  existingFaults: [], // 已有故障
+  newFaults: [] // 新增故障框
 })
 
-const { canvasList, handledList, imgW, imgH, imgInPortIdx, magnifySize } = toRefs(state)
+const {
+  canvasList,
+  handledList,
+  imgW,
+  imgH,
+  imgInPortIdx,
+  magnifySize,
+  isDrawing,
+  existingFaults,
+  newFaults
+} = toRefs(state)
 // web worker
 const { post, workerData, terminate } = useWebWorker(
   new URL('@/worker/handleKsData.js', import.meta.url)
 )
-// 获取滚动容器尺寸
-const { width, height } = useElementBounding(scrollContainerRef)
-// 获取故障提示框尺寸
+// 获取滚动容器尺寸,useElementSize获取的尺寸不包含padding、边框、滚动条等
+const { width: conW, height: conH } = useElementSize(scrollContainerRef)
+// 获取故障提示框尺寸，useElementBounding获取的尺寸包含padding、边框、滚动条等
 const { width: tipW, height: tipH } = useElementBounding(faultTipRef)
 // canvas相关操作
 const { compare, magnify, reverse, editMode, toggleFunc } = useCanvasToolsBar()
@@ -83,13 +109,14 @@ const { elementX, elementY, isOutside, stop: stopWatchMouseIn } = useMouseInElem
 const { start, stop: clearTimeoutFn } = useTimeoutFn(() => {
   imgInPortIdx.value = 0
 }, 50)
+
 //异或运算符 ^,只有一个为true时才为true，其他场景都为false
 const showVertical = computed(() => Boolean(isVertical.value ^ reverse.value)) // 利用位运算，判断到底横向展示还是纵向
 const imgRatio = computed(() => imgW.value / imgH.value) // 图像宽高比
 // 计算页面缩放比例
 const scale = computed(() => {
-  const containerW = compare.value ? width.value / 2 : width.value
-  const containerH = compare.value ? height.value / 2 : height.value
+  const containerW = compare.value ? conW.value / 2 : conW.value
+  const containerH = compare.value ? conH.value / 2 : conH.value
   return showVertical.value ? containerW / imgW.value : containerH / imgH.value
 })
 const pointerEvents = computed(() => (editMode.value && !magnify.value ? 'initial' : 'none'))
@@ -97,98 +124,25 @@ const pointerEvents = computed(() => (editMode.value && !magnify.value ? 'initia
 const thumbnails = computed(() =>
   handledList.value.map((item) => (reverse.value ? item.handledImg : item.fullPath))
 )
-// 已有故障
-const existingFaults = computed(() => {
-  const rects = []
-  handledList.value.forEach((item) => {
-    item.faultFrames.forEach((fault) => {
-      if (rects?.findIndex((f) => f.info?.id === fault.id) === -1) {
-        const { w, h, gX, gY, revGx, revGy, revW, revH } = fault
-        const faultX = reverse.value ? revGx : gX
-        const faultY = reverse.value ? revGy : gY
-        const faultW = reverse.value ? revW : w
-        const faultH = reverse.value ? revH : h
-        const react = new Rect(faultX, faultY)
-        react.endX = faultX + faultW
-        react.endY = faultY + faultH
-        react.info = fault
-        rects.push(react)
-      }
-    })
-  })
-  return rects
-})
+
+// 所有故障列表
+const allFaults = computed(() => [...existingFaults.value, ...newFaults.value])
 
 onUnmounted(() => {
   terminate()
   stop()
   clearTimeoutFn()
   stopWatchMouseIn()
+  if (animateId) {
+    cancelAnimationFrame(animateId)
+    animateId = null
+  }
 })
-// 初始化画布
-const initCanvas = () => {
-  const leftImgs = list.value?.length % batchSize // 计算最后一个canvas中img数量
-  let cStartX = 0 // 当前canvas的起始x坐标
-  let cEndX = 0 // 当前canvas的结束x坐标
-  let cStartY = 0 // 当前canvas的起始y坐标
-  let cEndY = 0 // 当前canvas的结束y坐标
-  for (let j = 0, len = faultCanvasRefs.value.length; j < len; j++) {
-    const curCanvas = faultCanvasRefs.value[j]
-    const totalImgsCount = j === len - 1 ? leftImgs + j * batchSize : (j + 1) * batchSize // 截止当前画布已经展示的图片数量
-    if (showVertical.value) {
-      curCanvas.width = imgW.value // 当前索引对应画布的宽度
-      curCanvas.height = j === len - 1 ? imgH.value * leftImgs : imgH.value * batchSize // 当前索引对应画布的高度
-      cEndX = imgW.value
-      cEndY = imgH.value * totalImgsCount
-      cStartY = cEndY - curCanvas.height
-      curCanvas.setAttribute('start', cStartY)
-      curCanvas.setAttribute('end', cEndY)
-    } else {
-      curCanvas.width = j === len - 1 ? imgW.value * leftImgs : imgW.value * batchSize
-      curCanvas.height = imgH.value
-      cEndY = imgH.value
-      cEndX = imgW.value * totalImgsCount // 当前索引对应画布的结束位置
-      cStartX = cEndX - curCanvas.width // 当前索引对应画布的起始位置
-      curCanvas.setAttribute('start', cStartX)
-      curCanvas.setAttribute('end', cEndX)
-    }
-  }
-  drawFaults()
-}
-
-// 绘制故障框
-const drawFaults = () => {
-  console.log('drawFaults')
-  for (let j = 0, len = faultCanvasRefs.value.length; j < len; j++) {
-    const cvs = faultCanvasRefs.value[j]
-    const ctx = cvs.getContext('2d')
-    const cStartX = showVertical.value ? 0 : Number(cvs.getAttribute('start')) // 当前canvas的起始x坐标
-    const cEndX = showVertical.value ? imgW.value : Number(cvs.getAttribute('end')) // 当前canvas的结束x坐标
-    const cStartY = showVertical.value ? Number(cvs.getAttribute('start')) : 0 // 当前canvas的起始y坐标
-    const cEndY = showVertical.value ? Number(cvs.getAttribute('end')) : imgH.value // 当前canvas的结束y坐标
-    ctx.clearRect(0, 0, cvs.width, cvs.height)
-    existingFaults.value.forEach((rect) => {
-      if (
-        rect.isRectOverlap({
-          startX: cStartX,
-          endX: cEndX,
-          startY: cStartY,
-          endY: cEndY
-        })
-      ) {
-        rect.offsetX = cStartX
-        rect.offsetY = cStartY
-        rect.draw(ctx)
-      }
-    })
-  }
-}
 
 // 数据变化，通知子进程处理数据
 watch(
   list,
   (newVal) => {
-    console.log('ksData', newVal)
     canvasList.value = Array.from({ length: Math.ceil(newVal?.length / batchSize) }, (_, i) => i) // 重置canvas列表
     post({
       list: toRaw(newVal),
@@ -205,6 +159,7 @@ watch(workerData, (newVal) => {
   const { type, processedList, normalW, normalH, reverseW, reverseH } = newVal
   if (type === 'clear') {
     handledList.value = []
+    clearNewFault()
   } else if (type === 'update') {
     handledList.value = handledList.value?.concat(processedList)
     imgW.value = reverse.value ? reverseW || imgW.value : normalW || imgW.value
@@ -243,6 +198,95 @@ watch(isOutside, (newVal) => {
     toggleFunc('magnify', false)
   }
 })
+watch(editMode, () => {
+  // 清空新增的故障列表，重置故障状态为未选中
+  newFaults.value = []
+  existingFaults.value.forEach((i) => (i.selected = false))
+  drawFaults()
+})
+// 获取已有故障
+// 因为涉及到故障的编辑、删除、选中等功能，所以这里不能用计算属性
+const getExistingFaults = () => {
+  const rects = []
+  handledList.value.forEach((item) => {
+    item.faultFrames.reverse().forEach((fault) => {
+      if (rects?.findIndex((f) => f.info?.id === fault.id) === -1) {
+        const { w, h, gX, gY, revGx, revGy, revW, revH } = fault
+        const faultX = reverse.value ? revGx : gX
+        const faultY = reverse.value ? revGy : gY
+        const faultW = reverse.value ? revW : w
+        const faultH = reverse.value ? revH : h
+        const rect = new Rect(faultX, faultY)
+        rect.endX = faultX + faultW
+        rect.endY = faultY + faultH
+        rect.info = fault
+        rects.push(rect)
+      }
+    })
+  })
+  existingFaults.value = rects
+}
+
+// 初始化画布
+const initCanvas = () => {
+  const leftImgs = list.value?.length % batchSize // 计算最后一个canvas中img数量
+  let cStartX = 0 // 当前canvas的起始x坐标
+  let cEndX = 0 // 当前canvas的结束x坐标
+  let cStartY = 0 // 当前canvas的起始y坐标
+  let cEndY = 0 // 当前canvas的结束y坐标
+  for (let j = 0, len = faultCanvasRefs.value.length; j < len; j++) {
+    const curCanvas = faultCanvasRefs.value[j]
+    const totalImgsCount = j === len - 1 ? leftImgs + j * batchSize : (j + 1) * batchSize // 截止当前画布已经展示的图片数量
+    if (showVertical.value) {
+      curCanvas.width = imgW.value // 当前索引对应画布的宽度
+      curCanvas.height = j === len - 1 ? imgH.value * leftImgs : imgH.value * batchSize // 当前索引对应画布的高度
+      cEndX = imgW.value
+      cEndY = imgH.value * totalImgsCount
+      cStartY = cEndY - curCanvas.height
+      curCanvas.setAttribute('start', cStartY)
+      curCanvas.setAttribute('end', cEndY)
+    } else {
+      curCanvas.width = j === len - 1 ? imgW.value * leftImgs : imgW.value * batchSize
+      curCanvas.height = imgH.value
+      cEndY = imgH.value
+      cEndX = imgW.value * totalImgsCount // 当前索引对应画布的结束位置
+      cStartX = cEndX - curCanvas.width // 当前索引对应画布的起始位置
+      curCanvas.setAttribute('start', cStartX)
+      curCanvas.setAttribute('end', cEndX)
+    }
+  }
+  getExistingFaults() // 更新故障信息
+  drawFaults() // 绘制故障
+}
+// 绘制故障框（已有故障+新增故障）
+const drawFaults = () => {
+  if (isDrawing.value && editMode.value && !animateId) {
+    animateId = requestAnimationFrame(drawFaults)
+  }
+  for (let j = 0, len = faultCanvasRefs.value.length; j < len; j++) {
+    const cvs = faultCanvasRefs.value[j]
+    const ctx = cvs.getContext('2d')
+    const cStartX = showVertical.value ? 0 : Number(cvs.getAttribute('start')) // 当前canvas的起始x坐标
+    const cEndX = showVertical.value ? imgW.value : Number(cvs.getAttribute('end')) // 当前canvas的结束x坐标
+    const cStartY = showVertical.value ? Number(cvs.getAttribute('start')) : 0 // 当前canvas的起始y坐标
+    const cEndY = showVertical.value ? Number(cvs.getAttribute('end')) : imgH.value // 当前canvas的结束y坐标
+    ctx.clearRect(0, 0, cvs.width, cvs.height)
+    allFaults.value.forEach((rect) => {
+      if (
+        rect.isRectOverlap({
+          startX: cStartX,
+          endX: cEndX,
+          startY: cStartY,
+          endY: cEndY
+        })
+      ) {
+        rect.offsetX = cStartX
+        rect.offsetY = cStartY
+        rect.draw(ctx)
+      }
+    })
+  }
+}
 // 横向滚动事件
 const handleScroll = (e) => {
   // 滚动时隐藏提示框
@@ -286,6 +330,7 @@ const sliderChange = (idx) => {
 // 放大镜功能、故障详情查看
 const handleMousemove = (idx, e) => {
   if (magnify.value) {
+    // 放大镜功能
     const curImg = reverse.value
       ? handledList.value[idx]?.handledImg
       : handledList.value[idx]?.fullPath
@@ -302,8 +347,8 @@ const handleMousemove = (idx, e) => {
     let top = elementY.value - magnifySize.value / 2
     left = Math.max(left, 0)
     top = Math.max(top, 0)
-    left = Math.min(left, width.value - magnifySize.value)
-    top = Math.min(top, height.value - magnifySize.value)
+    left = Math.min(left, conW.value - magnifySize.value)
+    top = Math.min(top, conH.value - magnifySize.value)
     const style = {
       transform: `translate(${left}px, ${top}px)`,
       backgroundImage: `url(${curImg})`,
@@ -312,17 +357,18 @@ const handleMousemove = (idx, e) => {
     }
     Object.assign(magnifyRef.value.$el.style, style)
   } else {
+    // 故障提示框
     const imgStart = showVertical.value ? idx * imgH.value : idx * imgW.value
     const x = showVertical.value ? e.offsetX / scale.value : e.offsetX / scale.value + imgStart
     const y = showVertical.value ? e.offsetY / scale.value + imgStart : e.offsetY / scale.value
-    const curFault = useArrayFind(existingFaults.value.reverse(), (rect) => rect.isInSide(x, y))
+    const curFault = useArrayFindLast(existingFaults, (rect) => rect.isInSide(x, y))
     if (curFault.value) {
       let left = elementX.value - tipW.value / 2 + curFault.value.width
       let top = elementY.value - tipH.value / 2
       left = Math.max(left, 0)
       top = Math.max(top, 0)
-      left = Math.min(left, width.value - tipW.value)
-      top = Math.min(top, height.value - tipH.value)
+      left = Math.min(left, conW.value - tipW.value)
+      top = Math.min(top, conH.value - tipH.value)
       faultTipRef.value.show(curFault.value.info)
       Object.assign(faultTipRef.value.$el.style, {
         transform: `translate(${left}px, ${top}px)`
@@ -330,6 +376,168 @@ const handleMousemove = (idx, e) => {
     } else {
       faultTipRef.value.hide()
     }
+  }
+}
+// 根据canvas的索引，及其上一个点的坐标获取相对于全图的坐标
+const getGlobalPosition = (cvsIdx, offsetX, offsetY) => {
+  const cvs = faultCanvasRefs.value[cvsIdx]
+  const cvsStart = Number(cvs.getAttribute('start'))
+  // 局部坐标转全图坐标
+  const x = showVertical.value ? offsetX / scale.value : offsetX / scale.value + cvsStart
+  const y = showVertical.value ? offsetY / scale.value + cvsStart : offsetY / scale.value
+  return { x, y }
+}
+// 开始标注-鼠标按下
+const startMark = (idx, e) => {
+  // e.button !== 0判断鼠标左键是否按下,只要右键按下才开启故障绘制功能
+  if (!editMode.value || e.button !== 0) return
+  isDrawing.value = true
+  const { x, y } = getGlobalPosition(idx, e.offsetX, e.offsetY)
+  const rect = new Rect(x, y, true)
+  newFaults.value.push(rect)
+}
+// 标注-鼠标移动
+const mousemoveMark = (idx, e) => {
+  // mouseup触发会有问题，isDrawing状态不一定能及时变更，结合e.button !== 0判断鼠标左键是否按下
+  if (!isDrawing.value || !editMode.value || e.button !== 0 || newFaults.value.length === 0) return
+  // 局部坐标转全图坐标
+  const curRect = newFaults.value[newFaults.value.length - 1]
+  const { x, y } = getGlobalPosition(idx, e.offsetX, e.offsetY)
+  curRect.endX = x
+  curRect.endY = y
+  drawFaults()
+}
+// 停止标注-鼠标抬起
+const stopMark = () => {
+  if (!editMode.value || !isDrawing.value) {
+    return
+  }
+  isDrawing.value = false
+  if (animateId) {
+    cancelAnimationFrame(animateId)
+    animateId = null
+  }
+  if (newFaults.value.length > 0) {
+    // 太小的故障框直接删除
+    const curRect = newFaults.value[newFaults.value.length - 1]
+    if (curRect.width <= 10 || curRect.height <= 10) {
+      newFaults.value.pop()
+      drawFaults()
+    } else {
+      ksFaultMarkRef.value.show()
+    }
+  }
+}
+// 关闭新增故障弹框清空新增故障
+const clearNewFault = () => {
+  newFaults.value = []
+  drawFaults()
+}
+// 单击选中已有的故障框
+const selectFault = (idx, e) => {
+  if (!editMode.value) return
+  const { x, y } = getGlobalPosition(idx, e.offsetX, e.offsetY)
+  const curFault = useArrayFindLast(existingFaults, (rect) => rect.isInSide(x, y))
+  if (curFault.value) {
+    curFault.value.selected = !curFault.value.selected
+    drawFaults()
+  }
+}
+// 删除故障
+const deleteFaults = async (id, isBatch = false) => {
+  try {
+    await ElMessageBox.confirm(isBatch ? '确定删除所有选中的故障？' : '确定删除该故障？', '', {
+      confirmButtonText: '确认',
+      cancelButtonText: '取消',
+      type: 'error',
+      customStyle: { width: '300px' }
+    })
+
+    if (isBatch) {
+      console.log('批量删除')
+    } else {
+      // 单个删除
+      deleteFault(id).then((res) => {
+        if (res.result) {
+          ElMessage.success('删除成功')
+          emits('refresh')
+        } else {
+          ElMessage.error(res.message)
+        }
+      })
+    }
+  } catch (error) {
+    console.log('用户取消了操作')
+  }
+}
+// 右键菜单
+const showRightMenu = (idx, e) => {
+  e.preventDefault()
+  const { x, y } = getGlobalPosition(idx, e.offsetX, e.offsetY)
+  const curFault = useArrayFindLast(existingFaults, (rect) => rect.isInSide(x, y))
+  const selectedFaults = existingFaults.value.filter((rect) => rect.selected)
+  if (curFault.value) {
+    existingFaults.value.forEach((i) => (i.selected = false))
+    curFault.value.selected = true
+    drawFaults()
+    ContextMenu.showContextMenu({
+      x: elementX.value,
+      y: elementY.value,
+      clickCloseOnOutside: true,
+      getContainer: () => document.querySelector('.ks-container'),
+      items: [
+        {
+          label: '编辑故障',
+          icon: h(Edit),
+          divided: 'down',
+          onClick: () => {
+            ksFaultMarkRef.value.show(curFault.value?.info)
+          }
+        },
+        {
+          label: '删除故障',
+          icon: h(Remove),
+          onClick: () => deleteFaults(curFault.value?.info?.id)
+        }
+      ]
+    })
+  } else {
+    ContextMenu.showContextMenu({
+      x: elementX.value,
+      y: elementY.value,
+      clickCloseOnOutside: true,
+      getContainer: () => document.querySelector('.ks-container'),
+      items: [
+        {
+          label: '全部选中',
+          divided: 'down',
+          disabled: selectedFaults.length >= existingFaults.value.length,
+          icon: h(CircleCheck),
+          onClick: () => {
+            existingFaults.value.forEach((i) => (i.selected = true))
+            drawFaults()
+          }
+        },
+        {
+          label: '全部取消',
+          icon: h(RefreshRight),
+          divided: 'down',
+          disabled: selectedFaults.length === 0,
+          onClick: () => {
+            existingFaults.value.forEach((i) => (i.selected = false))
+            drawFaults()
+          }
+        },
+        {
+          label: '批量删除',
+          disabled: selectedFaults.length === 0,
+          icon: h(Delete),
+          onClick: () => {
+            console.log('批量删除')
+          }
+        }
+      ]
+    })
   }
 }
 </script>
@@ -387,6 +595,11 @@ const handleMousemove = (idx, e) => {
             v-for="(_, index) in canvasList"
             :ref="(el) => (faultCanvasRefs[index] = el)"
             :key="index"
+            @mousedown.passive="startMark(index, $event)"
+            @mouseup.passive="stopMark"
+            @mousemove.passive="mousemoveMark(index, $event)"
+            @click="selectFault(index, $event)"
+            @contextmenu="showRightMenu(index, $event)"
           />
         </div>
       </div>
@@ -396,6 +609,7 @@ const handleMousemove = (idx, e) => {
       :compare="compare"
       :magnify="magnify"
       :editMode="editMode"
+      :showEditMode="showEditMode"
       :fullScreenContainer="ksContainerRef"
       @toggleFunc="toggleFunc"
     />
@@ -409,6 +623,7 @@ const handleMousemove = (idx, e) => {
       @change="sliderChange"
     />
     <FaultViewer ref="faultViewerRef" />
+    <FaultMarkDialog ref="ksFaultMarkRef" @close="clearNewFault" />
     <FaultTip ref="faultTipRef" />
   </div>
 </template>
@@ -428,8 +643,8 @@ const handleMousemove = (idx, e) => {
       width: 100%;
       height: 100%;
       overflow: auto;
-      @include scrollBar($color: rgba(17, 209, 251, 0.5), $activeColor: rgba(17, 209, 251, 1));
       @include flex($jc: flex-start, $al: flex-start);
+      @include scrollBar($color: rgba(17, 209, 251, 0.5), $activeColor: rgba(17, 209, 251, 1));
       > div {
         width: 100%;
         height: auto;
@@ -485,8 +700,8 @@ const handleMousemove = (idx, e) => {
       width: 100%;
       height: 100%;
       overflow: auto;
-      @include scrollBar($color: rgba(17, 209, 251, 0.5), $activeColor: rgba(17, 209, 251, 1));
       @include flex($dir: column, $jc: flex-start, $al: flex-start);
+      @include scrollBar($color: rgba(17, 209, 251, 0.5), $activeColor: rgba(17, 209, 251, 1));
       > div {
         width: auto;
         height: 100%;
@@ -532,6 +747,17 @@ const handleMousemove = (idx, e) => {
             height: 100%;
           }
         }
+      }
+    }
+  }
+  :deep(.mx-context-menu-item) {
+    .label {
+      font-size: 12px;
+    }
+    .mx-icon-placeholder {
+      svg {
+        width: 16px;
+        height: 16px;
       }
     }
   }

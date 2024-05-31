@@ -24,6 +24,8 @@ export class Rect {
     this.info = {}
     this.add = add // 是否是新增故障
     this.selected = false // 是否被选中
+    this.faultNo = '' // 故障编号
+    this.showNo = false // 是否显示故障编号
     this.strokeColor = 'rgba(245,108,108,1)'
     this.fillColor = 'rgba(245,108,108,0.3)'
     this.strokeColorAdd = 'rgba(103,194,58,1)'
@@ -68,6 +70,11 @@ export class Rect {
     if (this.selected) {
       ctx.fillStyle = this.add ? this.fillColorAdd : this.fillColor
       ctx.fillRect(this.minX - this.offsetX, this.minY - this.offsetY, this.width, this.height)
+    }
+    if (this.showNo) {
+      ctx.font = '30px Arial'
+      ctx.fillStyle = this.add ? this.strokeColorAdd : this.strokeColor
+      ctx.fillText(this.faultNo, this.minX - this.offsetX + 10, this.minY - this.offsetY + 25)
     }
   }
 }

@@ -159,7 +159,6 @@ const getData = () => {
 // 查看故障
 const handleView = (idx) => {
   faultViewerRef.value.show({
-    data: toRaw(handledList.value),
     idx,
     isKs: false
   })
@@ -289,7 +288,7 @@ defineExpose({
       />
     </div>
   </el-dialog>
-  <FaultViewer ref="faultViewerRef" />
+  <FaultViewer ref="faultViewerRef" :list="handledList" />
 </template>
 
 <style lang="scss" scoped>

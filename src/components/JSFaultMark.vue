@@ -1,101 +1,144 @@
 <script setup name="JSFaultMark">
-import { ZoomIn, Refresh, DArrowLeft, DArrowRight, CircleCheck } from '@element-plus/icons-vue'
+import { Refresh, DArrowLeft, DArrowRight, ZoomIn, Edit, Delete } from '@element-plus/icons-vue'
+import { onKeyStroke, useArrayFindLast } from '@vueuse/core'
+import { ElMessageBox } from 'element-plus'
 import { useWinResize } from '@/hooks/useWinResize'
-import CssFilter from './CssFilter.vue'
+import { Rect } from '@/utils/canvas.js'
+import CssFilter from '@/components/CssFilter.vue'
+import Magnify from '@/components/Magnify.vue'
+import FaultCard from '@/components/FaultCard.vue'
+import FaultMarkDialog from '@/components/FaultMarkDialog.vue'
 
-const faultStrokeStyle = '#FA6157' // 故障框线条颜色
-const faultStrokeWidth = 3 // 故障框线条宽度
+let animateId = null
 
-const cssFilterRef = ref(null)
+const containerRef = ref(null)
 const innerRef = ref(null)
 const canvasRef = ref(null)
-const formRef = ref(null)
+const cssFilterRef = ref(null) // 滤镜组件
+const magnifyRef = ref(null) // 放大镜组件
+const faultMarkRef = ref(null)
+const props = defineProps({
+  list: {
+    type: Array,
+    default: () => []
+  }
+})
+const { list } = toRefs(props)
 const state = reactive({
-  list: [],
   curIdx: 0,
   visible: false, // 弹框是否显示
-  viewerVisible: false, // 图片查看器是否显示
   disabled: false, // 是否禁用滤镜等功能
-  scale: 1, // 容器中刚好完整显示图片全部内容的缩放比例，该值用于重置cssScale
-  cssScale: 1, // 容器的css缩放比例，跟绘制图片无关，纯css缩放效果
-  mousexy: {
-    startX: 0,
-    startY: 0,
-    endX: 0,
-    endY: 0,
-    location: []
-  },
-  isDrawing: false,
-  formData: {
-    caimid: '',
-    part: '',
-    desc: '',
-    faultType: ''
-  },
-  formRules: {
-    caimid: [
-      {
-        required: true,
-        message: '请选择图片通道'
-      }
-    ],
-    faultType: [
-      {
-        required: true,
-        message: '请选择故障类型'
-      }
-    ]
-  }
+  cssScale: 1, // css缩放比例
+  magnify: false, // 是否显示放大镜
+  editMode: true, // 是否开始标注模式
+  isDrawing: false, // 是否正在标注
+  existingFaults: [], // 已有故障
+  newFaults: [], // 新增故障
+  msgBoxShow: false
 })
+
 const {
-  list,
   curIdx,
   visible,
-  viewerVisible,
-  scale,
   disabled,
   cssScale,
-  formData,
-  formRules,
-  mousexy,
-  isDrawing
+  magnify,
+  editMode,
+  isDrawing,
+  existingFaults,
+  newFaults,
+  msgBoxShow
 } = toRefs(state)
+const magnifySize = computed(() => 200 / cssScale.value)
 const currentItem = computed(() => list.value[curIdx.value])
-const handledImgs = computed(() => list.value.map((item) => item.handledImg)) // 处理好的图片列表
+const currentPath = computed(() => currentItem.value?.fullPath)
+const imgW = computed(() => currentItem.value?.imgW)
+const imgH = computed(() => currentItem.value?.imgH)
+// 所有故障列表
+const allFaults = computed(() => [...existingFaults.value, ...newFaults.value])
+// 选中的故障列表
+const selectedFaults = computed(() => existingFaults.value.filter((rect) => rect.selected))
+const pointerEvents = computed(() => (editMode.value && !magnify.value ? 'initial' : 'none'))
 
-watch(cssScale, (newVal) => {
-  if (!innerRef.value) {
-    return
-  }
-  innerRef.value.style.transform = `scale(${newVal})`
+watch(list, () => {
+  getFaults()
 })
-
+onUnmounted(() => {
+  if (animateId) {
+    cancelAnimationFrame(animateId)
+    animateId = null
+  }
+})
+// 打开弹框
 const show = (obj) => {
   visible.value = true
-  list.value = obj?.data || []
-  curIdx.value = obj?.idx || 0
-  cssScale.value = 1
+  curIdx.value = obj?.idx ?? 0
+  magnify.value = false
+  editMode.value = true
+  isDrawing.value = false
+  newFaults.value = []
   cssFilterRef.value?.resetFilter()
+  getFaults()
   nextTick(init)
 }
-const init = () => {
-  if (visible.value) {
-    const container = document.querySelector('.fault-img-wrapper')
-    const inner = innerRef.value
-    const canvas = canvasRef.value
-    const width = container?.clientWidth
-    const height = container?.clientHeight
-    const imgW = currentItem.value?.imgW || 0
-    const imgH = currentItem.value?.imgH || 0
-    if (imgW === 0 || imgH === 0) {
-      // 图片加载失败，尺寸获取不到的情况下
+// 关闭弹框
+const close = () => {
+  visible.value = false
+}
+const handleBeforeClose = (done) => {
+  newFaultsWarning(done)
+}
+// 获取已有故障
+const getFaults = () => {
+  let rects = []
+  currentItem.value?.faultFrames?.reverse()?.forEach((item, idx) => {
+    const { coordinateX, coordinateY, width, height } = item
+    const rect = new Rect(coordinateX, coordinateY)
+    rect.endX = coordinateX + width
+    rect.endY = coordinateY + height
+    rect.info = item
+    rect.showNo = true
+    rect.faultNo = idx + 1
+    rects.push(rect)
+  })
+  existingFaults.value = rects
+}
+// 新增故障未保存提醒
+const newFaultsWarning = async (done) => {
+  if (newFaults.value.length > 0) {
+    if (msgBoxShow.value) {
       return
     }
-    const containerRatio = width / height
-    const imgRatio = imgW / imgH
-    const left = (width - imgW) / 2
-    const top = (height - imgH) / 2
+    msgBoxShow.value = true
+    try {
+      await ElMessageBox.confirm('新增故障未保存，执行本操作后将会丢失，是否确认？', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      })
+      newFaults.value = []
+      done()
+    } catch (error) {
+      console.log('用户取消了操作')
+    } finally {
+      msgBoxShow.value = false
+    }
+  } else {
+    done()
+  }
+}
 
+// 初始化容器
+const init = () => {
+  if (visible.value) {
+    const container = containerRef.value
+    const inner = innerRef.value
+    const width = container?.clientWidth
+    const height = container?.clientHeight
+    const containerRatio = width / height
+    const imgRatio = imgW.value / imgH.value
+    const left = (width - imgW.value) / 2
+    const top = (height - imgH.value) / 2
     let drawW = 0,
       drawH = 0
     if (imgRatio - containerRatio > 0) {
@@ -106,65 +149,61 @@ const init = () => {
       drawH = height
       drawW = drawH * imgRatio
     }
-    scale.value = drawW / imgW
-    cssScale.value = drawW / imgW
-    console.log('xxxxxxxxxxxx', drawW / imgW)
+    cssScale.value = drawW / imgW.value
     if (inner) {
-      inner.style.width = `${imgW}px`
-      inner.style.height = `${imgH}px`
-      inner.style.left = `${left}px`
-      inner.style.top = `${top}px`
-      canvas.width = imgW
-      canvas.height = imgH
+      Object.assign(inner.style, {
+        width: `${imgW.value}px`,
+        height: `${imgH.value}px`,
+        transform: `translate(${left}px, ${top}px) scale(${cssScale.value})`
+      })
+      drawFaults()
     }
-    // initFaults()
   }
 }
-// 绘制已有故障
-// const initFaults = () => {
-//   const canvas = canvasRef.value
-//   const ctx = canvas.getContext('2d')
-//   const imgW = currentItem.value?.imgW || 0
-//   const imgH = currentItem.value?.imgH || 0
-//   ctx.clearRect(0, 0, imgW, imgH)
-//   ctx.strokeStyle = faultStrokeStyle
-//   ctx.lineWidth = faultStrokeWidth
-//   if (currentItem.value?.faultFrames?.length > 0) {
-//     currentItem.value?.faultFrames?.forEach((fault) => {
-//       const { coordinateX, coordinateY, width, height } = fault
-//       ctx.strokeRect(coordinateX, coordinateY, width, height)
-//     })
-//   }
-// }
-// 新增故障绘制
-const drawFault = () => {
-  const { location } = mousexy.value
-  if (!location.length) return
+// 绘制故障
+const drawFaults = () => {
+  if (isDrawing.value && editMode.value && !animateId) {
+    animateId = requestAnimationFrame(drawFaults)
+  }
   const canvas = canvasRef.value
+  canvas.width = imgW.value
+  canvas.height = imgH.value
   const ctx = canvas.getContext('2d')
-  ctx.clearRect(0, 0, canvas.width, canvas.height)
-  ctx.strokeStyle = faultStrokeStyle
-  ctx.lineWidth = faultStrokeWidth
-  location.forEach((item) => {
-    const { x, y, w, h } = item
-    ctx.strokeRect(x, y, w, h)
-  })
+  ctx.clearRect(0, 0, imgW.value, imgH.value)
+  if (allFaults.value?.length > 0) {
+    allFaults.value?.forEach((fault) => {
+      fault.draw(ctx)
+    })
+  }
 }
-// 切换下一张精扫图
+// 下一张
 const next = () => {
   if (curIdx.value < list.value.length - 1) {
-    reset()
-    curIdx.value++
-    init()
+    newFaultsWarning(() => {
+      curIdx.value++
+      getFaults()
+      reset()
+      drawFaults()
+    })
   }
 }
-// 切换上一张精扫图
+// 上一张
 const prev = () => {
   if (curIdx.value > 0) {
-    reset()
-    curIdx.value--
-    init()
+    newFaultsWarning(() => {
+      curIdx.value--
+      getFaults()
+      reset()
+      drawFaults()
+    })
   }
+}
+// 回到第一张或者最后一张
+const toggleStartOrEnd = (start = true) => {
+  curIdx.value = start ? 0 : list.value.length - 1
+  getFaults()
+  reset()
+  drawFaults()
 }
 // 当前图片加载失败的时候，禁用滤镜等操作
 const handleLoadErr = () => {
@@ -174,69 +213,120 @@ const handleLoadErr = () => {
 const handleLoadSuggess = () => {
   disabled.value = false
 }
-// 重置滤镜及缩放
+// 重置滤镜
 const reset = () => {
-  cssScale.value = scale.value
   cssFilterRef.value?.resetFilter()
 }
-
-// 鼠标滚轮缩放
-const mousewheel = (e) => {
-  if (disabled.value) {
-    return
-  }
+// 键盘事件
+onKeyStroke(['ArrowLeft', 'ArrowUp'], (e) => {
   e.preventDefault()
-  if (e.deltaY < 0) {
-    cssScale.value = cssScale.value + 0.2 <= 4 ? cssScale.value + 0.2 : cssScale.value
-  } else {
-    cssScale.value = cssScale.value - 0.2 >= 0 ? cssScale.value - 0.2 : cssScale.value
+  prev()
+})
+onKeyStroke(['ArrowRight', 'ArrowDown'], (e) => {
+  e.preventDefault()
+  next()
+})
+onKeyStroke('Home', (e) => {
+  e.preventDefault()
+  toggleStartOrEnd()
+})
+onKeyStroke('End', (e) => {
+  e.preventDefault()
+  toggleStartOrEnd(false)
+})
+const imgClick = () => {
+  if (editMode.value && magnify.value) {
+    magnify.value = false
   }
 }
-// 标注-鼠标按下
-const mousedownMark = (e) => {
-  if (disabled.value) return
-  if (mousexy.value.location.length) {
-    mousexy.value.location = []
+// 放大镜功能
+const handleMousemove = (e) => {
+  if (!magnify.value) return
+  const magnifyScale = 1.5
+  const largeW = imgW.value * magnifyScale
+  const largeH = imgH.value * magnifyScale
+  let x = e.offsetX * magnifyScale - magnifySize.value / 2 // 根据原图的尺寸算出x坐标
+  let y = e.offsetY * magnifyScale - magnifySize.value / 2 // 根据原图的尺寸算出y坐标
+  x = Math.max(x, 0)
+  y = Math.max(y, 0)
+  x = Math.min(x, largeW - magnifySize.value)
+  y = Math.min(y, largeH - magnifySize.value)
+  let left = e.offsetX - magnifySize.value / 2
+  let top = e.offsetY - magnifySize.value / 2
+  left = Math.max(left, 0)
+  top = Math.max(top, 0)
+  left = Math.min(left, imgW.value - magnifySize.value)
+  top = Math.min(top, imgH.value - magnifySize.value)
+  const style = {
+    transform: `translate(${left}px, ${top}px)`,
+    backgroundPosition: `-${x}px -${y}px`,
+    backgroundSize: `${largeW}px ${largeH}px`
   }
+  Object.assign(magnifyRef.value.$el.style, style)
+}
+// 开始标注-鼠标按下
+const startMark = (e) => {
+  // e.button !== 0判断鼠标左键是否按下,只要右键按下才开启故障绘制功能
+  if (!editMode.value || e.button !== 0) return
   isDrawing.value = true
-  mousexy.value.startX = e.offsetX
-  mousexy.value.startY = e.offsetY
+  const rect = new Rect(e.offsetX, e.offsetY, true)
+  newFaults.value.push(rect)
 }
 // 标注-鼠标移动
 const mousemoveMark = (e) => {
-  if (!isDrawing.value || e.buttons !== 1 || disabled.value) return
-  const { startX, startY } = mousexy.value
-  const endX = e.offsetX
-  const endY = e.offsetY
-  mousexy.value.endX = endX
-  mousexy.value.endY = endY
-  const x = Math.min(startX, endX)
-  const y = Math.min(startY, endY)
-  const w = Math.abs(endX - startX)
-  const h = Math.abs(endY - startY)
-  mousexy.value.location = [{ x, y, w, h }]
-  drawFault()
+  // mouseup触发会有问题，isDrawing状态不一定能及时变更，结合e.button !== 0判断鼠标左键是否按下
+  if (!isDrawing.value || !editMode.value || e.button !== 0 || newFaults.value.length === 0) return
+  const curRect = newFaults.value[newFaults.value.length - 1]
+  curRect.endX = e.offsetX
+  curRect.endY = e.offsetY
+  drawFaults()
 }
-// 标注-鼠标抬起
-const mouseupMark = () => {
-  if (!isDrawing.value || disabled.value) return
+// 停止标注-鼠标抬起
+const stopMark = () => {
+  if (!editMode.value || !isDrawing.value) {
+    return
+  }
   isDrawing.value = false
-}
-// 表单重置
-const resetForm = () => {
-  if (!formRef.value) return
-  formRef.value.resetFields()
-}
-// 表单提交
-const submitForm = async () => {
-  if (!formRef.value) return
-  await formRef.value.validate((valid, fields) => {
-    if (valid) {
-      console.log('submit!')
+  if (animateId) {
+    cancelAnimationFrame(animateId)
+    animateId = null
+  }
+  if (newFaults.value.length > 0) {
+    // 太小的故障框直接删除
+    const curRect = newFaults.value[newFaults.value.length - 1]
+    if (curRect.width <= 10 || curRect.height <= 10) {
+      newFaults.value.pop()
+      drawFaults()
     } else {
-      console.log('error submit!', fields)
+      faultMarkRef.value.show()
     }
-  })
+  }
+}
+// 单击列表选中已有的故障框
+const selectFaultByList = (idx) => {
+  if (!editMode.value) return
+  const curFault = existingFaults.value[idx]
+  if (curFault) {
+    curFault.selected = !curFault.selected
+    drawFaults()
+  }
+}
+// 单击故障框选中已有故障
+const selectFaultByRect = (e) => {
+  if (!editMode.value) return
+  const curFault = useArrayFindLast(existingFaults, (rect) => rect.isInSide(e.offsetX, e.offsetY))
+  if (curFault.value) {
+    curFault.value.selected = !curFault.value.selected
+    drawFaults()
+  }
+}
+const editFault = () => {
+  faultMarkRef.value.show()
+}
+// 关闭新增故障弹框清空新增故障
+const clearNewFault = () => {
+  newFaults.value = []
+  drawFaults()
 }
 // 监听窗口变化，重新绘制
 useWinResize(init, 300)
@@ -249,41 +339,69 @@ defineExpose({
 <template>
   <el-dialog
     v-model="visible"
-    title="精扫故障标记"
+    title="故障详情"
     fullscreen
     lock-scroll
     destroy-on-close
     :close-on-click-modal="false"
+    :before-close="handleBeforeClose"
+    @close="close"
   >
     <div class="fault-viewer">
       <div class="left-content">
-        <div class="fault-img-wrapper" @mousewheel="mousewheel">
+        <div class="info-wrapper">
+          <div>编组号：xxx</div>
+          <div>车厢号：xxx</div>
+          <div class="img-path">图片路径：{{ currentItem?.imgPath }}</div>
+        </div>
+        <div class="fault-img-wrapper" ref="containerRef">
           <div class="inner-wrapper" ref="innerRef">
             <el-image
-              :src="currentItem?.fullPath"
+              :src="currentPath"
               class="img-wrap"
               crossorigin="anonymous"
               @error="handleLoadErr"
               @load="handleLoadSuggess"
+              @mousemove.passive="handleMousemove"
               @dragover.prevent
               @drop.prevent
               @dragstart.prevent
+              @click="imgClick"
             />
             <canvas
               ref="canvasRef"
               class="fault-canvas"
-              @mousedown="mousedownMark"
-              @mouseup="mouseupMark"
-              @mousemove="mousemoveMark"
+              @mousedown.passive="startMark"
+              @mouseup.passive="stopMark"
+              @mousemove.passive="mousemoveMark"
+              @click="selectFaultByRect"
+              :style="`pointer-events:${pointerEvents}`"
             />
+            <Magnify v-show="magnify" ref="magnifyRef" :size="magnifySize" :bgPath="currentPath" />
           </div>
+        </div>
+        <div class="effect-wrapper">
+          <el-tooltip effect="light" content="放大镜" placement="top">
+            <el-button
+              :type="magnify ? 'primary' : 'info'"
+              :icon="ZoomIn"
+              circle
+              :disabled="disabled"
+              @click="magnify = !magnify"
+            />
+          </el-tooltip>
+          <div>
+            <CssFilter ref="cssFilterRef" selector=".img-wrap" :disabled="disabled" />
+          </div>
+          <el-tooltip effect="light" content="重置" placement="top">
+            <el-button type="info" :icon="Refresh" circle :disabled="disabled" @click="reset" />
+          </el-tooltip>
         </div>
         <div class="toggle-action">
           <el-button type="primary" link :disabled="curIdx <= 0" @click="prev">
             <el-icon><DArrowLeft /></el-icon>
             <span style="margin-left: 6px">上一张</span>
           </el-button>
-          <div class="img-path">图片路径：{{ currentItem?.imgPath }}</div>
           <el-button type="primary" link :disabled="curIdx >= list.length - 1" @click="next">
             <span style="margin-right: 6px">下一张</span>
             <el-icon><DArrowRight /></el-icon>
@@ -291,108 +409,74 @@ defineExpose({
         </div>
       </div>
       <div class="right-content">
-        <div class="fault-info">
-          <el-form
-            ref="formRef"
-            :model="formData"
-            :rules="formRules"
-            label-width="auto"
-            label-position="right"
-            class="demo-ruleForm"
-            status-icon
+        <div class="card-list">
+          <FaultCard
+            v-for="(fault, index) in existingFaults"
+            :class="fault.selected ? 'selected' : ''"
+            :key="fault.info?.id"
+            :fault="fault.info"
+            :index="index + 1"
+            @click="selectFaultByList(index)"
           >
-            <el-form-item label="检测时间"> 2024-04-07 09:28:10 </el-form-item>
-            <el-form-item label="车型车号"> CRH1E-1071 </el-form-item>
-            <el-form-item label="图片通道" prop="caimid">
-              <el-select v-model="formData.caimid" placeholder="请选择">
-                <el-option label="精扫1" value="1" />
-                <el-option label="精扫2" value="2" />
-              </el-select>
-            </el-form-item>
-            <el-form-item label="故障类型" prop="faultType">
-              <el-select v-model="formData.faultType" placeholder="请选择">
-                <el-option label="异常" value="1" />
-                <el-option label="松动" value="1" />
-              </el-select>
-            </el-form-item>
-            <el-form-item label="故障描述" prop="desc">
-              <el-input v-model="formData.desc" type="textarea" />
-            </el-form-item>
-            <el-form-item class="btns-wrap">
-              <el-button type="info" :icon="Refresh" Round auto-insert-space @click="resetForm">
-                重置
-              </el-button>
-              <el-button
-                type="primary"
-                :icon="CircleCheck"
-                Round
-                auto-insert-space
-                @click="submitForm"
-              >
-                保存
-              </el-button>
-            </el-form-item>
-          </el-form>
+            <template #actions>
+              <el-button type="primary" :icon="Edit" circle @click.stop="editFault(index)" />
+              <el-button type="danger" :icon="Delete" circle @click.stop="" />
+            </template>
+          </FaultCard>
         </div>
-        <div class="fault-operation">
-          <div class="btns">
-            <el-button
-              type="primary"
-              :icon="ZoomIn"
-              Round
-              auto-insert-space
-              :disabled="disabled"
-              @click="viewerVisible = true"
-            >
-              查看
-            </el-button>
-            <el-button
-              type="info"
-              :icon="Refresh"
-              Round
-              auto-insert-space
-              :disabled="disabled"
-              @click="reset"
-            >
-              重置
-            </el-button>
-          </div>
-          <CssFilter ref="cssFilterRef" selector=".img-wrap" :disabled="disabled" />
+        <div class="actions">
+          <el-button type="danger" :disabled="selectedFaults.length === 0">批量删除</el-button>
+          <el-button type="primary">保存并继续</el-button>
+          <el-button type="info" @click="close">取消</el-button>
         </div>
       </div>
     </div>
   </el-dialog>
-  <el-image-viewer
-    v-if="viewerVisible"
-    teleported
-    :url-list="handledImgs"
-    :initial-index="curIdx"
-    @close="viewerVisible = false"
-  />
+  <FaultMarkDialog ref="faultMarkRef" @close="clearNewFault" />
 </template>
 
 <style lang="scss" scoped>
 .fault-viewer {
   width: 100%;
-  height: calc(100vh - var(--el-dialog-padding-primary) * 3 - 25px);
+  height: calc(100vh - var(--el-dialog-padding-primary) * 3 - 30px);
   overflow: hidden;
   @include flex;
   > div {
     height: 100%;
     &.left-content {
-      width: calc(100% - 370px);
-      min-width: 350px;
+      flex: 1;
       height: 100%;
       background: rgba(0, 0, 0, 0.8);
       border-radius: 6px;
       padding: 15px 0;
+      .info-wrapper {
+        width: 100%;
+        height: 30px;
+        line-height: 30px;
+        padding: 0 15px;
+        margin-bottom: 15px;
+        @include flex($jc: space-between);
+        color: #fff;
+        font-size: 14px;
+        .img-path {
+          color: #fff;
+          font-size: 14px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          text-align: center;
+        }
+      }
+
       .fault-img-wrapper {
         width: 100%;
-        height: calc(100% - 45px);
-        overflow: hidden;
+        height: calc(100% - 130px);
         position: relative;
+        overflow: hidden;
         .inner-wrapper {
           position: absolute;
+          left: 0;
+          top: 0;
           width: 100%;
           height: 100%;
           .fault-canvas {
@@ -413,20 +497,24 @@ defineExpose({
           }
         }
       }
+      .effect-wrapper {
+        padding: 0 15px;
+        margin-top: 15px;
+        @include flex($jc: space-between);
+        > div {
+          max-width: 800px;
+          flex: 1;
+          padding: 0 15px;
+        }
+        .el-button {
+          flex-shrink: 0;
+        }
+      }
       .toggle-action {
         width: 100%;
         padding: 15px 15px 0;
         flex-shrink: 0;
         @include flex($jc: space-between);
-        .img-path {
-          width: calc(100% - 150px);
-          color: #fff;
-          font-size: 14px;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          text-align: center;
-        }
         .el-button {
           color: #fff;
           &.is-disabled {
@@ -436,35 +524,22 @@ defineExpose({
       }
     }
     &.right-content {
-      width: 350px;
+      width: 40%;
       margin-left: 20px;
       flex-shrink: 0;
-      @include flex($dir: column, $jc: space-between);
-      .fault-info {
-        width: 100%;
-        text-align: left;
-        line-height: 30px;
-        font-size: 14px;
-        .btns-wrap {
-          :deep(.el-form-item__content) {
-            width: 100%;
-            @include flex {
-              flex-wrap: nowrap;
-            }
-            .el-button {
-              width: 50%;
-            }
+      .card-list {
+        height: calc(100% - 47px);
+        overflow-y: auto;
+        @include scrollBar;
+        :deep(.fault-card) {
+          & + .fault-card {
+            margin-top: 15px;
           }
         }
       }
-      .fault-operation {
-        width: 100%;
-        .btns {
-          @include flex;
-          .el-button {
-            width: 50%;
-          }
-        }
+      .actions {
+        height: 47px;
+        @include flex($al: flex-end);
       }
     }
   }

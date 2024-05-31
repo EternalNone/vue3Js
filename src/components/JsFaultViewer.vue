@@ -2,8 +2,9 @@
 import { Refresh, DArrowLeft, DArrowRight } from '@element-plus/icons-vue'
 import { onKeyStroke } from '@vueuse/core'
 import { useWinResize } from '@/hooks/useWinResize'
-import CssFilter from './CssFilter.vue'
+import CssFilter from '@/components、CssFilter.vue'
 import Magnify from '@/components/Magnify.vue'
+
 
 const faultStrokeStyle = '#FA6157' // 故障框线条颜色
 const faultStrokeWidth = 3 // 故障框线条宽度

@@ -1,4 +1,4 @@
-<script setup name="KSFaultMark">
+<script setup name="FaultMarkDialog">
 const emits = defineEmits(['close'])
 const state = reactive({
   visible: false, // 弹框是否显示
