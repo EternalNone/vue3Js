@@ -313,7 +313,6 @@ const handlePreview = async (idx) => {
     return
   }
   faultViewerRef.value.show({
-    data: toRaw(handledList.value),
     idx,
     reverse: reverse.value,
     isKs: true
@@ -622,7 +621,7 @@ const showRightMenu = (idx, e) => {
       :scrollRef="scrollContainerRef"
       @change="sliderChange"
     />
-    <FaultViewer ref="faultViewerRef" />
+    <FaultViewer ref="faultViewerRef" :list="handledList" />
     <FaultMarkDialog ref="ksFaultMarkRef" @close="clearNewFault" />
     <FaultTip ref="faultTipRef" />
   </div>

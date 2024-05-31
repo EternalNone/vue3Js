@@ -60,7 +60,6 @@ onUnmounted(() => {
 // 打开故障查看器
 const openFaultViewer = (idx) => {
   // faultViewerRef.value.show({
-  //   data: toRaw(handledList.value),
   //   idx,
   //   isKs: false
   // })
@@ -113,7 +112,7 @@ const openFaultViewer = (idx) => {
       </el-col>
     </el-row>
   </div>
-  <FaultViewer ref="faultViewerRef" />
+  <FaultViewer ref="faultViewerRef" :list="handledList" />
   <JSFaultMark ref="jsFaultMarkRef" :list="handledList"/>
 </template>
 
