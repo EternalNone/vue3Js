@@ -12,9 +12,10 @@ import PassTrainFilter from '@/components/PassTrainFilter.vue'
 import TrainCarriage from '@/components/TrainCarriage.vue'
 import PassagewaySelect from '@/components/PassagewaySelect.vue'
 import JsFilter from '@/components/JsFilter.vue'
+import FaultsList from '@/components/FaultsList.vue'
+import CarriageViewModel from '@/components/CarriageViewModel.vue'
 import KsRender from './KsRender.vue'
 import JsRender from './JsRender.vue'
-import FaultsList from './FaultsList.vue'
 
 const globalStore = useGlobalStore()
 const { moduleType } = storeToRefs(globalStore)
@@ -32,6 +33,7 @@ const state = reactive({
   trainCarList: [], // 车厢列表
   loading: false, // 加载状态
   showType: 'VERTICAL', // 布局方式，横向、纵向、网格
+  outSideViewType: false, // 库外检测看图模式，true: 分俩看图模式，false: 普通看图模式
   list: [], // 图片及故障列表
   reverse: false
 })
@@ -44,7 +46,8 @@ const {
   showType,
   list,
   trainCarList,
-  reverse
+  reverse,
+  outSideViewType
 } = toRefs(state)
 const isVertical = computed(() => showType.value === 'VERTICAL')
 
@@ -140,9 +143,21 @@ const getStatics = () => {
   })
 }
 // 选择车厢
-const selectLw = (val) => {
+const selectCarriage = (val) => {
   searchForm.value.fullCarNo = val
+  if (outSideViewType.value) {
+    outSideViewType.value = false
+  }
   getData()
+}
+// 切换库外检测看图模式,切换选中的车厢号
+const toggleOutSideViewType = () => {
+  if (outSideViewType.value) {
+    searchForm.value.fullCarNo = trainCarList.value[0]?.fullCarNo || ''
+  } else {
+    searchForm.value.fullCarNo = ''
+  }
+  outSideViewType.value = !outSideViewType.value
 }
 // 故障列表
 const showFaultList = () => {
@@ -162,6 +177,7 @@ const exportFault = () => {
     })
   })
 }
+provide('refresh', getStatics)
 </script>
 
 <template>
@@ -217,6 +233,13 @@ const exportFault = () => {
               <span style="padding: 0 10px; font-size: 14px">只看异常图</span>
               <el-switch v-model="searchForm.isFault" @change="getData" />
             </div>
+            <el-button
+              v-show="moduleType === 'OUTSIDE'"
+              type="primary"
+              @click="toggleOutSideViewType"
+            >
+              {{ outSideViewType ? '普通模式' : '分俩模式' }}
+            </el-button>
             <el-button type="primary" @click="exportFault">故障复核单</el-button>
             <el-button type="primary" @click="showFaultList">故障列表</el-button>
           </div>
@@ -242,29 +265,27 @@ const exportFault = () => {
             v-model="searchForm.fullCarNo"
             :showAll="false"
             showSatus
-            @change="selectLw"
+            @change="selectCarriage"
           />
         </div>
       </div>
       <div class="check-data-render">
-        <template v-if="list.length">
+        <template v-if="list.length > 0">
           <div class="js-content" v-if="showType === 'GRID'">
             <JsFilter />
-            <JsRender :list="list" />
+            <JsRender :list="list" hasEditRight />
           </div>
-          <KsRender
-            v-else
-            :list="list"
-            :isVertical="isVertical"
-            :reverse="reverse"
-            showEditMode
-            @refresh="getData"
+          <CarriageViewModel
+            v-else-if="outSideViewType"
+            :list="trainCarList"
+            @change="selectCarriage"
           />
+          <KsRender v-else :list="list" :isVertical="isVertical" :reverse="reverse" hasEditRight />
         </template>
-        <el-empty v-else description="暂无数据" />
+        <el-empty v-else description="暂无数据" style="height: 100%" />
       </div>
     </div>
-    <FaultsList ref="faultListRef" @refresh="getStatics" />
+    <FaultsList ref="faultListRef" hasEditRight />
   </div>
 </template>
 

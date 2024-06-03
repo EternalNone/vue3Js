@@ -58,8 +58,6 @@ const submitForm = async () => {
     }
   })
 }
-// 删除
-const deleteFunc = () => {}
 defineExpose({
   show
 })
@@ -104,7 +102,6 @@ defineExpose({
         <el-form-item class="btns-wrap">
           <el-button type="info" Round auto-insert-space @click="close"> 取消 </el-button>
           <el-button type="primary" Round auto-insert-space @click="submitForm"> 保存 </el-button>
-          <el-button type="danger" Round auto-insert-space @click="deleteFunc"> 删除 </el-button>
         </el-form-item>
       </el-form>
     </div>

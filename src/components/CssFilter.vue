@@ -1,8 +1,8 @@
 <script setup name="CssFilter">
 const props = defineProps({
-  selector: {
-    type: String,
-    default: ''
+  selectors: {
+    type: Array,
+    default: () => []
   },
   disabled: {
     type: Boolean,
@@ -19,7 +19,9 @@ const { brightness, contrast, saturate, grayscale } = toRefs(state)
 
 const changeFilter = () => {
   const filter = `brightness(${brightness.value}%) contrast(${contrast.value}%) saturate(${saturate.value}%) grayscale(${grayscale.value}%)`
-  document.querySelector(props.selector).style.filter = filter
+  props.selectors.forEach((selector) => {
+    document.querySelector(selector).style.filter = filter
+  })
 }
 
 const resetFilter = () => {

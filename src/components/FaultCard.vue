@@ -7,12 +7,16 @@ defineProps({
   index: {
     type: Number,
     default: 0
+  },
+  selected: {
+    type: Boolean,
+    default: false
   }
 })
 </script>
 
 <template>
-  <el-card class="fault-card">
+  <el-card :class="selected ? 'fault-card selected' : 'fault-card'">
     <div class="card-left">
       <div class="index">{{ index }}</div>
       <el-tag

@@ -30,7 +30,8 @@ const state = reactive({
   disabled: false, // 是否禁用滤镜等功能
   cssScale: 1, // css缩放比例
   magnify: false, // 是否显示放大镜
-  editMode: true, // 是否开始标注模式
+  hasEditRight: false, // 是否显示编辑按钮
+  editMode: false, // 是否开始标注模式
   isDrawing: false, // 是否正在标注
   existingFaults: [], // 已有故障
   newFaults: [], // 新增故障
@@ -43,6 +44,7 @@ const {
   disabled,
   cssScale,
   magnify,
+  hasEditRight,
   editMode,
   isDrawing,
   existingFaults,
@@ -51,6 +53,7 @@ const {
 } = toRefs(state)
 const magnifySize = computed(() => 200 / cssScale.value)
 const currentItem = computed(() => list.value[curIdx.value])
+const currentFaults = computed(() => currentItem.value?.faultFrames ?? [])
 const currentPath = computed(() => currentItem.value?.fullPath)
 const imgW = computed(() => currentItem.value?.imgW)
 const imgH = computed(() => currentItem.value?.imgH)
@@ -71,13 +74,14 @@ onUnmounted(() => {
 })
 // 打开弹框
 const show = (obj) => {
-  visible.value = true
   curIdx.value = obj?.idx ?? 0
   magnify.value = false
-  editMode.value = true
+  hasEditRight.value = obj?.hasEditRight ?? false
+  editMode.value = false
   isDrawing.value = false
   newFaults.value = []
   cssFilterRef.value?.resetFilter()
+  visible.value = true
   getFaults()
   nextTick(init)
 }
@@ -90,8 +94,9 @@ const handleBeforeClose = (done) => {
 }
 // 获取已有故障
 const getFaults = () => {
+  const curFaults = [...currentFaults.value].reverse()
   let rects = []
-  currentItem.value?.faultFrames?.reverse()?.forEach((item, idx) => {
+  curFaults?.forEach((item, idx) => {
     const { coordinateX, coordinateY, width, height } = item
     const rect = new Rect(coordinateX, coordinateY)
     rect.endX = coordinateX + width
@@ -304,7 +309,7 @@ const stopMark = () => {
 }
 // 单击列表选中已有的故障框
 const selectFaultByList = (idx) => {
-  if (!editMode.value) return
+  if (!editMode.value || disabled.value) return
   const curFault = existingFaults.value[idx]
   if (curFault) {
     curFault.selected = !curFault.selected
@@ -313,16 +318,39 @@ const selectFaultByList = (idx) => {
 }
 // 单击故障框选中已有故障
 const selectFaultByRect = (e) => {
-  if (!editMode.value) return
+  if (!editMode.value || disabled.value) return
   const curFault = useArrayFindLast(existingFaults, (rect) => rect.isInSide(e.offsetX, e.offsetY))
   if (curFault.value) {
     curFault.value.selected = !curFault.value.selected
     drawFaults()
   }
 }
-const editFault = () => {
+// 编辑故障
+const editFault = (idx) => {
+  if (!editMode.value || disabled.value) return
+  existingFaults.value.forEach((rect, index) => {
+    if (index === idx) {
+      rect.selected = true
+    } else {
+      rect.selected = false
+    }
+  })
+  drawFaults()
   faultMarkRef.value.show()
 }
+// 删除故障
+const deleteFault = (idx) => {
+  if (!editMode.value || disabled.value) return
+  existingFaults.value.forEach((rect, index) => {
+    if (index === idx) {
+      rect.selected = true
+    } else {
+      rect.selected = false
+    }
+  })
+  drawFaults()
+}
+
 // 关闭新增故障弹框清空新增故障
 const clearNewFault = () => {
   newFaults.value = []
@@ -350,9 +378,36 @@ defineExpose({
     <div class="fault-viewer">
       <div class="left-content">
         <div class="info-wrapper">
-          <div>编组号：xxx</div>
-          <div>车厢号：xxx</div>
-          <div class="img-path">图片路径：{{ currentItem?.imgPath }}</div>
+          <div class="info">
+            <span>编组号：xxx</span>
+            <span>车厢号：xxx</span>
+          </div>
+          <div class="tools">
+            <el-tooltip effect="light" content="放大镜" placement="bottom">
+              <el-button
+                :type="magnify ? 'primary' : 'info'"
+                :icon="ZoomIn"
+                circle
+                :disabled="disabled"
+                @click="magnify = !magnify"
+              />
+            </el-tooltip>
+            <el-tooltip
+              v-if="hasEditRight"
+              disabled
+              effect="light"
+              content="编辑模式"
+              placement="bottom"
+            >
+              <el-button
+                :type="editMode ? 'primary' : 'info'"
+                :icon="Edit"
+                circle
+                :disabled="disabled"
+                @click="editMode = !editMode"
+              />
+            </el-tooltip>
+          </div>
         </div>
         <div class="fault-img-wrapper" ref="containerRef">
           <div class="inner-wrapper" ref="innerRef">
@@ -381,17 +436,12 @@ defineExpose({
           </div>
         </div>
         <div class="effect-wrapper">
-          <el-tooltip effect="light" content="放大镜" placement="top">
-            <el-button
-              :type="magnify ? 'primary' : 'info'"
-              :icon="ZoomIn"
-              circle
-              :disabled="disabled"
-              @click="magnify = !magnify"
-            />
-          </el-tooltip>
           <div>
-            <CssFilter ref="cssFilterRef" selector=".img-wrap" :disabled="disabled" />
+            <CssFilter
+              ref="cssFilterRef"
+              :selectors="['.img-wrap', '.zoom-layer']"
+              :disabled="disabled"
+            />
           </div>
           <el-tooltip effect="light" content="重置" placement="top">
             <el-button type="info" :icon="Refresh" circle :disabled="disabled" @click="reset" />
@@ -402,6 +452,7 @@ defineExpose({
             <el-icon><DArrowLeft /></el-icon>
             <span style="margin-left: 6px">上一张</span>
           </el-button>
+          <div class="img-path">图片路径：{{ currentItem?.imgPath }}</div>
           <el-button type="primary" link :disabled="curIdx >= list.length - 1" @click="next">
             <span style="margin-right: 6px">下一张</span>
             <el-icon><DArrowRight /></el-icon>
@@ -412,21 +463,39 @@ defineExpose({
         <div class="card-list">
           <FaultCard
             v-for="(fault, index) in existingFaults"
-            :class="fault.selected ? 'selected' : ''"
             :key="fault.info?.id"
+            :selected="fault.selected"
             :fault="fault.info"
             :index="index + 1"
             @click="selectFaultByList(index)"
           >
-            <template #actions>
-              <el-button type="primary" :icon="Edit" circle @click.stop="editFault(index)" />
-              <el-button type="danger" :icon="Delete" circle @click.stop="" />
+            <template v-if="editMode" #actions>
+              <el-button
+                type="primary"
+                :icon="Edit"
+                :disabled="disabled"
+                circle
+                @click.stop="editFault(index)"
+              />
+              <el-button
+                type="danger"
+                :icon="Delete"
+                :disabled="disabled"
+                circle
+                @click.stop="deleteFault(index)"
+              />
             </template>
           </FaultCard>
         </div>
         <div class="actions">
-          <el-button type="danger" :disabled="selectedFaults.length === 0">批量删除</el-button>
-          <el-button type="primary">保存并继续</el-button>
+          <el-button
+            v-if="editMode && currentFaults.length > 1"
+            type="danger"
+            :disabled="selectedFaults.length === 0 || disabled"
+          >
+            批量删除
+          </el-button>
+          <el-button v-if="editMode" type="primary">保存并继续</el-button>
           <el-button type="info" @click="close">取消</el-button>
         </div>
       </div>
@@ -444,7 +513,7 @@ defineExpose({
   > div {
     height: 100%;
     &.left-content {
-      flex: 1;
+      width: calc(60% - 20px);
       height: 100%;
       background: rgba(0, 0, 0, 0.8);
       border-radius: 6px;
@@ -458,13 +527,12 @@ defineExpose({
         @include flex($jc: space-between);
         color: #fff;
         font-size: 14px;
-        .img-path {
-          color: #fff;
-          font-size: 14px;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          text-align: center;
+        .info {
+          > span {
+            & + span {
+              padding-left: 15px;
+            }
+          }
         }
       }
 
@@ -498,11 +566,10 @@ defineExpose({
         }
       }
       .effect-wrapper {
-        padding: 0 15px;
+        padding-right: 15px;
         margin-top: 15px;
         @include flex($jc: space-between);
         > div {
-          max-width: 800px;
           flex: 1;
           padding: 0 15px;
         }
@@ -515,6 +582,16 @@ defineExpose({
         padding: 15px 15px 0;
         flex-shrink: 0;
         @include flex($jc: space-between);
+        .img-path {
+          width: calc(100% - 160px);
+          color: #fff;
+          font-size: 14px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          text-align: center;
+          word-break: break-all;
+        }
         .el-button {
           color: #fff;
           &.is-disabled {

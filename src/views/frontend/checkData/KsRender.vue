@@ -5,7 +5,6 @@ import { Delete, Remove, Edit, RefreshRight, CircleCheck } from '@element-plus/i
 import {
   useIntersectionObserver,
   useMouseInElement,
-  useTimeoutFn,
   useArrayFindLast,
   useElementSize,
   useElementBounding
@@ -30,8 +29,8 @@ const props = defineProps({
     type: Boolean,
     default: true
   },
-  // 是否显示故障标注按钮
-  showEditMode: {
+  // 是否有编辑权限
+  hasEditRight: {
     type: Boolean,
     default: false
   },
@@ -41,8 +40,8 @@ const props = defineProps({
     required: true
   }
 })
-const emits = defineEmits(['refresh'])
-const { isVertical, list } = toRefs(props)
+const refresh = inject('refresh');
+const { isVertical, list, hasEditRight } = toRefs(props)
 
 const ksContainerRef = ref(null) // 快扫看图容器区域
 const scrollContainerRef = ref(null) // 滚动容器区域
@@ -52,30 +51,21 @@ const faultCanvasRefs = ref([]) // 故障canvas的模板引用
 const faultViewerRef = ref(null) // 故障查看器
 const ksFaultMarkRef = ref(null) // 快扫故障标注表单
 const faultTipRef = ref(null) // 故障提示框
+const imgsSliderRef = ref(null) // 图片滚动条
 
 const state = reactive({
   canvasList: [], // canvas列表
   handledList: [], // 处理好的列表
   imgW: 1228, // 图片宽度
   imgH: 600, // 图片高度
-  imgInPortIdx: 0, // 当前可视区域的图片索引
   magnifySize: 250, // 放大镜尺寸
-  isDrawing: false,
+  isDrawing: false, // 是否正在画框
   existingFaults: [], // 已有故障
   newFaults: [] // 新增故障框
 })
 
-const {
-  canvasList,
-  handledList,
-  imgW,
-  imgH,
-  imgInPortIdx,
-  magnifySize,
-  isDrawing,
-  existingFaults,
-  newFaults
-} = toRefs(state)
+const { canvasList, handledList, imgW, imgH, magnifySize, isDrawing, existingFaults, newFaults } =
+  toRefs(state)
 // web worker
 const { post, workerData, terminate } = useWebWorker(
   new URL('@/worker/handleKsData.js', import.meta.url)
@@ -94,7 +84,7 @@ const { stop } = useIntersectionObserver(
     entries.forEach((entry) => {
       if (entry.isIntersecting) {
         if (entry.target) {
-          imgInPortIdx.value = Number(entry.target.getAttribute('data-idx'))
+          imgsSliderRef.value.setIdx(Number(entry.target.getAttribute('data-idx')))
         }
       }
     })
@@ -105,10 +95,6 @@ const { stop } = useIntersectionObserver(
   }
 )
 const { elementX, elementY, isOutside, stop: stopWatchMouseIn } = useMouseInElement(ksContainerRef)
-// 重置滚动条
-const { start, stop: clearTimeoutFn } = useTimeoutFn(() => {
-  imgInPortIdx.value = 0
-}, 50)
 
 //异或运算符 ^,只有一个为true时才为true，其他场景都为false
 const showVertical = computed(() => Boolean(isVertical.value ^ reverse.value)) // 利用位运算，判断到底横向展示还是纵向
@@ -131,7 +117,6 @@ const allFaults = computed(() => [...existingFaults.value, ...newFaults.value])
 onUnmounted(() => {
   terminate()
   stop()
-  clearTimeoutFn()
   stopWatchMouseIn()
   if (animateId) {
     cancelAnimationFrame(animateId)
@@ -170,27 +155,16 @@ watch(workerData, (newVal) => {
 // 看图方式切换，图片宽高需要互换，重新绘制故障
 watch(reverse, (newVal, oldVal) => {
   if (newVal !== oldVal) {
-    imgInPortIdx.value = 0
     const temp = imgW.value
     imgW.value = imgH.value
     imgH.value = temp
     initCanvas()
-    if (showVertical.value) {
-      scrollContainerRef.value.scrollTop = 0
-    } else {
-      scrollContainerRef.value.scrollLeft = 0
-    }
-    start()
+    imgsSliderRef.value.setIdx(0, true) // 重置滚动条到初始位置
   }
 })
 // 切换显示历史图，重置滚动条
 watch(compare, () => {
-  if (showVertical.value) {
-    scrollContainerRef.value.scrollTop = 0
-  } else {
-    scrollContainerRef.value.scrollLeft = 0
-  }
-  start()
+  imgsSliderRef.value.setIdx(0, true) // 重置滚动条到初始位置
 })
 // 鼠标离开图片区域，则关掉放大镜
 watch(isOutside, (newVal) => {
@@ -315,7 +289,8 @@ const handlePreview = async (idx) => {
   faultViewerRef.value.show({
     idx,
     reverse: reverse.value,
-    isKs: true
+    isKs: true,
+    hasEditRight: hasEditRight.value
   })
 }
 
@@ -459,7 +434,7 @@ const deleteFaults = async (id, isBatch = false) => {
       deleteFault(id).then((res) => {
         if (res.result) {
           ElMessage.success('删除成功')
-          emits('refresh')
+          refresh()
         } else {
           ElMessage.error(res.message)
         }
@@ -608,15 +583,15 @@ const showRightMenu = (idx, e) => {
       :compare="compare"
       :magnify="magnify"
       :editMode="editMode"
-      :showEditMode="showEditMode"
+      :hasEditRight="hasEditRight"
       :fullScreenContainer="ksContainerRef"
       @toggleFunc="toggleFunc"
     />
     <Magnify v-show="magnify" ref="magnifyRef" :size="magnifySize" />
     <ImgsSlider
+      ref="imgsSliderRef"
       :images="thumbnails"
       :step="10"
-      v-model="imgInPortIdx"
       :vertical="showVertical"
       :scrollRef="scrollContainerRef"
       @change="sliderChange"

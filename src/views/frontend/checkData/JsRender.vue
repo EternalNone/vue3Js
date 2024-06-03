@@ -10,9 +10,14 @@ const props = defineProps({
     type: Array,
     default: () => [],
     required: true
+  },
+  // 是否有编辑权限
+  hasEditRight: {
+    type: Boolean,
+    default: false
   }
 })
-const { list } = toRefs(props)
+const { list, hasEditRight } = toRefs(props)
 const faultViewerRef = ref(null)
 const jsFaultMarkRef = ref(null)
 const state = reactive({
@@ -64,7 +69,8 @@ const openFaultViewer = (idx) => {
   //   isKs: false
   // })
   jsFaultMarkRef.value.show({
-    idx
+    idx,
+    hasEditRight: hasEditRight.value
   })
 }
 </script>
@@ -113,7 +119,7 @@ const openFaultViewer = (idx) => {
     </el-row>
   </div>
   <FaultViewer ref="faultViewerRef" :list="handledList" />
-  <JSFaultMark ref="jsFaultMarkRef" :list="handledList"/>
+  <JSFaultMark ref="jsFaultMarkRef" :list="handledList" />
 </template>
 
 <style lang="scss" scoped>

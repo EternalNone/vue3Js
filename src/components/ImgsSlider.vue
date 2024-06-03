@@ -8,10 +8,6 @@ const props = defineProps({
     type: [Object, null],
     required: true
   },
-  modelValue: {
-    type: Number,
-    default: 0
-  },
   images: {
     type: Array,
     required: true,
@@ -31,14 +27,15 @@ const props = defineProps({
   }
 })
 
-const { scrollRef, modelValue, images, vertical, step, space } = toRefs(props)
-const emits = defineEmits(['change', 'update:modelValue'])
+const { scrollRef, images, vertical, step, space } = toRefs(props)
+const emits = defineEmits(['change'])
 const container = ref(null) // 容器
 const slider = ref(null) // 滑块
 const thumbnails = ref(null) // 缩略图
+
+let animationFrameId = null
 const position = ref(space.value) // 滑块位置
 const imgIdx = ref(0) // 当前视口中的图片索引
-const { isScrolling } = useScroll(scrollRef)
 const { left, top } = useElementBounding(container) // 响应式的获取容器位置
 const { width, height } = useElementSize(thumbnails) // 获取缩略图尺寸
 const imgSize = computed(() => `${step.value}px`)
@@ -47,13 +44,21 @@ const containerH = computed(() => `${height.value + space.value * 2}px`)
 const containerPadding = computed(() => `${space.value}px`)
 const positionWithUnit = computed(() => `${position.value}px`)
 
-// 监听滚动条状态及当前图片的索引，停止滚动时计算滑块距离
-watch([isScrolling, modelValue], ([newFlag, newVal]) => {
-  if (!newFlag) {
-    imgIdx.value = newVal
-    position.value = space.value + newVal * step.value
+const setIdx = (idx, init = false) => {
+  if (init) {
+    if (vertical.value) {
+      scrollRef.value.scrollTop = 0
+    } else {
+      scrollRef.value.scrollLeft = 0
+    }
   }
-})
+  useScroll(scrollRef, {
+    onStop: () => {
+      imgIdx.value = idx
+      position.value = space.value + idx * step.value
+    }
+  })
+}
 // 更新滑块位置
 const updateSlider = (dis) => {
   let offset = 0
@@ -85,13 +90,16 @@ const updateSlider = (dis) => {
     position.value = offset
   }
 }
+// 计算位移
+const calculateDisplacement = (e) => {
+  return vertical.value
+    ? e.clientY - top.value - step.value / 2
+    : e.clientX - left.value - step.value / 2
+}
 // 鼠标按下、开始滑动
 const mousedown = (e) => {
-  const dis = vertical.value
-    ? e.clientY - top.value - slider.value.offsetHeight / 2
-    : e.clientX - left.value - slider.value.offsetWidth / 2
+  const dis = calculateDisplacement(e)
   updateSlider(dis)
-
   document.addEventListener('mousemove', moveSlider)
   document.addEventListener('mouseup', stopMoveSlider)
 }
@@ -101,12 +109,15 @@ const moveSlider = (e) => {
   const dis = vertical.value
     ? e.clientY - top.value - slider.value.offsetHeight / 2
     : e.clientX - left.value - slider.value.offsetWidth / 2
-  updateSlider(dis)
+  // 请求动画帧来减少重排次数
+  if (animationFrameId) cancelAnimationFrame(animationFrameId)
+  animationFrameId = requestAnimationFrame(() => {
+    updateSlider(dis)
+  })
 }
 // 停止滑动
 const stopMoveSlider = () => {
   emits('change', imgIdx.value)
-  emits('update:modelValue', imgIdx.value)
   document.removeEventListener('mousemove', moveSlider)
   document.removeEventListener('mouseup', stopMoveSlider)
 }
@@ -114,6 +125,10 @@ const stopMoveSlider = () => {
 onUnmounted(() => {
   document.removeEventListener('mousemove', moveSlider)
   document.removeEventListener('mouseup', stopMoveSlider)
+  if (animationFrameId) cancelAnimationFrame(animationFrameId)
+})
+defineExpose({
+  setIdx
 })
 </script>
 <template>
@@ -173,8 +188,9 @@ onUnmounted(() => {
       }
     }
     .slider {
-      top: v-bind(positionWithUnit);
+      top: 0;
       left: 0;
+      transform: translateY(v-bind(positionWithUnit));
       width: 100%;
       height: v-bind(imgSize);
     }
@@ -193,7 +209,8 @@ onUnmounted(() => {
     }
     .slider {
       top: 0;
-      left: v-bind(positionWithUnit);
+      left: 0;
+      transform: translateX(v-bind(positionWithUnit));
       width: v-bind(imgSize);
       height: 100%;
     }

@@ -7,7 +7,7 @@ const props = defineProps({
     type: Boolean,
     default: true
   },
-  showEditMode: {
+  hasEditRight: {
     type: Boolean,
     default: false
   },
@@ -55,7 +55,7 @@ const toggleEditMode = () => {
 <template>
   <div class="tools-bar">
     <div
-      v-if="showEditMode"
+      v-if="hasEditRight"
       :class="editMode ? 'tool-item tool-item-active' : 'tool-item'"
       @click="toggleEditMode"
     >

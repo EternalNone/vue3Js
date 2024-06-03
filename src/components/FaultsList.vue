@@ -8,7 +8,13 @@ import FaultViewer from '@/components/FaultViewer.vue'
 const worker = new Worker(new URL('@/worker/handleFaultList.js', import.meta.url)) // 创建Web Worker
 const imgBaseUrl = import.meta.env.VITE_IMAGE_BASE_URL // 对应环境的图片域名及端口
 
-const emits = defineEmits(['refresh'])
+const props = defineProps({
+  hasEditRight: {
+    type: Boolean,
+    default: false
+  }
+})
+const refresh = inject('refresh')
 
 const columns = [
   {
@@ -160,7 +166,8 @@ const getData = () => {
 const handleView = (idx) => {
   faultViewerRef.value.show({
     idx,
-    isKs: false
+    isKs: false,
+    hasEditRight: props.hasEditRight
   })
 }
 // 删除故障
@@ -171,7 +178,7 @@ const handleDeleteFault = (row) => {
   deleteFault(row.id).then((res) => {
     if (res.result) {
       ElMessage.success('删除成功')
-      emits('refresh')
+      refresh()
       getData()
     } else {
       ElMessage.error(res.message)
@@ -255,6 +262,7 @@ defineExpose({
                   查看
                 </el-button>
                 <el-popconfirm
+                  v-if="hasEditRight"
                   title="是否确定删除该故障?"
                   confirm-button-text="确定"
                   cancel-button-text="取消"
@@ -266,9 +274,9 @@ defineExpose({
                   </template>
                 </el-popconfirm>
 
-                <el-button type="primary" link size="small" @click="handleExport(row)"
-                  >导出复核单</el-button
-                >
+                <el-button type="primary" link size="small" @click="handleExport(row)">
+                  导出复核单
+                </el-button>
               </template>
             </template>
             <template v-else>
