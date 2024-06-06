@@ -72,6 +72,7 @@ defineExpose({
     :modal="false"
     :show-close="false"
     lock-scroll
+    append-to-body
     :close-on-click-modal="false"
     @close="close"
   >

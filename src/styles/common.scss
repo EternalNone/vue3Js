@@ -3,9 +3,16 @@ $color: #ec0fec;
 $theme-color: #02245b;
 
 $el-header-height: 70px;
-
+$robotStatus: (
+  CLOSE: #fff,
+  STANDBY: #eb35ce,
+  CHARGING: var(--el-color-success),
+  EXCEPTION: var(--el-color-warning),
+  ERROR: var(--el-color-danger),
+  IN_OPERATION: var(--el-color-primary)
+);
 // mixins
-@mixin scrollBar($color:rgba(144,147,153,0.3),$activeColor:rgba(144,147,153,1)) {
+@mixin scrollBar($color: rgba(144, 147, 153, 0.3), $activeColor: rgba(144, 147, 153, 1)) {
   &::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -27,8 +34,8 @@ $el-header-height: 70px;
 }
 @mixin textEllipsis() {
   white-space: nowrap;
- overflow: hidden;
- text-overflow: ellipsis;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 @mixin multiTextEllipsis($lineCount) {
   display: -webkit-box;
@@ -44,4 +51,3 @@ $el-header-height: 70px;
   align-items: $al;
   @content;
 }
-

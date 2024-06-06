@@ -9,8 +9,7 @@ import {
   useElementSize,
   useElementBounding
 } from '@vueuse/core'
-import { useWebWorker } from '@/hooks/useWebWorker.js'
-import { useCanvasToolsBar } from '@/hooks/useCanvasToolsBar.js'
+import { useWebWorker,useCanvasToolsBar } from '@/hooks/index'
 import ContextMenu from '@imengyu/vue3-context-menu'
 import { Rect } from '@/utils/canvas.js'
 import { deleteFault } from '@/api/checkData'

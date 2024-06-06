@@ -1,10 +1,9 @@
 <script setup name="JsFaultViewer">
 import { Refresh, DArrowLeft, DArrowRight } from '@element-plus/icons-vue'
 import { onKeyStroke } from '@vueuse/core'
-import { useWinResize } from '@/hooks/useWinResize'
-import CssFilter from '@/components、CssFilter.vue'
+import { useWinResize } from '@/hooks/index'
+import CssFilter from '@/components/CssFilter.vue'
 import Magnify from '@/components/Magnify.vue'
-
 
 const faultStrokeStyle = '#FA6157' // 故障框线条颜色
 const faultStrokeWidth = 3 // 故障框线条宽度
@@ -169,6 +168,7 @@ defineExpose({
     fullscreen
     lock-scroll
     destroy-on-close
+    append-to-body
     :close-on-click-modal="false"
   >
     <div class="fault-viewer">

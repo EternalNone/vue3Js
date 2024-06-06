@@ -74,7 +74,7 @@ export class Rect {
     if (this.showNo) {
       ctx.font = '30px Arial'
       ctx.fillStyle = this.add ? this.strokeColorAdd : this.strokeColor
-      ctx.fillText(this.faultNo, this.minX - this.offsetX + 10, this.minY - this.offsetY + 25)
+      ctx.fillText(this.faultNo, this.minX - this.offsetX + 5, this.minY - this.offsetY + 25)
     }
   }
 }

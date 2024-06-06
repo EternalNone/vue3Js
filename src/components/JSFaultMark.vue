@@ -2,7 +2,7 @@
 import { Refresh, DArrowLeft, DArrowRight, ZoomIn, Edit, Delete } from '@element-plus/icons-vue'
 import { onKeyStroke, useArrayFindLast } from '@vueuse/core'
 import { ElMessageBox } from 'element-plus'
-import { useWinResize } from '@/hooks/useWinResize'
+import { useWinResize } from '@/hooks/index'
 import { Rect } from '@/utils/canvas.js'
 import CssFilter from '@/components/CssFilter.vue'
 import Magnify from '@/components/Magnify.vue'
@@ -371,6 +371,7 @@ defineExpose({
     fullscreen
     lock-scroll
     destroy-on-close
+    append-to-body
     :close-on-click-modal="false"
     :before-close="handleBeforeClose"
     @close="close"
@@ -392,13 +393,7 @@ defineExpose({
                 @click="magnify = !magnify"
               />
             </el-tooltip>
-            <el-tooltip
-              v-if="hasEditRight"
-              disabled
-              effect="light"
-              content="编辑模式"
-              placement="bottom"
-            >
+            <el-tooltip v-if="hasEditRight" effect="light" content="编辑模式" placement="bottom">
               <el-button
                 :type="editMode ? 'primary' : 'info'"
                 :icon="Edit"
@@ -557,6 +552,7 @@ defineExpose({
             display: block;
             width: 100%;
             height: 100%;
+            user-select: none;
             &.img-wrap {
               :deep(.el-image__error) {
                 font-size: 40px;

@@ -230,6 +230,7 @@ defineExpose({
     title="故障列表"
     width="80%"
     lock-scroll
+    append-to-body
     :close-on-click-modal="false"
     style="min-width: 650px"
     @close="close"

@@ -1,11 +1,11 @@
 import { defineStore } from 'pinia'
 import store from '@/store'
-import { Storage, StorageKey } from '@/utils/storage'
+import { Storage, STORAGE_KEY } from '@/utils/storage'
 import { loginApi } from '@/api/user'
 
 export const useUserStore = defineStore('user', () => {
-  const token = ref(Storage.getItem(StorageKey.USER_TOKEN) || '')
-  const userInfo = ref(Storage.getItem(StorageKey.USER_INFO) || {})
+  const token = ref(Storage.getItem(STORAGE_KEY.USER_TOKEN) || '')
+  const userInfo = ref(Storage.getItem(STORAGE_KEY.USER_INFO) || {})
   const roles = ref([])
 
   const resetToken = () => {
@@ -15,16 +15,16 @@ export const useUserStore = defineStore('user', () => {
   }
   const login = async ({ username, password }) => {
     const data = await loginApi({ username, password })
-    Storage.setItem(StorageKey.USER_TOKEN, data?.token || '')
-    Storage.setItem(StorageKey.USER_INFO, data?.user || {})
-    Storage.setItem(StorageKey.USER_ROLES, [])
+    Storage.setItem(STORAGE_KEY.USER_TOKEN, data?.token || '')
+    Storage.setItem(STORAGE_KEY.USER_INFO, data?.user || {})
+    Storage.setItem(STORAGE_KEY.USER_ROLES, [])
     token.value = data?.token || ''
     userInfo.value = data?.user || {}
     roles.value = []
   }
   const logout = () => {
-    Storage.removeItem(StorageKey.USER_TOKEN)
-    Storage.removeItem(StorageKey.USER_INFO)
+    Storage.removeItem(STORAGE_KEY.USER_TOKEN)
+    Storage.removeItem(STORAGE_KEY.USER_INFO)
     token.value = ''
     userInfo.value = {}
   }

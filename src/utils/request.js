@@ -1,6 +1,6 @@
 // 在 request.js 中使用单例模式来确保只创建一个请求实例
 import axios from 'axios'
-import { Storage, StorageKey } from '@/utils/storage'
+import { Storage, STORAGE_KEY } from '@/utils/storage'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStoreHook } from '@/store/modules/user'
 
@@ -18,8 +18,8 @@ const createInstance = () => {
       (config) => {
         // 在发送请求之前做些什么
         config.headers['Content-Type'] = 'application/json'
-        config.headers['Authorization'] = Storage.getItem(StorageKey.USER_TOKEN) || ''
-        config.headers['Token'] = Storage.getItem(StorageKey.USER_TOKEN) || ''
+        config.headers['Authorization'] = Storage.getItem(STORAGE_KEY.USER_TOKEN) || ''
+        config.headers['Token'] = Storage.getItem(STORAGE_KEY.USER_TOKEN) || ''
         return config
       },
       (error) => {

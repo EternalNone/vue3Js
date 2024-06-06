@@ -1,5 +1,5 @@
 <script setup name="JsRender">
-import { useWebWorker } from '@/hooks/useWebWorker.js'
+import { useWebWorker } from '@/hooks/index'
 import FaultViewer from '@/components/FaultViewer.vue'
 import JSFaultMark from '@/components/JSFaultMark.vue'
 
