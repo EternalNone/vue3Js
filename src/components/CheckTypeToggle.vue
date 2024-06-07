@@ -5,11 +5,11 @@ const globalStore = useGlobalStore()
 const { moduleType } = storeToRefs(globalStore)
 const checkTypes = ref([
   {
-    title: '库内检测',
+    title: '360检测',
     value: 'INSIDE'
   },
   {
-    title: '库外检测',
+    title: '机器人检测',
     value: 'OUTSIDE'
   }
 ])
@@ -33,7 +33,7 @@ const handleChange = (val) => {
 
 <style lang="scss" scoped>
 .check-type-wrap {
-  width: min(100%, 180px);
+  width: 100%;
   height: 34px;
   line-height: 34px;
   border-radius: 4px;

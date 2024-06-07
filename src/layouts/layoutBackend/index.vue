@@ -1,6 +1,5 @@
 <script setup>
 import { useAppStore } from '@/store/modules/app'
-import CheckTypeToggle from '@/components/CheckTypeToggle.vue'
 import AppMain from '../AppMain.vue'
 import BackendMenu from './BackendMenu.vue'
 import HeaderToolsBar from '../HeaderToolsBar.vue'
@@ -23,7 +22,6 @@ const { isCollapse } = storeToRefs(appStore)
           />
         </div>
         <div class="header-right">
-          <CheckTypeToggle />
           <HeaderToolsBar />
         </div>
       </el-header>
@@ -70,7 +68,7 @@ const { isCollapse } = storeToRefs(appStore)
       .header-right {
         flex: 1;
         height: 100%;
-        @include flex($jc: space-between);
+        @include flex($jc: flex-end);
       }
     }
     .el-aside {

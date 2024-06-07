@@ -1,4 +1,4 @@
-<script setup name="Abrasion"></script>
+<script setup name="Cockpit"></script>
 
 <template>
   <div class="">...</div>

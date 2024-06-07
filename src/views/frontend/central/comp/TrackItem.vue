@@ -61,7 +61,7 @@ const getPos = (robotKey) => {
       <div class="lw">
         <span>{{ `${track}-1` }}</span>
         <span :class="`robot-status ${robotStatus[`${track}-1-status`]}`">
-          {{ ROBOT_STATUS_ZH[robotStatus[`${track}-1-status`]] || '未知' }}
+          状态：<i>{{ ROBOT_STATUS_ZH[robotStatus[`${track}-1-status`]] || '未知' }}</i>
         </span>
         <ElectricQuantity :quantity="robotStatus[`${track}-1-battery`]" />
       </div>
@@ -206,9 +206,14 @@ const getPos = (robotKey) => {
       color: #11d1fb;
       .robot-status {
         color: #fff;
+        i {
+          font-style: normal;
+        }
         @each $status, $value in $robotStatus {
           &.#{$status} {
-            color: $value;
+            i {
+              color: $value;
+            }
           }
         }
       }

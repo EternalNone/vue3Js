@@ -3,7 +3,6 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { ROBOT_STATUS_CN, ROBOT_ORDER, ACTIONS_VOICE_NOTICE } from '@/constants/index'
 import { useSpeech } from '@/hooks/index'
 import { robotOperate } from '@/api/central.js'
-import { toRefs } from 'vue'
 
 const props = defineProps({
   status: {
@@ -39,15 +38,12 @@ const running = computed(() => props.status === ROBOT_STATUS_CN.IN_OPERATION)
 const standby = computed(() => props.status === ROBOT_STATUS_CN.STANDBY)
 // 作业是否已经开始，checkNo存在，则表示已经开始，不存在，则表示未开始
 const workStarted = computed(() => Boolean(train.value?.checkNo))
+// 当前列位是否有车辆
+const hasTrain = computed(() => Boolean(train.value))
 const { play } = useSpeech()
 
 // 各种操作
 const operation = async (cmd, password = '') => {
-  if (!train.value && (cmd === 'work' || cmd === 'inspection')) {
-    // 没有车辆时，无法进行开始作业及故障续检
-    ElMessage.error('当前列位没有车辆！')
-    return
-  }
   const { garage, track } = gd.value
   const params = {
     garage,
@@ -111,12 +107,12 @@ const startWork = () => {
 
 <template>
   <div class="operations">
-    <!-- 作业已开始、未知、关闭、充电中、非待机状态禁用 -->
+    <!-- 有车、待机状态且作业未开始时显示-->
     <el-button
+      v-show="hasTrain && standby && !workStarted"
       type="primary"
       plain
       size="small"
-      :disabled="unknown || closed || charging || !standby || workStarted"
       @click="startWork"
     >
       开始作业
@@ -187,8 +183,9 @@ const startWork = () => {
     >
       紧急停止
     </el-button>
-    <!-- 未知、关闭、充电中状态禁用-->
+    <!-- 有车时才显示、未知、关闭、充电中状态禁用-->
     <el-button
+      v-show="hasTrain"
       type="primary"
       plain
       size="small"

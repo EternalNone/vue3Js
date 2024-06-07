@@ -13,21 +13,16 @@ const props = defineProps({
 const appStore = useAppStore()
 const { isCollapse } = storeToRefs(appStore)
 
-/** 显示的子菜单 */
-const showingChildren = computed(() => {
-  return props.menu.children?.filter((child) => !child.meta?.hidden) ?? []
+// 当前菜单是否不展示，hudden为true或者有子菜单但是子菜单都不可见时，当前菜单不展示
+const isItemHidden = computed(() => {
+  const allChildren = props.menu.children
+  const showChildren = allChildren?.filter((child) => !child.meta?.hidden) ?? []
+  return props.menu.meta.hidden || (allChildren?.length > 0 && showChildren.length === 0)
 })
-/** 唯一的子菜单项 */
-const theOnlyOneChild = computed(() => {
-  const number = showingChildren.value.length
-  switch (true) {
-    case number > 1:
-      return null
-    case number === 1:
-      return showingChildren.value[0]
-    default:
-      return { ...props.item, path: '' }
-  }
+// 是否展示子菜单,当前菜单可见，并且有可见的子菜单时才展示子菜单
+const showSubMenu = computed(() => {
+  const showChildren = props.menu.children?.filter((child) => !child.meta?.hidden) ?? []
+  return !props.menu.meta.hidden && showChildren.length > 0
 })
 /** 解析路径 */
 const resolvePath = (routePath) => {
@@ -39,13 +34,7 @@ const resolvePath = (routePath) => {
 </script>
 
 <template>
-  <el-menu-item v-if="theOnlyOneChild && !theOnlyOneChild.children" :index="basePath">
-    <el-tooltip v-if="menu.meta.svgIcon" effect="dark" :content="isCollapse ? menu.meta.title : null" placement="right">
-      <SvgIcon :name="menu.meta.svgIcon" :size="20" />
-    </el-tooltip>
-    <span class="menu-title-wrap">{{ menu.meta.title }}</span>
-  </el-menu-item>
-  <el-sub-menu v-else :index="resolvePath(menu.path)">
+  <el-sub-menu v-if="showSubMenu" :index="resolvePath(menu.path)">
     <template #title>
       <SvgIcon v-if="menu.meta.svgIcon" :name="menu.meta.svgIcon" :size="20" />
       <span class="menu-title-wrap">{{ menu.meta.title }}</span>
@@ -57,5 +46,16 @@ const resolvePath = (routePath) => {
       :basePath="resolvePath(subMenu.path)"
     />
   </el-sub-menu>
+  <el-menu-item v-else-if="!isItemHidden" :index="basePath">
+    <el-tooltip
+      v-if="menu.meta.svgIcon"
+      effect="dark"
+      :content="isCollapse ? menu.meta.title : null"
+      placement="right"
+    >
+      <SvgIcon :name="menu.meta.svgIcon" :size="20" />
+    </el-tooltip>
+    <span class="menu-title-wrap">{{ menu.meta.title }}</span>
+  </el-menu-item>
 </template>
 <style lang="scss" scoped></style>

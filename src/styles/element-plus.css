@@ -1,11 +1,11 @@
 @import 'element-plus/theme-chalk/index.css';
 :root {
   /** color-primary */
-  /* --el-color-primary: rgba(17, 209, 251, 1);
-  --el-color-primary-light-3: rgba(17, 209, 251, 0.8);
-  --el-color-primary-light-5: rgba(17, 209, 251, 0.6);
-  --el-color-primary-light-7: rgba(17, 209, 251, 0.4);
-  --el-color-primary-light-8: rgba(17, 209, 251, 0.2);
-  --el-color-primary-light-9: rgba(17, 209, 251, 0.1);
-  --el-color-primary-dark-2: #0386a3; */
+  /* --el-color-primary: #1770F6;
+  --el-color-primary-light-3: #458DF8;
+  --el-color-primary-light-5: #74A9FA;
+  --el-color-primary-light-7: #A2C6FB;
+  --el-color-primary-light-8: #D1E2FD;
+  --el-color-primary-light-9: #E7F0FE;
+  --el-color-primary-dark-2: #125AC5; */
 }

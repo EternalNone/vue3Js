@@ -1,5 +1,6 @@
 <script setup name="PassTrainFilter">
 import dayjs from 'dayjs'
+import CheckTypeToggle from '@/components/CheckTypeToggle.vue'
 import { useGlobalStore } from '@/store/modules/global'
 import { getPassTransList } from '@/api/passTrain'
 
@@ -16,6 +17,12 @@ const quickSearchItems = [
     value: 'LATEST_FIFTEEN_DAY'
   }
 ]
+const props = defineProps({
+  showCheckType: {
+    type: Boolean,
+    default: false
+  }
+})
 const emits = defineEmits(['getPassTrainData'])
 const state = reactive({
   transList: [],
@@ -51,6 +58,13 @@ const {
   tranTimer
 } = toRefs(state)
 const disabled = computed(() => loading.value || noMore.value)
+const listH = computed(() => {
+  if (props.showCheckType) {
+    return 'calc(100vh - 480px)'
+  } else {
+    return 'calc(100vh - 436px)'
+  }
+})
 watch(moduleType, (newVal, oldVal) => {
   if (newVal !== oldVal) {
     search()
@@ -72,7 +86,6 @@ const selectTransItem = (item) => {
 }
 
 // 清空数据列表，重置默认选择，重置默认加载，清空默认选择
-
 const search = () => {
   pageInfo.value.page = 0
   pageInfo.value.pageSize = type.value === 'LATEST_TEN_COUNT' ? 10 : 40
@@ -176,6 +189,8 @@ const reset = () => {
   transDate.value = []
   search()
 }
+
+// 展开收起
 const toggleFilter = () => {
   expand.value = !expand.value
 }
@@ -187,6 +202,7 @@ const toggleFilter = () => {
       <span>过车信息筛选</span>
     </div>
     <div class="search-form">
+      <CheckTypeToggle v-if="showCheckType" />
       <div class="quick-search">
         <div
           v-for="item in quickSearchItems"
@@ -220,8 +236,7 @@ const toggleFilter = () => {
       <div class="list-title">
         <div class="status"></div>
         <div class="checkInDate">库检时间</div>
-        <div class="vehicleModel">车型</div>
-        <div class="carNo">车号</div>
+        <div class="vehicleModel">车型车号</div>
         <div class="trackNo">股道</div>
       </div>
       <div
@@ -246,13 +261,10 @@ const toggleFilter = () => {
                   : 'var(--el-color-danger)'
             }"
           />
-          <div class="checkInDate">{{ item.checkInDate || '--' }}</div>
-          <el-tooltip effect="dark" :content="item.vehicleModel" placement="top" :hide-after="0">
-            <div class="vehicleModel">{{ item.vehicleModel || '--' }}</div>
-          </el-tooltip>
-          <el-tooltip effect="dark" :content="item.carNo" placement="top" :hide-after="0">
-            <div class="carNo">{{ item.carNo || '--' }}</div>
-          </el-tooltip>
+          <div class="checkInDate">
+            {{ item.checkInDate ? dayjs(item.checkInDate).format('YYYY-MM-DD HH:mm') : '--' }}
+          </div>
+          <div class="vehicleModel">{{ item.vehicleModel ?? '--' }}-{{ item.carNo ?? '--' }}</div>
           <div class="trackNo">{{ item.trackNo || '--' }}</div>
         </div>
         <p v-show="loading" class="text_center border">加载中...</p>
@@ -297,6 +309,9 @@ const toggleFilter = () => {
   .search-form {
     margin: 10px 0;
     padding: 0 10px;
+    .check-type-wrap {
+      margin-bottom: 10px;
+    }
     .quick-search {
       @include flex;
       width: 100%;
@@ -386,7 +401,7 @@ const toggleFilter = () => {
     }
     .list-content {
       width: 100%;
-      height: calc(100vh - 436px);
+      height: v-bind(listH);
       overflow-y: auto;
       @include scrollBar(
         $color: var(--el-color-primary-light-5),
@@ -404,7 +419,7 @@ const toggleFilter = () => {
           background: rgba(186, 208, 241, 0.1);
         }
         &:hover {
-          background: var(--el-color-primary);
+          color: var(--el-color-primary);
         }
         &.active {
           background: var(--el-color-primary);
@@ -431,11 +446,7 @@ const toggleFilter = () => {
       width: 142px;
     }
     .vehicleModel {
-      width: 80px;
-      @include textEllipsis;
-    }
-    .carNo {
-      width: 80px;
+      width: 160px;
       @include textEllipsis;
     }
     .trackNo {

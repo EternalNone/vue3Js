@@ -141,7 +141,7 @@ const getData = () => {
   loading.value = true
   const { pageNum, pageSize } = pagination.value
   const param = {
-    checkType: moduleType.value === 'INSIDE' ? 1 : 0, //检测类型 0:库外检测 1:库内检测
+    checkType: moduleType.value === 'INSIDE' ? 1 : 0, //检测类型 0:机器人检测 1:360检测
     lcxxBh: trainNo.value,
     pageNum,
     pageSize

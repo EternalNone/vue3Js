@@ -110,7 +110,7 @@ const defaultLength = computed(() => (props.trainType === TRAIN_TYPE.SHORT ? 8 :
     justify-content: center;
     &.train-item-left {
       flex: 0 0 146px;
-      background: url(@/assets/images/train_left.png) no-repeat;
+      background: url(@/assets/svgs/train-left.svg) no-repeat;
       background-size: cover;
       align-items: end;
       padding-right: 20px;
@@ -118,7 +118,7 @@ const defaultLength = computed(() => (props.trainType === TRAIN_TYPE.SHORT ? 8 :
 
     &.train-item-right {
       flex: 0 0 146px;
-      background: url(@/assets/images/train_right.png) no-repeat right;
+      background: url(@/assets/svgs/train-right.svg) no-repeat right;
       background-size: cover;
       align-items: start;
       padding-left: 20px;
@@ -147,13 +147,13 @@ const defaultLength = computed(() => (props.trainType === TRAIN_TYPE.SHORT ? 8 :
       &.train-item-left {
         border: none;
         animation: none;
-        background: url(@/assets/images/train-left-blue.png) no-repeat;
+        background: url(@/assets/svgs/train-left-blue.svg) no-repeat;
         background-size: cover;
       }
       &.train-item-right {
         border: none;
         animation: none;
-        background: url(@/assets/images/train-right-blue.png) no-repeat;
+        background: url(@/assets/svgs/train-right-blue.svg) no-repeat;
         background-size: cover;
       }
     }

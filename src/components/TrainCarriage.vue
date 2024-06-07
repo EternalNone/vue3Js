@@ -37,7 +37,7 @@ const selectAll = () => {
 </script>
 
 <template>
-  <div class="train-carriage">
+  <div :class="list.length > 0 ? 'train-carriage' : 'train-carriage train-carriage-empty'">
     <div
       :class="modelValue === '' ? 'train-header train-header-active' : 'train-header'"
       @click="selectAll"
@@ -62,9 +62,14 @@ const selectAll = () => {
 
 <style lang="scss" scoped>
 .train-carriage {
-  @include flex($jc: flex-start);
+  @include flex($jc: flex-start) {
+    gap: 2px;
+  }
   user-select: none;
-  gap: 2px;
+  transition: opacity 0.3s;
+  &.train-carriage-empty {
+    opacity: 0;
+  }
   > div {
     &.train-header {
       width: 120px;
@@ -79,11 +84,11 @@ const selectAll = () => {
       }
     }
     &:first-child {
-      background: url(../assets/images/train_left.png) no-repeat;
+      background: url(@/assets/svgs/train-left.svg) no-repeat;
       background-size: cover;
     }
     &:last-child {
-      background: url(../assets/images/train_right.png) no-repeat;
+      background: url(@/assets/svgs/train-right.svg) no-repeat;
       background-size: cover;
     }
     &.train-item {

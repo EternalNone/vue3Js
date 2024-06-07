@@ -8,6 +8,7 @@ const route = useRoute()
 const activeMenu = computed(() => route.path)
 const appStore = useAppStore()
 const { isCollapse } = storeToRefs(appStore)
+
 </script>
 <template>
   <el-menu

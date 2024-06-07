@@ -1,5 +1,6 @@
 <script setup name="CheckData">
 import { ElMessage } from 'element-plus'
+import dayjs from 'dayjs'
 import {
   getCheckDataPicList,
   getPassageway,
@@ -13,7 +14,6 @@ import TrainCarriage from '@/components/TrainCarriage.vue'
 import PassagewaySelect from '@/components/PassagewaySelect.vue'
 import JsFilter from '@/components/JsFilter.vue'
 import FaultsList from '@/components/FaultsList.vue'
-import CarriageViewModel from '@/components/CarriageViewModel.vue'
 import KsRender from './KsRender.vue'
 import JsRender from './JsRender.vue'
 
@@ -33,7 +33,6 @@ const state = reactive({
   trainCarList: [], // 车厢列表
   loading: false, // 加载状态
   showType: 'VERTICAL', // 布局方式，横向、纵向、网格
-  outSideViewType: false, // 库外检测看图模式，true: 分俩看图模式，false: 普通看图模式
   list: [], // 图片及故障列表
   reverse: false
 })
@@ -46,10 +45,19 @@ const {
   showType,
   list,
   trainCarList,
-  reverse,
-  outSideViewType
+  reverse
 } = toRefs(state)
 const isVertical = computed(() => showType.value === 'VERTICAL')
+const checkDuration = computed(() => {
+  if (trainInfo.value?.checkStartDate && trainInfo.value?.checkEndDate) {
+    const diffMin = dayjs(trainInfo.value?.checkEndDate).diff(
+      dayjs(trainInfo.value?.checkStartDate),
+      'minute'
+    )
+    return diffMin ? `${diffMin}min` : '--'
+  }
+  return '--'
+})
 
 watch(moduleType, (newVal, oldVal) => {
   if (newVal !== oldVal) {
@@ -145,20 +153,9 @@ const getStatics = () => {
 // 选择车厢
 const selectCarriage = (val) => {
   searchForm.value.fullCarNo = val
-  if (outSideViewType.value) {
-    outSideViewType.value = false
-  }
   getData()
 }
-// 切换库外检测看图模式,切换选中的车厢号
-const toggleOutSideViewType = () => {
-  if (outSideViewType.value) {
-    searchForm.value.fullCarNo = trainCarList.value[0]?.fullCarNo || ''
-  } else {
-    searchForm.value.fullCarNo = ''
-  }
-  outSideViewType.value = !outSideViewType.value
-}
+
 // 故障列表
 const showFaultList = () => {
   faultListRef.value?.show(trainInfo.value?.trainNo)
@@ -182,17 +179,10 @@ provide('refresh', getStatics)
 
 <template>
   <div class="checkData">
-    <PassTrainFilter @getPassTrainData="getPassTrainData" />
+    <PassTrainFilter showCheckType @getPassTrainData="getPassTrainData" />
     <div class="check-data-main" v-loading="loading" element-loading-background="transparent">
       <div class="check-data-info">
         <div class="info-warp">
-          <PassagewaySelect
-            v-model="searchForm.code"
-            :moduleType="moduleType"
-            :list="passagewayList"
-            style="width: 100px"
-            @change="changePassageway"
-          />
           <div class="train-info">
             <div>
               <span>检测状态：</span>
@@ -207,6 +197,10 @@ provide('refresh', getStatics)
                 {{ moduleType === 'OUTSIDE' || trainInfo.checkEndDate ? '已完成' : '未完成' }}
               </span>
             </div>
+            <div v-if="trainInfo.columnPosition === '1' || trainInfo.columnPosition === '2'">
+              <span>列位：</span>
+              <span>{{ trainInfo.columnPosition || '--' }}</span>
+            </div>
             <div v-show="moduleType === 'INSIDE'">
               <span>端位：</span>
               <span>{{ `0${trainInfo.endPosition ?? 0}` }}</span>
@@ -217,9 +211,9 @@ provide('refresh', getStatics)
                 {{ getType(trainInfo.columnPosition, trainInfo.carNo) }}
               </span>
             </div>
-            <div v-if="trainInfo.columnPosition === '1' || trainInfo.columnPosition === '2'">
-              <span>列位：</span>
-              <span>{{ trainInfo.columnPosition || '--' }}</span>
+            <div v-show="moduleType === 'INSIDE'">
+              <span>检测时长：</span>
+              <span>{{ checkDuration }}</span>
             </div>
             <div>
               <span>故障数：</span>
@@ -229,35 +223,20 @@ provide('refresh', getStatics)
             </div>
           </div>
           <div class="actions">
-            <div style="margin-right: 10px" v-show="showType === 'GRID'">
+            <div v-show="showType === 'GRID'">
               <span style="padding: 0 10px; font-size: 14px">只看异常图</span>
               <el-switch v-model="searchForm.isFault" @change="getData" />
             </div>
-            <el-button
-              v-show="moduleType === 'OUTSIDE'"
-              type="primary"
-              @click="toggleOutSideViewType"
-            >
-              {{ outSideViewType ? '普通模式' : '分俩模式' }}
-            </el-button>
+            <PassagewaySelect
+              v-model="searchForm.code"
+              :moduleType="moduleType"
+              :list="passagewayList"
+              style="width: 100px"
+              @change="changePassageway"
+            />
             <el-button type="primary" @click="exportFault">故障复核单</el-button>
             <el-button type="primary" @click="showFaultList">故障列表</el-button>
           </div>
-          <!-- <div class="status">
-            <div>
-              <i class="point" style="background: var(--el-color-primary)" />
-              待复核（{{ warningInfo.reviewCount || 0 }}）
-            </div>
-            <div>
-              <i class="point" style="background: var(--el-color-danger)" />
-              确报故障（{{ warningInfo.confirmCount || 0 }}）
-            </div>
-            <div>
-              <i class="point" style="background: var(--el-color-warning)" /> 误报故障{{
-                warningInfo.falseCount || 0
-              }}）
-            </div>
-          </div> -->
         </div>
         <div class="train-carriage-wrap">
           <TrainCarriage
@@ -275,11 +254,6 @@ provide('refresh', getStatics)
             <JsFilter />
             <JsRender :list="list" hasEditRight />
           </div>
-          <CarriageViewModel
-            v-else-if="outSideViewType"
-            :list="trainCarList"
-            @change="selectCarriage"
-          />
           <KsRender v-else :list="list" :isVertical="isVertical" :reverse="reverse" hasEditRight />
         </template>
         <el-empty v-else description="暂无数据" style="height: 100%" />
@@ -310,21 +284,25 @@ provide('refresh', getStatics)
         padding: 0 20px;
         @include flex($jc: flex-start);
         .train-info {
-          padding: 0 10px;
           @include flex($jc: flex-start) {
             flex-wrap: nowrap;
+            gap: 10px;
           }
           > div {
             white-space: nowrap;
             overflow: hidden;
             line-height: 30px;
             font-size: 14px;
-            padding: 0 10px;
           }
         }
         .actions {
           margin-left: auto;
-          @include flex($jc: flex-end);
+          @include flex($jc: flex-end) {
+            gap: 10px;
+          }
+          .el-button + .el-button {
+            margin-left: 0;
+          }
         }
         .status {
           @include flex($jc: flex-end);

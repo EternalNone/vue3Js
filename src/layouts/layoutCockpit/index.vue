@@ -1,8 +1,12 @@
 <script setup>
-import CheckTypeToggle from '@/components/CheckTypeToggle.vue'
 import AppMain from '../AppMain.vue'
 import CockpitMenu from './CockpitMenu.vue'
 import HeaderToolsBar from '../HeaderToolsBar.vue'
+
+const route = useRoute()
+const title = computed(() => {
+  return route.meta?.fullTitle || ''
+})
 </script>
 
 <template>
@@ -13,9 +17,8 @@ import HeaderToolsBar from '../HeaderToolsBar.vue'
           <div class="logo">
             <img src="@/assets/images/logo.png" alt="logo" width="150" />
           </div>
-          <CheckTypeToggle />
         </div>
-        <h1>集中控制数字驾驶舱</h1>
+        <h1>{{ title }}</h1>
         <HeaderToolsBar />
       </el-header>
       <el-main>

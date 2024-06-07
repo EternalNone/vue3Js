@@ -20,7 +20,8 @@ const activeMenu = computed(() => route.path)
       <span>{{ item.meta.title }}</span>
     </el-menu-item>
     <el-menu-item index="/backend" key="backend">
-      <span>后台管理</span>
+      <SvgIcon name="backend" />
+      <span>管理后台</span>
     </el-menu-item>
   </el-menu>
 </template>
@@ -45,7 +46,7 @@ const activeMenu = computed(() => route.path)
     }
     &.el-menu-item.is-active {
       border: none;
-      background-color: #1770f6;
+      background-color: var(--el-color-primary);
       .svg-icon {
         color: #fff;
       }

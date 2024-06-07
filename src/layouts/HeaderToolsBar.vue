@@ -1,11 +1,10 @@
 <script setup>
 import { ElMessageBox } from 'element-plus'
-import { useFullscreen } from '@vueuse/core'
+import { useFullscreen, useNow, useDateFormat } from '@vueuse/core'
 import { useUserStore } from '@/store/modules/user'
-import { useNow } from '@vueuse/core'
-import { formatDateTime } from '@/utils/formatTime'
+import TextAvartar from '@/components/TextAvartar.vue'
 
-const now = useNow()
+const formattedTime = useDateFormat(useNow(), 'YYYY-MM-DD HH:mm:ss')
 const { isFullscreen, toggle } = useFullscreen()
 const router = useRouter()
 const userStore = useUserStore()
@@ -27,8 +26,9 @@ const logout = () => {
 <template>
   <div class="header-tools-bar">
     <div class="tool-item tool-item-datetime">
-      {{ formatDateTime(now) }}
+      {{ formattedTime }}
     </div>
+    <TextAvartar />
     <div v-if="$route.path.includes('backend')" class="tool-item" @click="$router.push('/')">
       <el-tooltip effect="dark" content="返回驾驶舱" placement="bottom">
         <SvgIcon name="back" />
@@ -51,6 +51,9 @@ const logout = () => {
 .header-tools-bar {
   @include flex($jc: flex-end, $al: center) {
     flex-wrap: wrap;
+  }
+  .text-avartar {
+    margin-right: 10px;
   }
   .tool-item {
     padding: 10px;
