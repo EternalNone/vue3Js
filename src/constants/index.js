@@ -3,6 +3,7 @@ import { TRAIN_TYPE, TRAIN_TYPE_LIST } from './trainType'
 import { ROBOT_ORDER, ACTIONS_VOICE_NOTICE } from './centralActions'
 import { PARKING_LIST, DIRECTION_LIST } from './track'
 import { MONITOR_CONFIG_LIST } from './monitor'
+import { CHECK_TYPE_LIST } from './checkType'
 
 export {
   ROBOT_STATUS_CN,
@@ -14,5 +15,6 @@ export {
   ACTIONS_VOICE_NOTICE,
   PARKING_LIST,
   DIRECTION_LIST,
-  MONITOR_CONFIG_LIST
+  MONITOR_CONFIG_LIST,
+  CHECK_TYPE_LIST
 }

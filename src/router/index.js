@@ -50,7 +50,7 @@ const CockpitRouter = [
           title: '检测数据',
           fullTitle: '检测数据中心',
           svgIcon: 'checkData',
-          scrollbar: false
+          scrollbar: false // 是否显示appMain区域的滚动条
         }
       },
       {
@@ -186,7 +186,7 @@ const BackendRouter = [
         meta: {
           title: '开发工具',
           svgIcon: 'devTools',
-          hidden: !isDevelopment
+          hidden: !isDevelopment // 是否隐藏菜单
         },
         children: [
           {
@@ -195,7 +195,8 @@ const BackendRouter = [
             name: 'svgsManage',
             meta: {
               title: '图标管理',
-              svgIcon: ''
+              svgIcon: '',
+              noPadding: true // 内容区el-main是否不需要padding
             }
           }
         ]

@@ -1,11 +1,18 @@
 <script setup>
+import { useCssVar } from '@vueuse/core'
 import { useAppStore } from '@/store/modules/app'
 import AppMain from '../AppMain.vue'
 import BackendMenu from './BackendMenu.vue'
 import HeaderToolsBar from '../HeaderToolsBar.vue'
 
+const elMainRef = ref(null)
+const route = useRoute()
 const appStore = useAppStore()
 const { isCollapse } = storeToRefs(appStore)
+const defaultPadding = useCssVar('--el-main-padding', elMainRef)
+const elMainPadding = computed(() => {
+  return route.meta?.noPadding ? '0' : defaultPadding.value
+})
 </script>
 
 <template>
@@ -34,7 +41,7 @@ const { isCollapse } = storeToRefs(appStore)
             <SvgIcon :name="isCollapse ? 'expand' : 'fold'" />
           </div>
         </el-aside>
-        <el-main>
+        <el-main ref="elMainRef">
           <AppMain />
         </el-main>
       </el-container>
@@ -96,6 +103,9 @@ const { isCollapse } = storeToRefs(appStore)
           }
         }
       }
+    }
+    .el-main {
+      padding: v-bind(elMainPadding);
     }
   }
 }

@@ -1,0 +1,18 @@
+// 驾驶舱样式表
+
+body {
+  &.cockpit {
+    .el-select {
+      --el-fill-color-blank: transparent;
+      --el-select-border-color-hover: #fff;
+      --el-select-input-focus-border-color: #fff;
+      --el-select-input-color: #fff;
+      .el-select__placeholder {
+        color: #fff;
+      }
+    }
+    .el-select-dropdown {
+      // background-color: var(--el-color-primary);
+    }
+  }
+}

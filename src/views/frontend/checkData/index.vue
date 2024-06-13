@@ -181,7 +181,7 @@ provide('refresh', getStatics)
   <div class="checkData">
     <PassTrainFilter showCheckType @getPassTrainData="getPassTrainData" />
     <div class="check-data-main" v-loading="loading" element-loading-background="transparent">
-      <div class="check-data-info">
+      <div class="filter-wrap">
         <div class="info-warp">
           <div class="train-info">
             <div>
@@ -229,7 +229,6 @@ provide('refresh', getStatics)
             </div>
             <PassagewaySelect
               v-model="searchForm.code"
-              :moduleType="moduleType"
               :list="passagewayList"
               style="width: 100px"
               @change="changePassageway"
@@ -274,7 +273,7 @@ provide('refresh', getStatics)
     height: 100%;
     overflow: hidden;
     @include flex($dir: column, $al: stretch);
-    .check-data-info {
+    .filter-wrap {
       background: rgba(255, 255, 255, 0.1);
       backdrop-filter: blur(10px);
       border-radius: 4px;
@@ -286,7 +285,7 @@ provide('refresh', getStatics)
         .train-info {
           @include flex($jc: flex-start) {
             flex-wrap: nowrap;
-            gap: 10px;
+            gap: 8px;
           }
           > div {
             white-space: nowrap;
@@ -298,7 +297,7 @@ provide('refresh', getStatics)
         .actions {
           margin-left: auto;
           @include flex($jc: flex-end) {
-            gap: 10px;
+            gap: 8px;
           }
           .el-button + .el-button {
             margin-left: 0;

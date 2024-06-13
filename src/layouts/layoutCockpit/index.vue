@@ -1,11 +1,17 @@
 <script setup>
+import { useCssVar } from '@vueuse/core'
 import AppMain from '../AppMain.vue'
 import CockpitMenu from './CockpitMenu.vue'
 import HeaderToolsBar from '../HeaderToolsBar.vue'
 
+const elMainRef = ref(null)
 const route = useRoute()
 const title = computed(() => {
   return route.meta?.fullTitle || ''
+})
+const defaultPadding = useCssVar('--el-main-padding', elMainRef)
+const elMainPadding = computed(() => {
+  return route.meta?.noPadding ? '0' : defaultPadding.value
 })
 </script>
 
@@ -21,7 +27,7 @@ const title = computed(() => {
         <h1>{{ title }}</h1>
         <HeaderToolsBar />
       </el-header>
-      <el-main>
+      <el-main ref="elMainRef">
         <AppMain />
       </el-main>
       <el-footer height="60px">
@@ -35,14 +41,14 @@ const title = computed(() => {
 .layout-cockpit {
   width: 100%;
   height: 100%;
-  background: url(../../assets/images/bg_full.png) no-repeat;
+  background: url(@/assets/images/bg_full.png) no-repeat;
   background-size: cover;
   .el-container {
     width: 100%;
     height: 100%;
     .el-header {
       position: relative;
-      background: url(../../assets/images/header-bg.png) no-repeat center center;
+      background: url(@/assets/images/header-bg.png) no-repeat center center;
       background-size: 100% 70px;
       @include flex($al: flex-start);
       user-select: none;
@@ -73,6 +79,9 @@ const title = computed(() => {
         top: 0;
         height: 100%;
       }
+    }
+    .el-main {
+      padding: v-bind(elMainPadding);
     }
     .el-footer {
       background: $theme-color;

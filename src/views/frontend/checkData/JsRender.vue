@@ -48,7 +48,6 @@ watch(
 // 监听web worker数据变化
 watch(workerData, (newVal) => {
   const { type, processedList, width, height } = newVal
-  console.log('xxxxxxxxxx', processedList)
   if (type === 'clear') {
     handledList.value = []
   } else if (type === 'update') {

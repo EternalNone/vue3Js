@@ -1,18 +1,9 @@
 <script setup name="CheckTypeToggle">
 import { useGlobalStore } from '@/store/modules/global'
+import { CHECK_TYPE_LIST } from '@/constants/index'
 
 const globalStore = useGlobalStore()
 const { moduleType } = storeToRefs(globalStore)
-const checkTypes = ref([
-  {
-    title: '360检测',
-    value: 'INSIDE'
-  },
-  {
-    title: '机器人检测',
-    value: 'OUTSIDE'
-  }
-])
 const handleChange = (val) => {
   globalStore.setModuleType(val)
 }
@@ -21,7 +12,7 @@ const handleChange = (val) => {
 <template>
   <div class="check-type-wrap">
     <div
-      v-for="item in checkTypes"
+      v-for="item in CHECK_TYPE_LIST"
       :key="item.value"
       :class="moduleType === item.value ? 'check-type-item active' : 'check-type-item'"
       @click="handleChange(item.value)"

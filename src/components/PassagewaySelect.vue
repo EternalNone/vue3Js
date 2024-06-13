@@ -9,10 +9,6 @@ const props = defineProps({
   modelValue: {
     type: String,
     default: ''
-  },
-  moduleType: {
-    type: String,
-    default: 'INSIDE'
   }
 })
 const emits = defineEmits(['update:modelValue', 'change'])
@@ -26,7 +22,7 @@ const quickSelect = (val) => {
 
 <template>
   <div class="passageway-select">
-    <div class="quick-select" v-if="moduleType === 'INSIDE'">
+    <div class="quick-select" v-if="list.length <= 2">
       <div
         v-for="item in list"
         :key="item.code"
@@ -53,6 +49,7 @@ const quickSelect = (val) => {
     border-radius: 4px;
     overflow: hidden;
     font-size: 14px;
+    flex-shrink: 0;
     .quick-select-item {
       width: 50%;
       height: 100%;
@@ -72,6 +69,9 @@ const quickSelect = (val) => {
         border-left: 1px solid #fff;
       }
     }
+  }
+  .el-select {
+    width: 100px;
   }
 }
 </style>

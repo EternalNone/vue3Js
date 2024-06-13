@@ -1,5 +1,6 @@
 <!-- 图片滑块组件 -->
 <script setup name="ImgsSlider">
+import { isEqual } from 'radash'
 import { useScroll } from '@vueuse/core'
 import { useElementBounding, useElementSize } from '@vueuse/core'
 
@@ -44,6 +45,12 @@ const containerH = computed(() => `${height.value + space.value * 2}px`)
 const containerPadding = computed(() => `${space.value}px`)
 const positionWithUnit = computed(() => `${position.value}px`)
 
+watch(images, (newVal, oldVal) => {
+  if (isEqual(newVal, oldVal)) {
+    return
+  }
+  setIdx(0, true)
+})
 const setIdx = (idx, init = false) => {
   if (init) {
     if (vertical.value) {

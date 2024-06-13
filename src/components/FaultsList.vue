@@ -110,7 +110,6 @@ const isVertical = computed(() => moduleType.value === 'INSIDE') // 拼图方式
 // 监听Web Worker消息
 worker.onmessage = function (event) {
   const { processedList } = event.data
-  console.log('fffffffffff', processedList)
   handledList.value = processedList
 }
 onUnmounted(() => {

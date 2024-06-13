@@ -37,11 +37,14 @@ const selectAll = () => {
 </script>
 
 <template>
-  <div :class="list.length > 0 ? 'train-carriage' : 'train-carriage train-carriage-empty'">
-    <div
-      :class="modelValue === '' ? 'train-header train-header-active' : 'train-header'"
-      @click="selectAll"
-    >
+  <div
+    :class="{
+      'train-carriage-empty': list.length === 0,
+      'train-carriage': true,
+      'train-carriage-all-selected': showAll && modelValue === ''
+    }"
+  >
+    <div class="train-header" @click="selectAll">
       <span v-if="showAll">全部</span>
     </div>
     <div
@@ -56,7 +59,7 @@ const selectAll = () => {
         <span v-else>{{ item.count > 99 ? '99+' : item.count }}</span>
       </div>
     </div>
-    <div class="train-header"></div>
+    <div class="train-header" @click="selectAll"></div>
   </div>
 </template>
 
@@ -79,13 +82,13 @@ const selectAll = () => {
       @include flex;
       color: #666;
       cursor: pointer;
-      &.train-header-active {
-        color: var(--el-color-primary);
-      }
     }
     &:first-child {
       background: url(@/assets/svgs/train-left.svg) no-repeat;
       background-size: cover;
+      > span {
+        color: var(--el-color-primary);
+      }
     }
     &:last-child {
       background: url(@/assets/svgs/train-right.svg) no-repeat;
@@ -125,6 +128,27 @@ const selectAll = () => {
       }
       &:hover {
         background: var(--el-color-primary-light-5);
+        .no {
+          color: #fff;
+        }
+      }
+    }
+  }
+  &.train-carriage-all-selected {
+    > div {
+      &:first-child {
+        background: url(@/assets/svgs/train-left-blue.svg) no-repeat;
+        background-size: cover;
+        > span {
+          color: #fff;
+        }
+      }
+      &:last-child {
+        background: url(@/assets/svgs/train-right-blue.svg) no-repeat;
+        background-size: cover;
+      }
+      &.train-item {
+        background: var(--el-color-primary);
         .no {
           color: #fff;
         }

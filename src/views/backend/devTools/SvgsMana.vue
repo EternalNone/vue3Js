@@ -1,36 +1,48 @@
 <script setup name="SvgsMana">
+import { ElMessage } from 'element-plus'
 import { useClipboard } from '@vueuse/core'
 
-const source = ref('2222')
-const svgs = ref([])
+const source = ref('') // 剪切板内容
+const svgs = ref([]) // svg图标列表
 const modules = import.meta.glob('@/assets/svgs/*.svg')
 for (const path in modules) {
   const svgName = path?.split('/').pop().replace('.svg', '')
   svgs.value.push(svgName)
 }
-const { copy, isSupported } = useClipboard({ source })
+
+const { copy, isSupported } = useClipboard()
 const clickSvg = async (name) => {
-  source.value = name
-  await copy(source)
-  console.log('aaaaaaaaaaa', isSupported.value)
+  if (isSupported.value) {
+    source.value = `<SvgIcon name="${name}" />`
+    try {
+      await copy(source.value)
+      ElMessage.success('复制成功！')
+    } catch (e) {
+      ElMessage.error('复制失败！')
+    }
+  } else {
+    ElMessage.warning('不支持剪贴板功能！')
+  }
 }
 </script>
 
 <template>
-  <div class="svgs-list">
-    <div v-for="name in svgs" :key="name" class="svg-item" @click="clickSvg(name)">
+  <ul class="svgs-list">
+    <li v-for="name in svgs" :key="name" class="svg-item" @click="clickSvg(name)">
       <SvgIcon :name="name" />
       <div class="title">{{ name }}</div>
-    </div>
-  </div>
+    </li>
+  </ul>
 </template>
 
 <style lang="scss" scoped>
 .svgs-list {
-  @include flex($jc: flex-start, $al: flex-start) {
-    flex-wrap: wrap;
-    gap: 15px;
-  }
+  padding: 20px;
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 10px;
+  overflow: auto;
+  @include scrollBar;
   .svg-item {
     width: 100px;
     background-color: #fff;

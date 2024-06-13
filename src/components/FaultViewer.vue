@@ -7,44 +7,6 @@ import CssFilter from '@/components/CssFilter.vue'
 import Magnify from '@/components/Magnify.vue'
 import FaultCard from '@/components/FaultCard.vue'
 
-// const columns = [
-//   {
-//     label: '序号',
-//     minWidth: 60,
-//     type: 'index',
-//     align: 'center'
-//   },
-//   {
-//     label: '故障类型',
-//     prop: 'type',
-//     minWidth: 100,
-//     align: 'center',
-//     ellipsis: true
-//   },
-//   {
-//     label: '故障部位',
-//     prop: 'checkItem',
-//     minWidth: 150,
-//     align: 'center',
-//     ellipsis: true
-//   },
-//   {
-//     label: '故障描述',
-//     prop: 'faultDesc',
-//     minWidth: 150,
-//     align: 'center',
-//     ellipsis: true
-//   },
-//   {
-//     label: '故障状态',
-//     prop: 'affirm',
-//     minWidth: 100,
-//     align: 'center',
-//     ellipsis: true,
-//     slotName: 'affirm'
-//   }
-// ]
-
 const containerRef = ref(null)
 const innerRef = ref(null)
 const canvasRef = ref(null)
@@ -160,7 +122,6 @@ const getFaults = () => {
       rects.push(rect)
     }
   })
-  console.log('xxxxxxxxxx', list.value, rects)
   existingFaults.value = rects
 }
 // 初始化容器
@@ -404,33 +365,6 @@ defineExpose({
         </div>
       </div>
       <div class="right-content">
-        <!-- <el-table :data="currentItem?.faultFrames" stripe :border="true" width="100%">
-          <el-table-column
-            v-for="item in columns"
-            :key="item.prop"
-            :prop="item.prop"
-            :type="item.type || 'default'"
-            :label="item.label"
-            :min-width="item.minWidth"
-            :fixed="item.fixed"
-            :align="item.align"
-            :show-overflow-tooltip="item.ellipsis"
-          >
-            <template #default="{ row, $index }">
-              <template v-if="item.slotName">
-                <span v-if="item.slotName === 'affirm'">
-                  {{ row[item.prop] === '0' ? '待复核' : row[item.prop] === '1' ? '正报' : '误报' }}
-                </span>
-              </template>
-              <template v-else-if="item.type === 'index'">
-                {{ $index + 1 }}
-              </template>
-              <template v-else>
-                {{ row[item.prop] }}
-              </template>
-            </template>
-          </el-table-column>
-        </el-table> -->
         <div class="card-list">
           <FaultCard
             v-for="(fault, index) in existingFaults"

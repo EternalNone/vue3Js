@@ -141,8 +141,8 @@ const defaultLength = computed(() => (props.trainType === TRAIN_TYPE.SHORT ? 8 :
       animation: none;
     }
     .train-item {
-      background: rgba(17, 209, 251, 0.4);
-      border: 2px solid #66ccff;
+      background: var(--el-color-primary);
+      border: 2px solid var(--el-color-primary-dark);
       animation: glow 800ms ease-out infinite alternate;
       &.train-item-left {
         border: none;

@@ -1,7 +1,8 @@
 <script setup name="KsRender">
 import { h } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Delete, Remove, Edit, RefreshRight, CircleCheck } from '@element-plus/icons-vue'
+import { isEqual } from 'radash'
+import { Delete, RefreshRight, CircleCheck } from '@element-plus/icons-vue'
 import {
   useIntersectionObserver,
   useMouseInElement,
@@ -9,7 +10,7 @@ import {
   useElementSize,
   useElementBounding
 } from '@vueuse/core'
-import { useWebWorker,useCanvasToolsBar } from '@/hooks/index'
+import { useWebWorker, useCanvasToolsBar } from '@/hooks/index'
 import ContextMenu from '@imengyu/vue3-context-menu'
 import { Rect } from '@/utils/canvas.js'
 import { deleteFault } from '@/api/checkData'
@@ -39,7 +40,7 @@ const props = defineProps({
     required: true
   }
 })
-const refresh = inject('refresh');
+const refresh = inject('refresh')
 const { isVertical, list, hasEditRight } = toRefs(props)
 
 const ksContainerRef = ref(null) // 快扫看图容器区域
@@ -60,11 +61,21 @@ const state = reactive({
   magnifySize: 250, // 放大镜尺寸
   isDrawing: false, // 是否正在画框
   existingFaults: [], // 已有故障
-  newFaults: [] // 新增故障框
+  newFaults: [], // 新增故障框
+  thumbnails: []
 })
 
-const { canvasList, handledList, imgW, imgH, magnifySize, isDrawing, existingFaults, newFaults } =
-  toRefs(state)
+const {
+  canvasList,
+  handledList,
+  imgW,
+  imgH,
+  magnifySize,
+  isDrawing,
+  existingFaults,
+  newFaults,
+  thumbnails
+} = toRefs(state)
 // web worker
 const { post, workerData, terminate } = useWebWorker(
   new URL('@/worker/handleKsData.js', import.meta.url)
@@ -82,7 +93,7 @@ const { stop } = useIntersectionObserver(
   (entries) => {
     entries.forEach((entry) => {
       if (entry.isIntersecting) {
-        if (entry.target) {
+        if (entry.target && imgsSliderRef.value) {
           imgsSliderRef.value.setIdx(Number(entry.target.getAttribute('data-idx')))
         }
       }
@@ -105,10 +116,6 @@ const scale = computed(() => {
   return showVertical.value ? containerW / imgW.value : containerH / imgH.value
 })
 const pointerEvents = computed(() => (editMode.value && !magnify.value ? 'initial' : 'none'))
-// 图片滚动条的图片
-const thumbnails = computed(() =>
-  handledList.value.map((item) => (reverse.value ? item.handledImg : item.fullPath))
-)
 
 // 所有故障列表
 const allFaults = computed(() => [...existingFaults.value, ...newFaults.value])
@@ -126,7 +133,8 @@ onUnmounted(() => {
 // 数据变化，通知子进程处理数据
 watch(
   list,
-  (newVal) => {
+  (newVal, oldVal) => {
+    if (isEqual(newVal, oldVal)) return
     canvasList.value = Array.from({ length: Math.ceil(newVal?.length / batchSize) }, (_, i) => i) // 重置canvas列表
     post({
       list: toRaw(newVal),
@@ -135,6 +143,8 @@ watch(
       w: imgW.value,
       h: imgH.value
     })
+    const newThumbnails = newVal.map((i) => `${imgBaseUrl}${i.imgPath}`)
+    thumbnails.value = newThumbnails
   },
   { deep: true, immediate: true }
 )
@@ -157,8 +167,8 @@ watch(reverse, (newVal, oldVal) => {
     const temp = imgW.value
     imgW.value = imgH.value
     imgH.value = temp
+    thumbnails.value = handledList.value.map((item) => (newVal ? item.handledImg : item.fullPath))
     initCanvas()
-    imgsSliderRef.value.setIdx(0, true) // 重置滚动条到初始位置
   }
 })
 // 切换显示历史图，重置滚动条
@@ -347,7 +357,7 @@ const handleMousemove = (idx, e) => {
         transform: `translate(${left}px, ${top}px)`
       })
     } else {
-      faultTipRef.value.hide()
+      faultTipRef.value?.hide()
     }
   }
 }
@@ -445,7 +455,6 @@ const deleteFaults = async (id, isBatch = false) => {
 }
 // 右键菜单
 const showRightMenu = (idx, e) => {
-  e.preventDefault()
   const { x, y } = getGlobalPosition(idx, e.offsetX, e.offsetY)
   const curFault = useArrayFindLast(existingFaults, (rect) => rect.isInSide(x, y))
   const selectedFaults = existingFaults.value.filter((rect) => rect.selected)
@@ -453,27 +462,28 @@ const showRightMenu = (idx, e) => {
     existingFaults.value.forEach((i) => (i.selected = false))
     curFault.value.selected = true
     drawFaults()
-    ContextMenu.showContextMenu({
-      x: elementX.value,
-      y: elementY.value,
-      clickCloseOnOutside: true,
-      getContainer: () => document.querySelector('.ks-container'),
-      items: [
-        {
-          label: '编辑故障',
-          icon: h(Edit),
-          divided: 'down',
-          onClick: () => {
-            ksFaultMarkRef.value.show(curFault.value?.info)
-          }
-        },
-        {
-          label: '删除故障',
-          icon: h(Remove),
-          onClick: () => deleteFaults(curFault.value?.info?.id)
-        }
-      ]
-    })
+    ksFaultMarkRef.value.show(curFault.value?.info)
+    // ContextMenu.showContextMenu({
+    //   x: elementX.value,
+    //   y: elementY.value,
+    //   clickCloseOnOutside: true,
+    //   getContainer: () => document.querySelector('.ks-container'),
+    //   items: [
+    //     {
+    //       label: '编辑故障',
+    //       icon: h(Edit),
+    //       divided: 'down',
+    //       onClick: () => {
+    //         ksFaultMarkRef.value.show(curFault.value?.info)
+    //       }
+    //     },
+    //     {
+    //       label: '删除故障',
+    //       icon: h(Remove),
+    //       onClick: () => deleteFaults(curFault.value?.info?.id)
+    //     }
+    //   ]
+    // })
   } else {
     ContextMenu.showContextMenu({
       x: elementX.value,
@@ -572,7 +582,7 @@ const showRightMenu = (idx, e) => {
             @mouseup.passive="stopMark"
             @mousemove.passive="mousemoveMark(index, $event)"
             @click="selectFault(index, $event)"
-            @contextmenu="showRightMenu(index, $event)"
+            @contextmenu.prevent="showRightMenu(index, $event)"
           />
         </div>
       </div>

@@ -5,6 +5,7 @@ import { useGlobalStore } from '@/store/modules/global'
 import { getPassTransList } from '@/api/passTrain'
 
 const globalStore = useGlobalStore()
+let timer = null
 const { moduleType } = storeToRefs(globalStore)
 
 const quickSearchItems = [
@@ -37,10 +38,9 @@ const state = reactive({
   transDate: [], // 日期
   pageInfo: {
     page: 0,
-    pageSize: 40,
+    pageSize: 20,
     total: 0
-  },
-  tranTimer: null
+  }
 })
 
 const {
@@ -54,8 +54,7 @@ const {
   type,
   carNo,
   gd,
-  transDate,
-  tranTimer
+  transDate
 } = toRefs(state)
 const disabled = computed(() => loading.value || noMore.value)
 const listH = computed(() => {
@@ -71,12 +70,12 @@ watch(moduleType, (newVal, oldVal) => {
   }
 })
 onMounted(() => {
-  loadTrain()
+  loadTrain(true)
 })
 onUnmounted(() => {
-  if (tranTimer.value) {
-    clearTimeout(tranTimer.value)
-    tranTimer.value = null
+  if (timer) {
+    clearTimeout(timer)
+    timer = null
   }
 })
 // 选中过车列表
@@ -87,12 +86,7 @@ const selectTransItem = (item) => {
 
 // 清空数据列表，重置默认选择，重置默认加载，清空默认选择
 const search = () => {
-  pageInfo.value.page = 0
-  pageInfo.value.pageSize = type.value === 'LATEST_TEN_COUNT' ? 10 : 40
-  pageInfo.value.total = 0
-  selectTransItem({})
-  transList.value = []
-  loadTrain()
+  loadTrain(true)
 }
 // 查询过车列表
 const getList = () => {
@@ -141,7 +135,7 @@ const getList = () => {
     })
 }
 // 加载更多过车列表
-const loadTrain = () => {
+const loadTrain = (init = false) => {
   if (transList.value.length < pageInfo.value.total || transList.value.length === 0) {
     if (transList.value.length > 9 && type.value === 'LATEST_TEN_COUNT') {
       // 近10趟场景边界处理
@@ -150,12 +144,22 @@ const loadTrain = () => {
     // 开启加载状态
     loading.value = true
     noMore.value = false
-
-    if (tranTimer.value) {
-      clearTimeout(tranTimer.value)
+    if (init) {
+      // 初始加载默认加载40条，最近10趟加载10条
+      pageInfo.value.page = 1
+      pageInfo.value.pageSize = type.value === 'LATEST_TEN_COUNT' ? 10 : 40
+      pageInfo.value.total = 0
+      transList.value = []
+      selectTransItem({})
+      getList()
+      return
     }
-    tranTimer.value = setTimeout(() => {
-      pageInfo.value.page++
+    if (timer) {
+      clearTimeout(timer)
+    }
+    timer = setTimeout(() => {
+      pageInfo.value.pageSize = 20
+      pageInfo.value.page = transList.value.length / 20 + 1
       getList()
     }, 1000)
   } else {
