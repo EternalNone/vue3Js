@@ -84,7 +84,7 @@ const BackendRouter = [
       },
       {
         path: 'checkOutside',
-        component: () => import('@/views/backend/index.vue'),
+        component: () => import('@/views/backend/checkOutside/index.vue'),
         name: 'checkOutside',
         meta: {
           title: '机器人检测',
@@ -93,7 +93,7 @@ const BackendRouter = [
       },
       {
         path: 'checkInside',
-        component: () => import('@/views/backend/index.vue'),
+        component: () => import('@/views/backend/checkInside/index.vue'),
         name: 'checkInside',
         meta: {
           title: '360检测',
@@ -103,7 +103,6 @@ const BackendRouter = [
       {
         path: 'vehManage',
         redirect: '/backend/vehManage/vehModelManage',
-        component: () => import('@/views/backend/index.vue'),
         name: 'vehManage',
         meta: {
           title: '车辆管理',
@@ -112,7 +111,7 @@ const BackendRouter = [
         children: [
           {
             path: 'vehModelManage',
-            component: () => import('@/views/backend/index.vue'),
+            component: () => import('@/views/backend/vehManage/VehModelManage.vue'),
             name: 'vehModelManage',
             meta: {
               title: '车型信息管理',
@@ -121,7 +120,7 @@ const BackendRouter = [
           },
           {
             path: 'compManage',
-            component: () => import('@/views/backend/index.vue'),
+            component: () => import('@/views/backend/vehManage/CompManage.vue'),
             name: 'compManage',
             meta: {
               title: '区域部件管理',
@@ -130,7 +129,7 @@ const BackendRouter = [
           },
           {
             path: 'faultTypeManage',
-            component: () => import('@/views/backend/index.vue'),
+            component: () => import('@/views/backend/vehManage/FaultTypeManage.vue'),
             name: 'faultTypeManage',
             meta: {
               title: '故障类型管理',
@@ -142,16 +141,15 @@ const BackendRouter = [
       {
         path: 'otherSettings',
         redirect: '/backend/otherSettings/trackManage',
-        component: () => import('@/views/backend/index.vue'),
         name: 'otherSettings',
         meta: {
           title: '其他配置',
-          svgIcon: 'settings'
+          svgIcon: 'otherSetting'
         },
         children: [
           {
             path: 'trackManage',
-            component: () => import('@/views/backend/index.vue'),
+            component: () => import('@/views/backend/otherSettings/TrackManage.vue'),
             name: 'trackManage',
             meta: {
               title: '股道管理',
@@ -160,7 +158,7 @@ const BackendRouter = [
           },
           {
             path: 'channelManage',
-            component: () => import('@/views/backend/index.vue'),
+            component: () => import('@/views/backend/otherSettings/ChannelManage.vue'),
             name: 'channelManage',
             meta: {
               title: '通道管理',
@@ -169,10 +167,57 @@ const BackendRouter = [
           },
           {
             path: 'thresholdManage',
-            component: () => import('@/views/backend/index.vue'),
+            component: () => import('@/views/backend/otherSettings/ThresholdManage.vue'),
             name: 'thresholdManage',
             meta: {
               title: '阈值管理',
+              svgIcon: ''
+            }
+          },
+          {
+            path: 'robotManage',
+            component: () => import('@/views/backend/otherSettings/RobotManage.vue'),
+            name: 'robotManage',
+            meta: {
+              title: '机器人管理',
+              svgIcon: ''
+            }
+          }
+        ]
+      },
+      {
+        path: 'settings',
+        redirect: '/backend/settings/menuManage',
+        name: 'settings',
+        meta: {
+          title: '系统设置',
+          svgIcon: 'settings'
+        },
+        children: [
+          {
+            path: 'menuManage',
+            component: () => import('@/views/backend/settings/MenuManage.vue'),
+            name: 'menuManage',
+            meta: {
+              title: '菜单管理',
+              svgIcon: ''
+            }
+          },
+          {
+            path: 'userManage',
+            component: () => import('@/views/backend/settings/UserManage.vue'),
+            name: 'userManage',
+            meta: {
+              title: '用户管理',
+              svgIcon: ''
+            }
+          },
+          {
+            path: 'roleManage',
+            component: () => import('@/views/backend/settings/RoleManage.vue'),
+            name: 'roleManage',
+            meta: {
+              title: '角色管理',
               svgIcon: ''
             }
           }
@@ -181,7 +226,6 @@ const BackendRouter = [
       {
         path: 'devTools',
         redirect: '/backend/devTools/svgsManage',
-        component: () => import('@/views/backend/devTools/SvgsMana.vue'),
         name: 'devTools',
         meta: {
           title: '开发工具',

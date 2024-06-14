@@ -1,6 +1,11 @@
 // 管理后台样式表
 body {
   &.backend {
-
+    .app-main {
+      > div {
+        width: 100%;
+        height: 100%;
+      }
+    }
   }
 }
