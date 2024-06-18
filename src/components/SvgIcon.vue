@@ -4,12 +4,22 @@ defineProps({
   color: { type: String, default: '#eeeeee' },
   size: { type: Number, default: 24 }
 })
+const elIcons = getCurrentInstance().appContext.config.globalProperties.$elIcons || [] // element-plus图标列表
 </script>
 <template>
+  <!-- 适配element-plus图标 -->
+  <component
+    v-if="elIcons.includes(name)"
+    class="svg-icon"
+    :is="name"
+    :style="{ '--prop-color': color, '--prop-size': size + 'px' }"
+  />
+  <!-- 自定义svg -->
   <svg
+    v-else
     class="svg-icon"
     aria-hidden="true"
-    :style="{ '--prop-color': color, '--prop-size': size + 'px'}"
+    :style="{ '--prop-color': color, '--prop-size': size + 'px' }"
   >
     <use :xlink:href="`#icon-${name}`" />
   </svg>

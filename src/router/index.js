@@ -11,12 +11,12 @@ const constantRoutes = [
     name: 'login',
     meta: {
       title: '登录',
-      svgIcon: ''
+      icon: ''
     }
   }
 ]
-// 驾驶舱路由
-const CockpitRouter = [
+// 动态路由
+const activeRoutes = [
   {
     path: '/',
     component: LayoutCockpit,
@@ -29,7 +29,7 @@ const CockpitRouter = [
         meta: {
           title: '驾驶舱',
           fullTitle: '集控中心驾驶舱',
-          svgIcon: 'cockpit'
+          icon: 'cockpit'
         }
       },
       {
@@ -39,7 +39,7 @@ const CockpitRouter = [
         meta: {
           title: '集中控制',
           fullTitle: '集中控制平台',
-          svgIcon: 'central'
+          icon: 'central'
         }
       },
       {
@@ -49,7 +49,7 @@ const CockpitRouter = [
         meta: {
           title: '检测数据',
           fullTitle: '检测数据中心',
-          svgIcon: 'checkData',
+          icon: 'checkData',
           scrollbar: false // 是否显示appMain区域的滚动条
         }
       },
@@ -60,18 +60,19 @@ const CockpitRouter = [
         meta: {
           title: '统计分析',
           fullTitle: '数据统计分析',
-          svgIcon: 'statistics'
+          icon: 'statistics'
         }
       }
     ]
-  }
-]
-// 后台管理路由
-const BackendRouter = [
+  },
   {
     path: '/backend',
     component: LayoutBackend,
     redirect: '/backend/home',
+    meta: {
+      title: '后台管理',
+      icon: 'backend'
+    },
     children: [
       {
         path: 'home',
@@ -79,7 +80,7 @@ const BackendRouter = [
         name: 'home',
         meta: {
           title: '首页',
-          svgIcon: 'home'
+          icon: 'home'
         }
       },
       {
@@ -88,7 +89,7 @@ const BackendRouter = [
         name: 'checkOutside',
         meta: {
           title: '机器人检测',
-          svgIcon: 'robot'
+          icon: 'robot'
         }
       },
       {
@@ -97,16 +98,15 @@ const BackendRouter = [
         name: 'checkInside',
         meta: {
           title: '360检测',
-          svgIcon: '360'
+          icon: '360'
         }
       },
       {
         path: 'vehManage',
         redirect: '/backend/vehManage/vehModelManage',
-        name: 'vehManage',
         meta: {
           title: '车辆管理',
-          svgIcon: 'train'
+          icon: 'train'
         },
         children: [
           {
@@ -115,16 +115,16 @@ const BackendRouter = [
             name: 'vehModelManage',
             meta: {
               title: '车型信息管理',
-              svgIcon: ''
+              icon: ''
             }
           },
           {
-            path: 'compManage',
-            component: () => import('@/views/backend/vehManage/CompManage.vue'),
-            name: 'compManage',
+            path: 'pointsManage',
+            component: () => import('@/views/backend/vehManage/PointsManage.vue'),
+            name: 'pointsManage',
             meta: {
-              title: '区域部件管理',
-              svgIcon: ''
+              title: '故障点位管理',
+              icon: ''
             }
           },
           {
@@ -133,7 +133,7 @@ const BackendRouter = [
             name: 'faultTypeManage',
             meta: {
               title: '故障类型管理',
-              svgIcon: ''
+              icon: ''
             }
           }
         ]
@@ -141,10 +141,9 @@ const BackendRouter = [
       {
         path: 'otherSettings',
         redirect: '/backend/otherSettings/trackManage',
-        name: 'otherSettings',
         meta: {
           title: '其他配置',
-          svgIcon: 'otherSetting'
+          icon: 'otherSetting'
         },
         children: [
           {
@@ -153,7 +152,7 @@ const BackendRouter = [
             name: 'trackManage',
             meta: {
               title: '股道管理',
-              svgIcon: ''
+              icon: ''
             }
           },
           {
@@ -162,7 +161,7 @@ const BackendRouter = [
             name: 'channelManage',
             meta: {
               title: '通道管理',
-              svgIcon: ''
+              icon: ''
             }
           },
           {
@@ -171,7 +170,7 @@ const BackendRouter = [
             name: 'thresholdManage',
             meta: {
               title: '阈值管理',
-              svgIcon: ''
+              icon: ''
             }
           },
           {
@@ -180,7 +179,7 @@ const BackendRouter = [
             name: 'robotManage',
             meta: {
               title: '机器人管理',
-              svgIcon: ''
+              icon: ''
             }
           }
         ]
@@ -188,10 +187,9 @@ const BackendRouter = [
       {
         path: 'settings',
         redirect: '/backend/settings/menuManage',
-        name: 'settings',
         meta: {
           title: '系统设置',
-          svgIcon: 'settings'
+          icon: 'settings'
         },
         children: [
           {
@@ -200,7 +198,7 @@ const BackendRouter = [
             name: 'menuManage',
             meta: {
               title: '菜单管理',
-              svgIcon: ''
+              icon: ''
             }
           },
           {
@@ -209,7 +207,7 @@ const BackendRouter = [
             name: 'userManage',
             meta: {
               title: '用户管理',
-              svgIcon: ''
+              icon: ''
             }
           },
           {
@@ -218,7 +216,7 @@ const BackendRouter = [
             name: 'roleManage',
             meta: {
               title: '角色管理',
-              svgIcon: ''
+              icon: ''
             }
           }
         ]
@@ -226,10 +224,9 @@ const BackendRouter = [
       {
         path: 'devTools',
         redirect: '/backend/devTools/svgsManage',
-        name: 'devTools',
         meta: {
           title: '开发工具',
-          svgIcon: 'devTools',
+          icon: 'devTools',
           hidden: !isDevelopment // 是否隐藏菜单
         },
         children: [
@@ -239,7 +236,7 @@ const BackendRouter = [
             name: 'svgsManage',
             meta: {
               title: '图标管理',
-              svgIcon: '',
+              icon: '',
               noPadding: true // 内容区el-main是否不需要padding
             }
           }
@@ -248,9 +245,10 @@ const BackendRouter = [
     ]
   }
 ]
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
-  routes: [...constantRoutes, ...CockpitRouter, ...BackendRouter]
+  routes: [...constantRoutes, ...activeRoutes]
 })
 
-export { router, CockpitRouter, BackendRouter }
+export { router, activeRoutes }

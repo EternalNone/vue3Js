@@ -1,5 +1,4 @@
 <script setup name="VideoComp">
-import { Loading } from '@element-plus/icons-vue'
 const WebRtcStreamer = window.WebRtcStreamer
 const props = defineProps({
   url: {
@@ -43,7 +42,7 @@ const init = () => {
   <div class="video-comp">
     <video :id="`${gd}-${idx}`" :ref="`${gd}-${idx}`" muted controls :autoplay="false"></video>
     <div v-show="showInitBtn" class="init-btn" @click="init">
-      <el-icon :size="20" color="#fff"><Loading /></el-icon>
+      <SvgIcon name="Loading" color="#fff" :size="20" />
     </div>
     <div class="video-title">{{ `${gd}列位-${position}` }}</div>
   </div>

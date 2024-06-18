@@ -235,7 +235,7 @@ defineExpose({
     @close="close"
   >
     <div class="fault-list-wrap">
-      <el-table :data="handledList" stripe :border="true" v-loading="loading">
+      <el-table :data="handledList" stripe :border="true" v-loading="loading" element-loading-background="transparent">
         <el-table-column
           v-for="item in columns"
           :key="item.prop"

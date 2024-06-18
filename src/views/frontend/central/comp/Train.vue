@@ -26,8 +26,9 @@ const defaultLength = computed(() => (props.trainType === TRAIN_TYPE.SHORT ? 8 :
         :key="train.carNo"
         class="train-item"
         :class="{
-          'train-item-left': idx === 0,
-          'train-item-right': idx === list.length - 1
+          'train-item-left': idx === 0 || (idx === 8 && trainType === TRAIN_TYPE.RECONNECT),
+          'train-item-right':
+            idx === list.length - 1 || (idx === 7 && trainType === TRAIN_TYPE.RECONNECT)
         }"
       >
         <div
@@ -56,8 +57,9 @@ const defaultLength = computed(() => (props.trainType === TRAIN_TYPE.SHORT ? 8 :
         :key="idx"
         class="train-item"
         :class="{
-          'train-item-left': idx === 0,
-          'train-item-right': idx === defaultLength - 1
+          'train-item-left': idx === 0 || (idx === 8 && trainType === TRAIN_TYPE.RECONNECT),
+          'train-item-right':
+            idx === defaultLength - 1 || (idx === 7 && trainType === TRAIN_TYPE.RECONNECT)
         }"
       ></div>
     </template>

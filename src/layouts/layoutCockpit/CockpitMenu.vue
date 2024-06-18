@@ -1,6 +1,6 @@
 <script setup>
-import { CockpitRouter } from '@/router'
-const menuList = CockpitRouter[0]?.children || []
+import { activeRoutes } from '@/router'
+const menuList = activeRoutes[0]?.children.concat(activeRoutes[1])
 const route = useRoute()
 const activeMenu = computed(() => route.path)
 </script>
@@ -15,13 +15,9 @@ const activeMenu = computed(() => route.path)
     :ellipsis="false"
     router
   >
-    <el-menu-item v-for="item in menuList" :index="`/${item.path}`" :key="item.path">
-      <SvgIcon :name="item.meta.svgIcon" />
+    <el-menu-item v-for="item in menuList" :index="`${item.path}`" :key="item.path">
+      <SvgIcon v-if="item.meta.icon" :name="item.meta.icon" :size="20" />
       <span>{{ item.meta.title }}</span>
-    </el-menu-item>
-    <el-menu-item index="/backend" key="backend">
-      <SvgIcon name="backend" />
-      <span>管理后台</span>
     </el-menu-item>
   </el-menu>
 </template>
@@ -40,7 +36,6 @@ const activeMenu = computed(() => route.path)
     margin: 0 5px;
     border-radius: 4px;
     .svg-icon {
-      font-size: 20px;
       margin-right: 5px;
       color: #11d1fb;
     }

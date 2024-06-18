@@ -2,7 +2,7 @@
 import { h } from 'vue'
 import { ElMessage } from 'element-plus'
 import { isEqual } from 'radash'
-import { Delete, RefreshRight, CircleCheck } from '@element-plus/icons-vue'
+import { Delete, CircleClose, CircleCheck } from '@element-plus/icons-vue'
 import {
   useIntersectionObserver,
   useMouseInElement,
@@ -503,7 +503,7 @@ const showRightMenu = (idx, e) => {
         },
         {
           label: '全部取消',
-          icon: h(RefreshRight),
+          icon: h(CircleClose),
           divided: 'down',
           disabled: selectedFaults.length === 0,
           onClick: () => {

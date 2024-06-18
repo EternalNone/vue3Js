@@ -12,7 +12,6 @@ const props = defineProps({
 })
 const appStore = useAppStore()
 const { isCollapse } = storeToRefs(appStore)
-
 // 当前菜单是否不展示，hudden为true或者有子菜单但是子菜单都不可见时，当前菜单不展示
 const isItemHidden = computed(() => {
   const allChildren = props.menu.children
@@ -36,7 +35,7 @@ const resolvePath = (routePath) => {
 <template>
   <el-sub-menu v-if="showSubMenu" :index="resolvePath(menu.path)">
     <template #title>
-      <SvgIcon v-if="menu.meta.svgIcon" :name="menu.meta.svgIcon" :size="20" />
+      <SvgIcon :name="menu.meta.icon" :size="20" />
       <span class="menu-title-wrap">{{ menu.meta.title }}</span>
     </template>
     <BackendMenuItem
@@ -48,12 +47,13 @@ const resolvePath = (routePath) => {
   </el-sub-menu>
   <el-menu-item v-else-if="!isItemHidden" :index="basePath">
     <el-tooltip
-      v-if="menu.meta.svgIcon"
+      v-if="menu.meta.icon"
+      :disabled="!isCollapse"
       effect="dark"
       :content="isCollapse ? menu.meta.title : null"
       placement="right"
     >
-      <SvgIcon :name="menu.meta.svgIcon" :size="20" />
+      <SvgIcon :name="menu.meta.icon" :size="20" />
     </el-tooltip>
     <span class="menu-title-wrap">{{ menu.meta.title }}</span>
   </el-menu-item>

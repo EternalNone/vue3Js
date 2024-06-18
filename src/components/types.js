@@ -20,6 +20,7 @@
  * @property {boolean} [ellipsis] - 是否自动省略超出部分
  * @property {boolean | "left" | "right"} [fixed] - 列是否固定、固定方式
  * @property {'center' | 'left' | 'right'} [align] - 列的对齐方式
+ * @property {'center' | 'left' | 'right'} [headerAlign] - 列的表头对齐方式
  * @property {boolean} [hideInTable] - 是否在表格中隐藏
  * @property {boolean} [showInSearch] - 是否在查询条件中显示
  * @property {string} [searchKey] - 查询条件的字段名，默认取prop值，不一致时需要指定

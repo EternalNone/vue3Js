@@ -92,7 +92,7 @@ const formData = useVModel(props, 'modelValue', emits)
         </el-col>
       </el-row>
     </ElForm>
-    <div class="action">
+    <div v-if="searchColumns.length" class="action">
       <el-button type="primary" Round @click="$emit('refresh')">查询</el-button>
       <el-button type="info" Round @click="$emit('reset')">重置</el-button>
     </div>

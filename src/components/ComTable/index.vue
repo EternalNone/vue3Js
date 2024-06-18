@@ -76,7 +76,6 @@ const selectableFunc = (row, index) => {
 }
 // 获取列表数据
 const getData = async () => {
-  console.log('xxxxxxxx', typeof _ops.value.qFunc)
   if (!_ops.value.qFunc || typeof _ops.value.qFunc !== 'function') {
     throw new Error('请传入列表查询的方法！')
   }
@@ -116,7 +115,7 @@ defineExpose({ rowSelections, singleSelectionKey, refresh })
 </script>
 
 <template>
-  <div class="com-table" v-loading="loading">
+  <div class="com-table" v-loading="loading" element-loading-background="transparent">
     <div ref="filterActRef">
       <!-- 筛选功能 -->
       <ComTableFilter
@@ -134,12 +133,7 @@ defineExpose({ rowSelections, singleSelectionKey, refresh })
       <!-- 表格 -->
       <ElTable
         ref="comTableRef"
-        :row-key="_ops.rowKey"
-        :stripe="_ops.stripe"
-        :show-header="_ops.showHeader"
-        :border="_ops.border"
-        :size="_ops.size"
-        :table-layout="_ops.tableLayout"
+        v-bind="_ops"
         :data="tableData"
         height="100%"
         @selection-change="selectionChange"
@@ -187,6 +181,7 @@ defineExpose({ rowSelections, singleSelectionKey, refresh })
           type="index"
           :index="indexMethod"
           :width="80"
+          fixed="left"
         />
         <!---索引(END)-->
         <template v-for="col in showColumns" :key="col.prop">
@@ -194,6 +189,7 @@ defineExpose({ rowSelections, singleSelectionKey, refresh })
           <ElTableColumn
             v-if="col?.childColumn?.length"
             v-bind="col"
+            :headerAlign="col.headerAlign || 'center'"
             :align="col.align || 'center'"
             :show-overflow-tooltip="col.ellipsis ?? true"
           >
@@ -201,7 +197,8 @@ defineExpose({ rowSelections, singleSelectionKey, refresh })
               v-for="chid in col.childColumn"
               :key="chid.prop"
               v-bind="chid"
-              :align="chid.align || 'center'"
+              :headerAlign="col.headerAlign || 'center'"
+              :align="col.align || 'center'"
               :show-overflow-tooltip="col.ellipsis ?? true"
             >
               <template #default="scope">
@@ -228,6 +225,7 @@ defineExpose({ rowSelections, singleSelectionKey, refresh })
           <ElTableColumn
             v-else
             v-bind="col"
+            :headerAlign="col.headerAlign || 'center'"
             :align="col.align || 'center'"
             :show-overflow-tooltip="col.ellipsis ?? true"
           >

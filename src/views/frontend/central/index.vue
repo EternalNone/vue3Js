@@ -82,8 +82,8 @@ const state = reactive({
         parking: 0,
         track: 'D52',
         trainId: '1776792784028409857',
-        trainNo: '1070',
-        type: 'CRH380D-1813+1234',
+        trainNo: '1813+1234',
+        type: 'CRH380D',
         validCodeOne: '',
         validCodeTwo: ''
       },
@@ -182,7 +182,6 @@ const { data } = useWebSocket(`${wsBaseUrl}/ws/centralize`, {
   }
 })
 watch(data, (newVal) => {
-  console.log('xxxxxxxxxxxxxxx', JSON.parse(newVal))
   if (newVal) {
     const param = JSON.parse(newVal)
     if (!param.msg) return

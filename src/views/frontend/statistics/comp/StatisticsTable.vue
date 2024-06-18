@@ -66,7 +66,7 @@ const showColumns = computed(() => {
 
 <template>
   <div class="table-wrap">
-    <el-table :data="tableData" stripe :border="true" v-loading="loading" height="100%">
+    <el-table :data="tableData" stripe :border="true" v-loading="loading" element-loading-background="transparent" height="100%">
       <el-table-column
         v-for="item in showColumns"
         :key="item.prop"

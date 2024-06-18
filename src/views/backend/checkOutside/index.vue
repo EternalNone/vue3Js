@@ -1,6 +1,5 @@
 <script setup name="CheckOutside">
 import dayjs from 'dayjs'
-import ComTable from '@/components/ComTable/index.vue'
 import '@/components/types'
 import { getPassTransList } from '@/api/passTrain'
 import { getTrainTrackApi } from '@/api/central'

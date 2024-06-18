@@ -8,26 +8,23 @@ const router = useRouter()
 const loading = ref(false)
 const loginFormRef = ref(null)
 const loginFormData = reactive({
-  username: '',
+  userName: '',
   password: ''
 })
 const loginFormRules = {
-  username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
+  userName: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
   password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
 }
-const { username, password } = toRefs(loginFormData)
+const { userName, password } = toRefs(loginFormData)
 
 const handleLogin = () => {
   loginFormRef.value?.validate((valid, fields) => {
     if (valid) {
       loading.value = true
       userStore
-        .login({ username: username.value, password: password.value })
+        .login({ userName: userName.value, password: password.value })
         .then(() => {
           router.push({ path: '/' })
-        })
-        .catch(() => {
-          loginFormData.password = ''
         })
         .finally(() => {
           loading.value = false
@@ -51,9 +48,9 @@ const handleLogin = () => {
         :rules="loginFormRules"
         @keyup.enter="handleLogin"
       >
-        <el-form-item prop="username">
+        <el-form-item prop="userName">
           <el-input
-            v-model.trim="username"
+            v-model.trim="userName"
             placeholder="用户名"
             clearable
             type="text"

@@ -1,5 +1,4 @@
 <script setup name="VehModelManage">
-import ComTable from '@/components/ComTable/index.vue'
 import '@/components/types'
 /**
  * @type {Column[]}

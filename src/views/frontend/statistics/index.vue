@@ -195,7 +195,7 @@ const getType = (columnPosition, carNo) => {
           <TrainCarriage
             :list="trainCarList"
             v-model="searchForm.fullCarNo"
-            showAll
+            cancleSelect
             showSatus
             @change="selectCarriage"
           />

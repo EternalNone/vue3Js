@@ -1,5 +1,4 @@
 <script setup name="ChannelManage">
-import ComTable from '@/components/ComTable/index.vue'
 import '@/components/types'
 /**
  * @type {Column[]}
@@ -8,6 +7,7 @@ const columns = [
   {
     label: '通道名称',
     prop: 'tdmc',
+    align: 'left',
     minWidth: 150,
     showInSearch: true
   },

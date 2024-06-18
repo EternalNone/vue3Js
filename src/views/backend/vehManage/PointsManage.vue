@@ -1,5 +1,4 @@
-<script setup name="CompManage">
-import ComTable from '@/components/ComTable/index.vue'
+<script setup name="PointsManage">
 import '@/components/types'
 /**
  * @type {Column[]}
@@ -18,6 +17,7 @@ const columns = [
   {
     label: '点位名称',
     prop: 'dwmc',
+    align: 'left',
     minWidth: 200,
     showInSearch: true
   },

@@ -277,7 +277,7 @@ const toggleFilter = () => {
     </div>
   </div>
   <div :class="expand ? 'toggle-btn' : 'toggle-btn expand-btn'" @click="toggleFilter">
-    <SvgIcon :name="expand ? 'fold' : 'expand'" />
+    <SvgIcon :name="expand ? 'DArrowLeft' : 'DArrowRight'" />
   </div>
 </template>
 
@@ -470,7 +470,7 @@ const toggleFilter = () => {
   &.expand-btn {
     left: 0;
   }
-  .svg-icon {
+  .el-icon {
     color: var(--el-color-primary);
     font-size: 30px;
   }

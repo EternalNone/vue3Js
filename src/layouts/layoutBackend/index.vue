@@ -13,6 +13,9 @@ const defaultPadding = useCssVar('--el-main-padding', elMainRef)
 const elMainPadding = computed(() => {
   return route.meta?.noPadding ? '0' : defaultPadding.value
 })
+const matchedRoutes = computed(() => {
+  return route.matched.filter((item) => item.meta?.title) || []
+})
 </script>
 
 <template>
@@ -29,6 +32,20 @@ const elMainPadding = computed(() => {
           />
         </div>
         <div class="header-right">
+          <div class="breadcrumb-wrap">
+            <div class="side-toggle-btn" @click="appStore.toggleSideBar">
+              <SvgIcon :name="isCollapse ? 'Expand' : 'Fold'" color="#fff" :size="24" />
+            </div>
+            <el-breadcrumb separator="/">
+              <el-breadcrumb-item
+                v-for="item in matchedRoutes"
+                :key="item.path"
+                :to="{ path: `${item.path}` }"
+              >
+                {{ item.meta?.title }}
+              </el-breadcrumb-item>
+            </el-breadcrumb>
+          </div>
           <HeaderToolsBar />
         </div>
       </el-header>
@@ -37,9 +54,6 @@ const elMainPadding = computed(() => {
           <el-scrollbar>
             <BackendMenu />
           </el-scrollbar>
-          <div class="sidebar-btn" @click="appStore.toggleSideBar">
-            <SvgIcon :name="isCollapse ? 'expand' : 'fold'" />
-          </div>
         </el-aside>
         <el-main ref="elMainRef">
           <AppMain />
@@ -75,7 +89,36 @@ const elMainPadding = computed(() => {
       .header-right {
         flex: 1;
         height: 100%;
-        @include flex($jc: flex-end);
+        @include flex($jc: space-between);
+        .breadcrumb-wrap {
+          @include flex($jc: flex-start);
+          :deep(.el-breadcrumb) {
+            .el-breadcrumb__item {
+              .el-breadcrumb__inner {
+                color: #fff;
+                &.is-link:hover {
+                  color: var(--el-color-primary);
+                }
+              }
+              .el-breadcrumb__separator {
+                color: rgba(255, 255, 255, 0.7);
+              }
+              &:last-child {
+                .el-breadcrumb__inner {
+                  color: rgba(255, 255, 255, 0.7);
+                  &.is-link:hover {
+                    color: rgba(255, 255, 255, 0.7);
+                  }
+                }
+              }
+            }
+          }
+        }
+        .side-toggle-btn {
+          @include flex;
+          cursor: pointer;
+          margin-right: 10px;
+        }
       }
     }
     .el-aside {
@@ -84,24 +127,6 @@ const elMainPadding = computed(() => {
       transition: width 0.3s;
       .el-scrollbar {
         height: 100%;
-      }
-      .sidebar-btn {
-        width: 30px;
-        height: 30px;
-        @include flex;
-        position: fixed;
-        top: 50vh;
-        left: calc(var(--el-aside-width) - 20px);
-        transition: left 0.3s;
-        cursor: pointer;
-        .svg-icon {
-          color: var(--el-color-primary);
-          font-size: 30px;
-
-          &:hover {
-            filter: drop-shadow(2px 4px 5px #ffffff);
-          }
-        }
       }
     }
     .el-main {

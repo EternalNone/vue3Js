@@ -1,5 +1,4 @@
 <script setup name="CheckInside">
-import ComTable from '@/components/ComTable/index.vue'
 import '@/components/types'
 import { getPassTransList } from '@/api/passTrain'
 

@@ -1,14 +1,13 @@
 <script setup>
-import { BackendRouter } from '@/router'
+import { activeRoutes } from '@/router'
 import BackendMenuItem from './BackendMenuItem.vue'
 import { useAppStore } from '@/store/modules/app'
 
-const menuList = BackendRouter[0]?.children || []
+const menuList = activeRoutes[1]?.children || []
 const route = useRoute()
 const activeMenu = computed(() => route.path)
 const appStore = useAppStore()
 const { isCollapse } = storeToRefs(appStore)
-
 </script>
 <template>
   <el-menu

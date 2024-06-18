@@ -1,7 +1,7 @@
 import { router } from '@/router'
-import { useUserStoreHook } from '@/store/modules/user'
 import { ElMessage } from 'element-plus'
-import { Storage, STORAGE_KEY } from '@/utils/storage'
+import { useUserStoreHook } from '@/store/modules/user'
+import { STORAGE_KEY } from '@/constants/index'
 import NProgress from 'nprogress'
 import 'nprogress/nprogress.css'
 
@@ -12,7 +12,7 @@ NProgress.configure({ showSpinner: false })
 router.beforeEach(async (to, _from, next) => {
   NProgress.start()
   const userStore = useUserStoreHook()
-  const token = Storage.getItem(STORAGE_KEY.USER_TOKEN) || ''
+  const token = localStorage.getItem(STORAGE_KEY.USER_TOKEN) || ''
   // 如果没有登陆
   if (!token) {
     // 如果在免登录的白名单中，则直接进入

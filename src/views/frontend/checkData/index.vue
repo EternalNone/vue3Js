@@ -241,7 +241,6 @@ provide('refresh', getStatics)
           <TrainCarriage
             :list="trainCarList"
             v-model="searchForm.fullCarNo"
-            :showAll="false"
             showSatus
             @change="selectCarriage"
           />

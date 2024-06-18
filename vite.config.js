@@ -24,11 +24,13 @@ export default defineConfig({
         enabled: true // <-- this
       },
       include: [/\.[tj]sx?$/, /\.vue$/, /\.vue\?vue/, /\.md$/],
-      imports: ['vue', 'vue-router', 'pinia']
+      imports: ['vue', 'vue-router', 'pinia'],
+      dts: false, // 禁用 .d.ts 文件的生成
     }),
     VueSetupExtend(),
     Components({
-      resolvers: [ElementPlusResolver()]
+      resolvers: [ElementPlusResolver()],
+      dts: false, // 禁用 .d.ts 文件的生成
     }),
     // svg组件
     createSvgIconsPlugin({

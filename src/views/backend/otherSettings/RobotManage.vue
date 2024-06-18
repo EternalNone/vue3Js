@@ -1,5 +1,4 @@
 <script setup name="RobotManage">
-import ComTable from '@/components/ComTable/index.vue'
 import '@/components/types'
 /**
  * @type {Column[]}
@@ -8,6 +7,7 @@ const columns = [
   {
     label: '机器人编号',
     prop: 'jqrbh',
+    align: 'center',
     minWidth: 100
   },
   {

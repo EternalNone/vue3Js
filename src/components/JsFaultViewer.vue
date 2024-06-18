@@ -1,5 +1,4 @@
 <script setup name="JsFaultViewer">
-import { Refresh, DArrowLeft, DArrowRight } from '@element-plus/icons-vue'
 import { onKeyStroke } from '@vueuse/core'
 import { useWinResize } from '@/hooks/index'
 import CssFilter from '@/components/CssFilter.vue'
@@ -211,12 +210,12 @@ defineExpose({
         </div>
         <div class="toggle-action">
           <el-button type="primary" link :disabled="curIdx <= 0" @click="prev">
-            <el-icon><DArrowLeft /></el-icon>
+            <SvgIcon name="DArrowLeft" />
             <span style="margin-left: 6px">上一张</span>
           </el-button>
           <el-button type="primary" link :disabled="curIdx >= list.length - 1" @click="next">
             <span style="margin-right: 6px">下一张</span>
-            <el-icon><DArrowRight /></el-icon>
+            <SvgIcon name="DArrowRight" />
           </el-button>
         </div>
       </div>
