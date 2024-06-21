@@ -1,5 +1,6 @@
 <script setup name="UserManage">
 import '@/components/types'
+import UserDetail from './comp/UserDetail.vue'
 
 /**
  * @type {Column[]}
@@ -8,7 +9,6 @@ const columns = [
   {
     label: '用户名',
     prop: 'userName',
-    align: 'left',
     minWidth: 100,
     fixed: 'left',
     showInSearch: true
@@ -16,20 +16,18 @@ const columns = [
   {
     label: '账号',
     prop: 'account',
-    align: 'left',
     minWidth: 150,
     showInSearch: true
   },
   {
     label: '角色',
     prop: 'roles',
-    align: 'left',
-    minWidth: 200
+    minWidth: 250,
+    slot: 'roles'
   },
   {
     label: '邮箱',
     prop: 'email',
-    align: 'left',
     minWidth: 200
   },
   {
@@ -57,13 +55,65 @@ const columns = [
     slot: 'action'
   }
 ]
+const { proxy } = getCurrentInstance()
+const getUserList = () => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({
+        data: {
+          total: 3,
+          records: [
+            {
+              userName: '张三',
+              account: 'zhangsan',
+              roles: ['超级管理员'],
+              email: '123@qq.com',
+              mobile: '12345678901',
+              status: 1,
+              createTime: '2023-03-01 12:00:00'
+            },
+            {
+              userName: '李四',
+              account: 'lisi',
+              roles: ['标图人员', '开发人员'],
+              email: '123@qq.com',
+              mobile: '12345678901',
+              status: 1,
+              createTime: '2023-03-01 12:00:00'
+            },
+            {
+              userName: '王五',
+              account: 'wangwu',
+              roles: ['标图人员'],
+              email: '123@qq.com',
+              mobile: '12345678901',
+              status: 1,
+              createTime: '2023-03-01 12:00:00'
+            }
+          ]
+        }
+      })
+    })
+  })
+}
 /**
  * @type {Options}
  */
 const options = {
   showIndex: true,
   selectionType: 'multiple',
-  qFunc: null
+  qFunc: getUserList
+}
+const openDialog = (act, obj = {}) => {
+  proxy.$dialog.show(
+    UserDetail,
+    {
+      width: 500,
+      title: act === 'view' ? '菜单详情' : act === 'new' ? '新增菜单' : '编辑菜单',
+      showConfirm: act !== 'view'
+    },
+    { act, info: obj }
+  )
 }
 </script>
 
@@ -71,21 +121,38 @@ const options = {
   <div class="user-manage">
     <ComTable :columns="columns" :options="options">
       <template #tools>
-        <el-button type="primary">新增</el-button>
+        <el-button type="primary" @click="openDialog('new')">新增</el-button>
         <el-button type="danger">批量删除</el-button>
       </template>
       <template #status="{ row }">
-        <el-tag :type="row?.meta?.status ? 'success' : 'danger'">
-          {{ row?.meta?.status ? '启用' : '禁用' }}
+        <el-tag :type="row?.status ? 'success' : 'danger'">
+          {{ row?.status ? '启用' : '禁用' }}
         </el-tag>
       </template>
-      <template #action>
-        <el-button type="success" link size="small">详情</el-button>
-        <el-button type="primary" link size="small">编辑</el-button>
+      <template #roles="{ row }">
+        <el-tag v-for="item in row.roles" :key="item">
+          {{ item }}
+        </el-tag>
+      </template>
+      <template #action="{ row }">
+        <el-button type="success" link size="small" @click="openDialog('view', row)">
+          详情
+        </el-button>
+        <el-button type="primary" link size="small" @click="openDialog('edit', row)">
+          编辑
+        </el-button>
         <el-button type="danger" link size="small">删除</el-button>
       </template>
     </ComTable>
   </div>
 </template>
 
-<style lang="scss" scoped></style>
+<style lang="scss" scoped>
+.user-manage {
+  .el-tag {
+    & + .el-tag {
+      margin-left: 5px;
+    }
+  }
+}
+</style>

@@ -1,8 +1,6 @@
 <script setup name="CheckOutside">
-import dayjs from 'dayjs'
 import '@/components/types'
 import { getPassTransList } from '@/api/passTrain'
-import { getTrainTrackApi } from '@/api/central'
 
 /**
  * @type {Column[]}
@@ -21,42 +19,11 @@ const columns = [
     showInSearch: true
   },
   {
-    label: '股道',
-    prop: 'trackNo',
-    minWidth: 100,
-    showInSearch: true,
-    searchType: 'select',
-    searchConfig: {
-      qFunc: getTrainTrackApi,
-      opsKV: {
-        labelKey: 'track',
-        valueKey: 'track'
-      }
-    }
-  },
-  {
-    label: '检测时间',
+    label: '过车时间',
     prop: 'checkStartDate',
     minWidth: 160,
-    hideInTable: true,
     showInSearch: true,
     searchType: 'daterange'
-  },
-  {
-    label: '检测开始时间',
-    prop: 'checkStartDate',
-    minWidth: 160
-  },
-  {
-    label: '检测结束时间',
-    prop: 'checkEndDate',
-    minWidth: 160
-  },
-  {
-    label: '检测时长',
-    prop: 'duration',
-    minWidth: 100,
-    slot: 'duration'
   },
   {
     label: '配属单位',
@@ -154,23 +121,13 @@ const getType = (columnPosition, carNo) => {
     }
   }
 }
-// 获取检测时长
-const getDuration = (checkStartDate, checkEndDate) => {
-  if (checkStartDate && checkEndDate) {
-    const diffMin = dayjs(checkEndDate).diff(dayjs(checkStartDate), 'minute')
-    return diffMin ? `${diffMin}min` : '--'
-  }
-  return '--'
-}
 </script>
 <template>
-  <div class="check-outside">
+  <div class="check-inside">
     <ComTable :columns="columns" :options="options">
       <template #tools>
+        <el-button type="primary">新增</el-button>
         <el-button type="danger">批量删除</el-button>
-      </template>
-      <template #duration="{ row }">
-        {{ getDuration(row.checkStartDate, row.checkEndDate) }}
       </template>
       <template #endPosition="{ row }">
         {{ `0${row.endPosition ?? 0}` }}
@@ -179,15 +136,14 @@ const getDuration = (checkStartDate, checkEndDate) => {
         {{ getType(row.columnPosition, row.carNo) }}
       </template>
       <template #action>
-        <el-button type="primary" link size="small">快扫</el-button>
-        <el-button type="primary" link size="small">精扫</el-button>
+        <el-button type="primary" link size="small">360检测看图</el-button>
       </template>
     </ComTable>
   </div>
 </template>
 
 <style lang="scss" scoped>
-.check-outside {
+.check-inside {
   width: 100%;
   height: 100%;
 }

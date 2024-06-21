@@ -67,6 +67,7 @@ defineExpose({
     v-model="visible"
     title="操作密码"
     width="300px"
+    draggable
     append-to-body
     lock-scroll
     destroy-on-close

@@ -1,10 +1,12 @@
 <script setup>
+import { useIconsStore } from '@/store/modules/icons'
 defineProps({
   name: { type: String, required: true },
   color: { type: String, default: '#eeeeee' },
   size: { type: Number, default: 24 }
 })
-const elIcons = getCurrentInstance().appContext.config.globalProperties.$elIcons || [] // element-plus图标列表
+const iconsStore = useIconsStore()
+const { elIcons } = storeToRefs(iconsStore)
 </script>
 <template>
   <!-- 适配element-plus图标 -->

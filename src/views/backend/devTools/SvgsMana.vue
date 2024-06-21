@@ -1,18 +1,14 @@
 <script setup name="SvgsMana">
 import { ElMessage } from 'element-plus'
 import { useClipboard } from '@vueuse/core'
+import { useIconsStore } from '@/store/modules/icons'
 
 const source = ref('') // 剪切板内容
-const svgs = ref([]) // svg图标列表
-const elIcons = getCurrentInstance().appContext.config.globalProperties.$elIcons // element-plus图标列表
 
-const modules = import.meta.glob('@/assets/svgs/*.svg')
-for (const path in modules) {
-  const svgName = path?.split('/').pop().replace('.svg', '')
-  svgs.value.push(svgName)
-}
-
+const iconsStore = useIconsStore()
+const { elIcons, svgs } = storeToRefs(iconsStore)
 const { copy, isSupported } = useClipboard()
+
 const clickSvg = async (name) => {
   if (isSupported.value) {
     source.value = `<SvgIcon name="${name}" />`

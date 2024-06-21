@@ -2,6 +2,7 @@
 
 body {
   &.cockpit {
+    // 表单组件
     .el-select {
       --el-fill-color-blank: transparent;
       --el-select-border-color-hover: #fff;
@@ -13,6 +14,43 @@ body {
     }
     .el-select-dropdown {
       // background-color: var(--el-color-primary);
+    }
+    // 反馈组件
+    .el-overlay {
+      --el-overlay-color-lighter: rgba(13, 25, 49, 0.8);
+      backdrop-filter: blur(10px);
+      .el-dialog {
+        --el-dialog-bg-color: rgba(255, 255, 255, 0.08);
+        padding: 0;
+        border: 1px solid;
+        border-image: linear-gradient(
+            45deg,
+            rgba(17, 209, 251, 1),
+            rgba(17, 209, 251, 0.1),
+            rgba(17, 209, 251, 1)
+          )
+          1 1;
+        .el-dialog__header {
+          height: 48px;
+          padding: 0 var(--el-dialog-padding-primary);
+          background: #1379b5;
+          .el-dialog__title {
+            color: #fff;
+            line-height: 48px;
+          }
+          .el-dialog__headerbtn {
+            .el-icon {
+              color: #fff;
+            }
+          }
+        }
+        .el-dialog__body {
+          padding: var(--el-dialog-padding-primary);
+        }
+        .el-dialog__footer {
+          padding: var(--el-dialog-padding-primary);
+        }
+      }
     }
   }
 }

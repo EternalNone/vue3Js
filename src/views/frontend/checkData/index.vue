@@ -222,20 +222,6 @@ provide('refresh', getStatics)
               </span>
             </div>
           </div>
-          <div class="actions">
-            <div v-show="showType === 'GRID'">
-              <span style="padding: 0 10px; font-size: 14px">只看异常图</span>
-              <el-switch v-model="searchForm.isFault" @change="getData" />
-            </div>
-            <PassagewaySelect
-              v-model="searchForm.code"
-              :list="passagewayList"
-              style="width: 100px"
-              @change="changePassageway"
-            />
-            <el-button type="primary" @click="exportFault">故障复核单</el-button>
-            <el-button type="primary" @click="showFaultList">故障列表</el-button>
-          </div>
         </div>
         <div class="train-carriage-wrap">
           <TrainCarriage
@@ -244,6 +230,20 @@ provide('refresh', getStatics)
             showSatus
             @change="selectCarriage"
           />
+        </div>
+        <div class="actions">
+          <div v-show="showType === 'GRID'">
+            <span style="padding: 0 10px; font-size: 14px">只看异常图</span>
+            <el-switch v-model="searchForm.isFault" @change="getData" />
+          </div>
+          <PassagewaySelect
+            v-model="searchForm.code"
+            :list="passagewayList"
+            style="width: 100px"
+            @change="changePassageway"
+          />
+          <el-button type="primary" @click="exportFault">故障复核单</el-button>
+          <el-button type="primary" @click="showFaultList">故障列表</el-button>
         </div>
       </div>
       <div class="check-data-render">
@@ -293,15 +293,6 @@ provide('refresh', getStatics)
             font-size: 14px;
           }
         }
-        .actions {
-          margin-left: auto;
-          @include flex($jc: flex-end) {
-            gap: 8px;
-          }
-          .el-button + .el-button {
-            margin-left: 0;
-          }
-        }
         .status {
           @include flex($jc: flex-end);
           font-size: 14px;
@@ -315,6 +306,14 @@ provide('refresh', getStatics)
       }
       .train-carriage-wrap {
         padding: 10px 20px;
+      }
+      .actions {
+        @include flex($jc: flex-end) {
+          gap: 8px;
+        }
+        .el-button + .el-button {
+          margin-left: 0;
+        }
       }
     }
 

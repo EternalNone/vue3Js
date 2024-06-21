@@ -71,6 +71,7 @@ defineExpose({
     v-model="visible"
     title="手动接车"
     width="400px"
+    draggable
     append-to-body
     lock-scroll
     :close-on-click-modal="false"

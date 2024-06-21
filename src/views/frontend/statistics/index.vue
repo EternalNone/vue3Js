@@ -167,28 +167,19 @@ const getType = (columnPosition, carNo) => {
               </span>
             </div>
           </div>
-
-          <div class="actions">
-            <PassagewaySelect
-              v-model="searchForm.type"
-              :list="checkTypeOps"
-              @change="changePassageway"
-            />
-            <div class="status">
-              <div class="tip">
-                <i class="point" style="background: var(--el-color-danger)" />
-                <span> 报警（{{ warningInfo.warningCount ?? 0 }}） </span>
-              </div>
-              <div class="tip">
-                <i class="point" style="background: var(--el-color-warning)" />
-                <span> 预警（{{ warningInfo.earlyWarningCount ?? 0 }}） </span>
-              </div>
-              <div class="tip">
-                <i class="point" style="background: var(--el-color-success)" />
-                <span> 正常（{{ warningInfo.normalCount ?? 0 }}） </span>
-              </div>
+          <div class="status">
+            <div class="tip">
+              <i class="point" style="background: var(--el-color-danger)" />
+              <span> 报警（{{ warningInfo.warningCount ?? 0 }}） </span>
             </div>
-            <el-button type="primary">走行公里导入</el-button>
+            <div class="tip">
+              <i class="point" style="background: var(--el-color-warning)" />
+              <span> 预警（{{ warningInfo.earlyWarningCount ?? 0 }}） </span>
+            </div>
+            <div class="tip">
+              <i class="point" style="background: var(--el-color-success)" />
+              <span> 正常（{{ warningInfo.normalCount ?? 0 }}） </span>
+            </div>
           </div>
         </div>
         <div class="train-carriage-wrap">
@@ -199,6 +190,14 @@ const getType = (columnPosition, carNo) => {
             showSatus
             @change="selectCarriage"
           />
+        </div>
+        <div class="actions">
+          <PassagewaySelect
+            v-model="searchForm.type"
+            :list="checkTypeOps"
+            @change="changePassageway"
+          />
+          <el-button type="primary">走行公里导入</el-button>
         </div>
       </div>
       <StatisticsTable :tableData="tableData" :loading="loading" :type="searchForm.type" />
@@ -237,36 +236,35 @@ const getType = (columnPosition, carNo) => {
             font-size: 14px;
           }
         }
-        .actions {
-          margin-left: auto;
-          @include flex($jc: flex-end) {
-            gap: 8px;
-          }
-          .passageway-select {
-            :deep(.el-select) {
-              width: 90px;
+        .status {
+          @include flex($jc: flex-end);
+          font-size: 14px;
+          > div {
+            white-space: nowrap;
+            .point {
+              display: inline-block;
+              width: 10px;
+              height: 10px;
+              border-radius: 50%;
             }
-          }
-          .status {
-            @include flex($jc: flex-end);
-            font-size: 14px;
-            > div {
-              white-space: nowrap;
-              .point {
-                display: inline-block;
-                width: 10px;
-                height: 10px;
-                border-radius: 50%;
-              }
-            }
-          }
-          .el-button + .el-button {
-            margin-left: 0;
           }
         }
       }
       .train-carriage-wrap {
         padding: 10px 20px;
+      }
+      .actions {
+        @include flex($jc: flex-end) {
+          gap: 8px;
+        }
+        .passageway-select {
+          :deep(.el-select) {
+            width: 90px;
+          }
+        }
+        .el-button + .el-button {
+          margin-left: 0;
+        }
       }
     }
   }

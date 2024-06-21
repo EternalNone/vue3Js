@@ -1,7 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
-const LayoutCockpit = () => import('@/layouts/layoutCockpit/index.vue')
-const LayoutBackend = () => import('@/layouts/layoutBackend/index.vue')
 const isDevelopment = import.meta.env.DEV
 // 常驻路由
 const constantRoutes = [
@@ -19,7 +17,7 @@ const constantRoutes = [
 const activeRoutes = [
   {
     path: '/',
-    component: LayoutCockpit,
+    component: () => import('@/layouts/layoutCockpit/index.vue'),
     redirect: '/cockpit',
     children: [
       {
@@ -67,7 +65,7 @@ const activeRoutes = [
   },
   {
     path: '/backend',
-    component: LayoutBackend,
+    component: () => import('@/layouts/layoutBackend/index.vue'),
     redirect: '/backend/home',
     meta: {
       title: '后台管理',
@@ -84,21 +82,21 @@ const activeRoutes = [
         }
       },
       {
-        path: 'checkOutside',
-        component: () => import('@/views/backend/checkOutside/index.vue'),
-        name: 'checkOutside',
+        path: 'checkInside',
+        component: () => import('@/views/backend/checkInside/index.vue'),
+        name: 'checkInside',
         meta: {
           title: '机器人检测',
           icon: 'robot'
         }
       },
       {
-        path: 'checkInside',
-        component: () => import('@/views/backend/checkInside/index.vue'),
-        name: 'checkInside',
+        path: 'checkOutside',
+        component: () => import('@/views/backend/checkOutside/index.vue'),
+        name: 'checkOutside',
         meta: {
           title: '360检测',
-          icon: '360'
+          icon: 'checkOutside'
         }
       },
       {

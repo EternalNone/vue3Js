@@ -7,7 +7,7 @@ const state = useStorage(STORAGE_KEY.USER_INFO, {})
 
 <template>
   <div class="text-avartar">
-    <SvgIcon name="avatar" :size="30" color="#fff" />
+    <SvgIcon name="avatar" :size="30" color="rgba(255, 255, 255, 0.6)" />
     <span>{{ state?.nickName || '' }}</span>
   </div>
 </template>

@@ -1,5 +1,7 @@
 <script setup name="MenuManage">
 import '@/components/types'
+import MenuDetail from './comp/MenuDetail.vue'
+
 /**
  * @type {Column[]}
  */
@@ -13,7 +15,7 @@ const columns = [
     slot: 'title'
   },
   {
-    label: '类型',
+    label: '菜单类型',
     prop: 'type',
     minWidth: 100,
     slot: 'type'
@@ -24,25 +26,25 @@ const columns = [
     minWidth: 150
   },
   {
-    label: '路径',
+    label: '菜单路径',
     prop: 'path',
     align: 'left',
     minWidth: 200
   },
   {
-    label: '图标',
+    label: '菜单图标',
     prop: 'icon',
     minWidth: 80,
     slot: 'icon'
   },
   {
-    label: '组件',
+    label: '组件路径',
     prop: 'component',
     align: 'left',
     minWidth: 300
   },
   {
-    label: '状态',
+    label: '菜单状态',
     prop: 'status',
     minWidth: 100,
     slot: 'status'
@@ -62,6 +64,8 @@ const columns = [
     slot: 'action'
   }
 ]
+const comTableRef = ref(null)
+const { proxy } = getCurrentInstance()
 const getMenu = () => {
   return new Promise((resolve) => {
     setTimeout(() => {
@@ -72,12 +76,13 @@ const getMenu = () => {
             {
               path: '/',
               redirect: '/cockpit',
-              component: 'LayoutCockpit',
+              component: 'layouts/layoutCockpit/index.vue',
               meta: {
                 title: '驾驶舱',
                 icon: '',
                 hidden: 0,
-                status: 1
+                status: 1,
+                parent: ''
               },
               children: [
                 {
@@ -88,7 +93,8 @@ const getMenu = () => {
                     title: '驾驶舱',
                     icon: 'cockpit',
                     hidden: 0,
-                    status: 1
+                    status: 1,
+                    parent: '/'
                   }
                 },
                 {
@@ -99,7 +105,8 @@ const getMenu = () => {
                     title: '集中控制',
                     icon: 'central',
                     hidden: 0,
-                    status: 1
+                    status: 1,
+                    parent: '/'
                   }
                 },
                 {
@@ -110,7 +117,8 @@ const getMenu = () => {
                     title: '检测数据',
                     icon: 'checkData',
                     hidden: 0,
-                    status: 1
+                    status: 1,
+                    parent: '/'
                   }
                 },
                 {
@@ -121,7 +129,8 @@ const getMenu = () => {
                     title: '统计分析',
                     icon: 'statistics',
                     hidden: 0,
-                    status: 1
+                    status: 1,
+                    parent: '/'
                   }
                 }
               ]
@@ -131,34 +140,38 @@ const getMenu = () => {
               redirect: '/backend/checkOutside',
               component: 'LayoutBackend',
               meta: {
-                title: '管理后台',
-                icon: '',
+                title: '后台管理',
+                icon: 'backend',
                 hidden: 0,
-                status: 1
+                status: 1,
+                parent: ''
               },
               children: [
-                {
-                  path: 'checkOutside',
-                  name: 'checkOutside',
-                  component: 'views/backend/checkOutside/index.vue',
-                  meta: {
-                    title: '机器人检测',
-                    icon: 'robot',
-                    hidden: 0,
-                    status: 1
-                  }
-                },
                 {
                   path: 'checkInside',
                   component: 'views/backend/checkInside/index.vue',
                   name: 'checkInside',
                   meta: {
-                    title: '360检测',
-                    icon: '360',
+                    title: '机器人检测',
+                    icon: 'robot',
                     hidden: 0,
-                    status: 1
+                    status: 1,
+                    parent: '/backend'
                   }
                 },
+                {
+                  path: 'checkOutside',
+                  component: 'views/backend/checkOutside/index.vue',
+                  name: 'checkOutside',
+                  meta: {
+                    title: '360检测',
+                    icon: 'checkOutside',
+                    hidden: 0,
+                    status: 1,
+                    parent: '/backend'
+                  }
+                },
+
                 {
                   path: 'vehManage',
                   redirect: '/backend/vehManage/vehModelManage',
@@ -166,7 +179,8 @@ const getMenu = () => {
                     title: '车辆管理',
                     icon: 'train',
                     hidden: 0,
-                    status: 1
+                    status: 1,
+                    parent: '/backend'
                   },
                   children: [
                     {
@@ -177,7 +191,8 @@ const getMenu = () => {
                         title: '车型信息管理',
                         icon: '',
                         hidden: 0,
-                        status: 1
+                        status: 1,
+                        parent: 'vehManage'
                       }
                     },
                     {
@@ -188,7 +203,8 @@ const getMenu = () => {
                         title: '故障点位管理',
                         icon: '',
                         hidden: 0,
-                        status: 1
+                        status: 1,
+                        parent: 'vehManage'
                       }
                     },
                     {
@@ -199,7 +215,8 @@ const getMenu = () => {
                         title: '故障类型管理',
                         icon: '',
                         hidden: 0,
-                        status: 1
+                        status: 1,
+                        parent: 'vehManage'
                       }
                     }
                   ]
@@ -211,7 +228,8 @@ const getMenu = () => {
                     title: '其他配置',
                     icon: 'otherSetting',
                     hidden: 0,
-                    status: 1
+                    status: 1,
+                    parent: '/backend'
                   },
                   children: [
                     {
@@ -222,7 +240,8 @@ const getMenu = () => {
                         title: '股道管理',
                         icon: '',
                         hidden: 0,
-                        status: 1
+                        status: 1,
+                        parent: 'otherSettings'
                       }
                     },
                     {
@@ -233,7 +252,8 @@ const getMenu = () => {
                         title: '通道管理',
                         icon: '',
                         hidden: 0,
-                        status: 1
+                        status: 1,
+                        parent: 'otherSettings'
                       }
                     },
                     {
@@ -244,7 +264,8 @@ const getMenu = () => {
                         title: '阈值管理',
                         icon: '',
                         hidden: 0,
-                        status: 1
+                        status: 1,
+                        parent: 'otherSettings'
                       }
                     },
                     {
@@ -255,7 +276,8 @@ const getMenu = () => {
                         title: '机器人管理',
                         icon: '',
                         hidden: 0,
-                        status: 1
+                        status: 1,
+                        parent: 'otherSettings'
                       }
                     }
                   ]
@@ -267,7 +289,8 @@ const getMenu = () => {
                     title: '系统设置',
                     icon: 'settings',
                     hidden: 0,
-                    status: 1
+                    status: 1,
+                    parent: '/backend'
                   },
                   children: [
                     {
@@ -278,7 +301,8 @@ const getMenu = () => {
                         title: '菜单管理',
                         icon: '',
                         hidden: 0,
-                        status: 1
+                        status: 1,
+                        parent: 'settings'
                       }
                     },
                     {
@@ -289,7 +313,8 @@ const getMenu = () => {
                         title: '用户管理',
                         icon: '',
                         hidden: 0,
-                        status: 1
+                        status: 1,
+                        parent: 'settings'
                       }
                     },
                     {
@@ -300,7 +325,8 @@ const getMenu = () => {
                         title: '角色管理',
                         icon: '',
                         hidden: 0,
-                        status: 1
+                        status: 1,
+                        parent: 'settings'
                       }
                     }
                   ]
@@ -322,13 +348,24 @@ const options = {
   expandRowKeys: ['/', '/backend'],
   qFunc: getMenu
 }
+const openDialog = (act, obj = {}) => {
+  proxy.$dialog.show(
+    MenuDetail,
+    {
+      width: 500,
+      title: act === 'view' ? '菜单详情' : act === 'new' ? '新增菜单' : '编辑菜单',
+      showConfirm: act !== 'view'
+    },
+    { act, menuList: comTableRef.value.tableData || [], info: obj }
+  )
+}
 </script>
 
 <template>
   <div class="menu-manage">
-    <ComTable :columns="columns" :options="options">
+    <ComTable ref="comTableRef" :columns="columns" :options="options">
       <template #tools>
-        <el-button type="primary">新增</el-button>
+        <el-button type="primary" @click="openDialog('new')">新增</el-button>
       </template>
       <template #title="{ row }">
         {{ row?.meta?.title || '--' }}
@@ -352,17 +389,20 @@ const options = {
         </el-tag>
       </template>
       <template #hidden="{ row }">
-        <el-tag :type="row?.meta?.hidden ? 'success' : 'danger'">
-          {{ row?.meta?.hidden ? '是' : '否' }}
+        <el-tag :type="row?.meta?.hidden ? 'danger' : 'success'">
+          {{ row?.meta?.hidden ? '隐藏' : '显示' }}
         </el-tag>
       </template>
       <template #action="{ row }">
-        <el-button type="success" link size="small">详情</el-button>
+        <el-button type="success" link size="small" @click="openDialog('view', row)"
+          >详情</el-button
+        >
         <el-button
           v-if="row.path !== '/' && row.path !== '/backend'"
           type="primary"
           link
           size="small"
+          @click="openDialog('edit', row)"
         >
           编辑
         </el-button>

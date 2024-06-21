@@ -228,6 +228,7 @@ defineExpose({
     v-model="visible"
     title="故障列表"
     width="80%"
+    draggable
     lock-scroll
     append-to-body
     :close-on-click-modal="false"

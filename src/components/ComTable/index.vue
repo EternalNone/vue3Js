@@ -111,7 +111,12 @@ const reset = () => {
 onMounted(() => {
   getData()
 })
-defineExpose({ rowSelections, singleSelectionKey, refresh })
+defineExpose({
+  rowSelections: readonly(rowSelections),
+  singleSelectionKey: readonly(singleSelectionKey),
+  refresh,
+  tableData: readonly(tableData)
+})
 </script>
 
 <template>

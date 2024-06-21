@@ -25,7 +25,6 @@ const sizePx = computed(() => `${props.size}px`)
   z-index: 103;
   width: v-bind(sizePx);
   height: v-bind(sizePx);
-  // border-radius: 50%;
   background-position: center center;
   background-repeat: no-repeat;
   border: 2px solid #fff;
