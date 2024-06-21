@@ -1,7 +1,6 @@
 <script setup name="UserDetail">
 import { watchImmediate } from '@vueuse/core'
 
-const formRef = ref(null)
 const props = defineProps({
   /**
    * @type 'new' | 'edit' | 'view'
@@ -16,6 +15,7 @@ const props = defineProps({
     default: () => ({})
   }
 })
+const formRef = ref(null)
 const formRules = {
   userName: [{ required: true, message: '请输入', trigger: 'blur' }],
   account: [{ required: true, message: '请输入', trigger: 'blur' }]
@@ -133,7 +133,13 @@ defineExpose({ confirm, reset })
       <el-input v-model="formData.account" placeholder="请输入" clearable />
     </el-form-item>
     <el-form-item label="角色" prop="roles">
-      <el-select v-model="formData.roles" multiple clearable tag-type="primary" placeholder="请选择">
+      <el-select
+        v-model="formData.roles"
+        multiple
+        clearable
+        tag-type="primary"
+        placeholder="请选择"
+      >
         <el-option
           v-for="item in roleList"
           :key="item.roleName"

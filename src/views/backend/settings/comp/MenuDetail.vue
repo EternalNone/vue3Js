@@ -2,7 +2,6 @@
 import { watchImmediate } from '@vueuse/core'
 import SvgSelector from '@/components/SvgSelector.vue'
 
-const formRef = ref(null)
 const props = defineProps({
   /**
    * @type 'new' | 'edit' | 'view'
@@ -21,7 +20,14 @@ const props = defineProps({
     default: () => []
   }
 })
-
+const formRef = ref(null)
+const formRules = {
+  type: [{ required: true, message: '请选择', trigger: 'blur' }],
+  title: [{ required: true, message: '请输入', trigger: 'blur' }],
+  name: [{ required: true, message: '请输入', trigger: 'blur' }],
+  path: [{ required: true, message: '请输入', trigger: 'blur' }],
+  component: [{ required: true, message: '请输入', trigger: 'blur' }]
+}
 const state = reactive({
   formData: {
     type: '1',
@@ -33,17 +39,10 @@ const state = reactive({
     status: 1,
     hidden: 0,
     icon: ''
-  },
-  formRules: {
-    type: [{ required: true, message: '请选择', trigger: 'blur' }],
-    title: [{ required: true, message: '请输入', trigger: 'blur' }],
-    name: [{ required: true, message: '请输入', trigger: 'blur' }],
-    path: [{ required: true, message: '请输入', trigger: 'blur' }],
-    component: [{ required: true, message: '请输入', trigger: 'blur' }]
   }
 })
 
-const { formData, formRules } = toRefs(state)
+const { formData } = toRefs(state)
 
 const defaultProps = {
   children: 'children',

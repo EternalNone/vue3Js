@@ -11,8 +11,8 @@ const plugin = {
     const vm = appInstance.mount(mountNode)
     loadIcons(appInstance)
     app.config.globalProperties.$dialog = {
-      show(component, diaProps = {}, comProps = {}) {
-        vm.show(markRaw(component), diaProps, comProps)
+      show(component, diaProps = {}, comProps = {}, cb = null) {
+        vm.show(markRaw(component), diaProps, comProps, cb)
       }
     }
   }

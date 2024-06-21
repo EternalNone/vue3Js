@@ -9,7 +9,6 @@ import Monitor from './comp/Monitor.vue'
 import CheckPwd from './comp/CheckPwd.vue'
 
 const wsBaseUrl = import.meta.env.VITE_WEBSOCKET_BASE_URL // 对应环境的websocket地址
-const checkInModalRef = ref(null)
 const monitorRef = ref(null)
 const checkPwdRef = ref(null)
 
@@ -175,6 +174,7 @@ const state = reactive({
   robotStatus: {} // 机器人状态
 })
 const { trackList, trackOps, currentTrain, robotStatus } = toRefs(state)
+const { proxy } = getCurrentInstance()
 const { data } = useWebSocket(`${wsBaseUrl}/ws/centralize`, {
   autoReconnect: {
     retries: 3, // 最大重连次数
@@ -265,7 +265,16 @@ const selectTrain = (obj) => {
 }
 // 手动接车
 const checkinTrain = () => {
-  checkInModalRef.value?.show(trackOps.value)
+  proxy.$dialog.show(
+    CheckInModal,
+    {
+      width: 400,
+      title: '手动接车',
+      showConfirm: true
+    },
+    { trackOps: trackOps.value },
+    getTrainTrack
+  )
 }
 // 手动出车
 const removeTrain = async () => {
@@ -355,7 +364,6 @@ provide('checkPwdRef', checkPwdRef)
         <el-button type="primary" size="small" @click="monitorRef.show()"> 视频监控 </el-button>
       </div>
     </div>
-    <CheckInModal ref="checkInModalRef" @refresh="getTrainTrack" />
     <Monitor ref="monitorRef" :trackOps="trackOps" />
     <CheckPwd ref="checkPwdRef" />
   </div>

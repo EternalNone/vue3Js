@@ -2,7 +2,6 @@
 import { watchImmediate } from '@vueuse/core'
 import DescriptionItem from '@/components/DescriptionItem.vue'
 
-const formRef = ref(null)
 const props = defineProps({
   /**
    * @type 'new' | 'edit' | 'view'
@@ -18,17 +17,17 @@ const props = defineProps({
   }
 })
 const { act, info } = toRefs(props)
+const formRef = ref(null)
+const formRules = {
+  roleName: [{ required: true, message: '请输入', trigger: 'blur' }]
+}
 const state = reactive({
   formData: {
     roleName: '',
     status: 1
-  },
-  formRules: {
-    roleName: [{ required: true, message: '请输入', trigger: 'blur' }]
   }
 })
-
-const { formData, formRules } = toRefs(state)
+const { formData } = toRefs(state)
 watchImmediate(
   () => props.info,
   (newVal) => {

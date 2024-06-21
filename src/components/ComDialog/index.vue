@@ -6,9 +6,10 @@ const state = reactive({
   loading: false,
   component: null,
   options: {},
-  comData: {}
+  comData: {},
+  confirmCb: null
 })
-const { visible, loading, component, options, comData } = toRefs(state)
+const { visible, loading, component, options, comData, confirmCb } = toRefs(state)
 
 const _ops = computed(() => {
   return {
@@ -25,10 +26,11 @@ const _ops = computed(() => {
     ...options.value
   }
 })
-const show = (comp, diaProps, comProps) => {
+const show = (comp, diaProps, comProps, cb) => {
   component.value = comp
   options.value = diaProps
   comData.value = comProps
+  confirmCb.value = cb
   visible.value = true
 }
 
@@ -42,11 +44,15 @@ const close = () => {
 }
 const confirm = () => {
   const func = childRef.value?.confirm
+  const conCb = confirmCb.value
   if (func && typeof func === 'function') {
     loading.value = true
     func()
       .then((res) => {
         console.log('then', res)
+        if (conCb && typeof conCb === 'function') {
+          conCb()
+        }
         close()
       })
       .finally(() => {
