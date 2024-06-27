@@ -1,5 +1,6 @@
 <!-- 轻量级的功能共用一个弹框 -->
 <script setup name="ComDialog">
+import zhCn from 'element-plus/es/locale/lang/zh-cn.mjs'
 const childRef = ref(null)
 const state = reactive({
   visible: false,
@@ -68,7 +69,9 @@ defineExpose({
 
 <template>
   <el-dialog v-model="visible" v-bind="_ops" @close="close">
-    <component ref="childRef" :is="component" v-bind="comData" />
+    <el-config-provider :locale="zhCn">
+      <component ref="childRef" :is="component" v-bind="comData" />
+    </el-config-provider>
     <template #footer>
       <div class="dialog-footer">
         <el-button type="info" Round auto-insert-space :loading="loading" @click="close">

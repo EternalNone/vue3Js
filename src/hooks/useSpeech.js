@@ -1,6 +1,9 @@
 export const useSpeech = () => {
   let speech = new SpeechSynthesisUtterance()
   const play = (text, ...rest) => {
+    if (!text) {
+      return
+    }
     let n = 1
     let waiting = false
     rest.forEach((arg) => {
@@ -10,9 +13,6 @@ export const useSpeech = () => {
         waiting = arg
       }
     })
-    if (!text) {
-      return
-    }
     if (!waiting) {
       // 直接暂停未播完的语音开始播放新语音
       window.speechSynthesis.cancel()

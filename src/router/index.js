@@ -26,7 +26,6 @@ const activeRoutes = [
         name: 'cockpit',
         meta: {
           title: '驾驶舱',
-          fullTitle: '集控中心驾驶舱',
           icon: 'cockpit'
         }
       },
@@ -36,7 +35,6 @@ const activeRoutes = [
         name: 'central',
         meta: {
           title: '集中控制',
-          fullTitle: '集中控制平台',
           icon: 'central'
         }
       },
@@ -46,9 +44,7 @@ const activeRoutes = [
         name: 'checkData',
         meta: {
           title: '检测数据',
-          fullTitle: '检测数据中心',
-          icon: 'checkData',
-          scrollbar: false // 是否显示appMain区域的滚动条
+          icon: 'checkData'
         }
       },
       {
@@ -57,7 +53,6 @@ const activeRoutes = [
         name: 'statistics',
         meta: {
           title: '统计分析',
-          fullTitle: '数据统计分析',
           icon: 'statistics'
         }
       }
@@ -234,8 +229,7 @@ const activeRoutes = [
             name: 'svgsManage',
             meta: {
               title: '图标管理',
-              icon: '',
-              noPadding: true // 内容区el-main是否不需要padding
+              icon: ''
             }
           }
         ]

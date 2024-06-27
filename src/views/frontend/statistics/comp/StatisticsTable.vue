@@ -66,7 +66,7 @@ const showColumns = computed(() => {
 
 <template>
   <div class="table-wrap">
-    <el-table :data="tableData" stripe :border="true" v-loading="loading" element-loading-background="transparent" height="100%">
+    <el-table :data="tableData" stripe v-loading="loading" element-loading-background="transparent" height="100%">
       <el-table-column
         v-for="item in showColumns"
         :key="item.prop"
@@ -106,7 +106,7 @@ const showColumns = computed(() => {
 <style lang="scss" scoped>
 .table-wrap {
   width: 100%;
-  height: calc(100% - 122px);
+  height: calc(100% - 154px);
   .el-table {
     width: 100%;
     .check-val {

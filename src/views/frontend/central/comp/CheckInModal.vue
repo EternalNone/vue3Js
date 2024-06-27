@@ -71,29 +71,34 @@ defineExpose({
 <template>
   <el-form ref="formRef" :model="formData" :rules="formRules">
     <el-form-item label="编组" prop="marshallingType">
-      <el-radio-group v-model="formData.marshallingType">
-        <el-radio-button
+      <el-select v-model="formData.marshallingType" clearable placeholder="请选择编组">
+        <el-option
           v-for="item in TRAIN_TYPE_LIST"
           :key="item.value"
           :label="item.name"
           :value="item.value"
         />
-      </el-radio-group>
+      </el-select>
     </el-form-item>
     <el-form-item label="股道" prop="track">
-      <el-radio-group v-model="formData.track">
-        <el-radio-button v-for="item in trackOps" :key="item" :label="item" :value="item" />
-      </el-radio-group>
+      <el-select v-model="formData.track" clearable placeholder="请选择股道">
+        <el-option
+          v-for="item in trackOps"
+          :key="item"
+          :label="item"
+          :value="item"
+        />
+      </el-select>
     </el-form-item>
     <el-form-item label="列位" prop="parking">
-      <el-radio-group v-model="formData.parking">
-        <el-radio-button
+      <el-select v-model="formData.parking" clearable placeholder="请选择列位">
+        <el-option
           v-for="item in PARKING_LIST"
           :key="item.value"
           :label="item.name"
           :value="item.value"
         />
-      </el-radio-group>
+      </el-select>
     </el-form-item>
     <el-form-item label="端位" prop="direction">
       <el-radio-group v-model="formData.direction">

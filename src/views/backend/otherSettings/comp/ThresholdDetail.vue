@@ -1,7 +1,5 @@
-<script setup name="RoleDetail">
+<script setup name="ThresholdDetail">
 import { watchImmediate } from '@vueuse/core'
-import DescriptionItem from '@/components/DescriptionItem.vue'
-
 const props = defineProps({
   /**
    * @type 'new' | 'edit' | 'view'
@@ -16,15 +14,18 @@ const props = defineProps({
     default: () => ({})
   }
 })
-const { act, info } = toRefs(props)
+
 const formRef = ref(null)
 const formRules = {
-  roleName: [{ required: true, message: '请输入', trigger: 'blur' }]
+  yzlx: [{ required: true, message: '请输入', trigger: 'blur' }],
+  cx: [{ required: true, message: '请输入', trigger: 'blur' }]
 }
 const state = reactive({
   formData: {
-    roleName: '',
-    status: 1
+    cx: '',
+    yzlx: '',
+    minVal: '',
+    maxVal: ''
   }
 })
 const { formData } = toRefs(state)
@@ -32,8 +33,10 @@ watchImmediate(
   () => props.info,
   (newVal) => {
     formData.value = {
-      roleName: newVal?.roleName || '',
-      status: newVal?.status ?? 1
+      cx: newVal?.cx || '',
+      yzlx: newVal?.yzlx || '',
+      minVal: newVal?.minVal || '',
+      maxVal: newVal?.maxVal || ''
     }
   }
 )
@@ -66,16 +69,17 @@ defineExpose({ confirm, reset })
 
 <template>
   <div v-if="act === 'view'">
-    <DescriptionItem label="角色名称">
-      {{ info?.roleName || '' }}
+    <DescriptionItem label="阈值名称">
+      {{ info?.yzlx || '' }}
     </DescriptionItem>
-    <DescriptionItem label="角色状态">
-      <el-tag :type="info?.status ? 'success' : 'danger'">
-        {{ info?.status ? '启用' : '禁用' }}
-      </el-tag>
+    <DescriptionItem label="最小值(mm)">
+      {{ info?.minVal || '' }}
     </DescriptionItem>
-    <DescriptionItem label="创建时间">
-      {{ info?.createTime || '' }}
+    <DescriptionItem label="最大值(mm)">
+      {{ info?.maxVal || '' }}
+    </DescriptionItem>
+    <DescriptionItem label="车型">
+      {{ info?.cx?.join(',') || '' }}
     </DescriptionItem>
   </div>
   <el-form
@@ -87,14 +91,17 @@ defineExpose({ confirm, reset })
     label-position="right"
     status-icon
   >
-    <el-form-item label="角色名称" prop="roleName">
-      <el-input v-model="formData.roleName" placeholder="请输入" clearable />
+    <el-form-item label="阈值名称" prop="yzlx">
+      <el-input v-model="formData.yzlx" placeholder="请输入" clearable />
     </el-form-item>
-    <el-form-item label="角色状态" prop="status">
-      <el-radio-group v-model="formData.status">
-        <el-radio-button label="启用" :value="1" />
-        <el-radio-button label="禁用" :value="0" />
-      </el-radio-group>
+    <el-form-item label="最小值(mm)" prop="minVal">
+      <el-input v-model="formData.minVal" placeholder="请输入" clearable />
+    </el-form-item>
+    <el-form-item label="最大值(mm)" prop="maxVal">
+      <el-input v-model="formData.maxVal" placeholder="请输入" clearable />
+    </el-form-item>
+    <el-form-item label="车型" prop="cx">
+      <el-input v-model="formData.cx" placeholder="请输入" clearable />
     </el-form-item>
   </el-form>
 </template>

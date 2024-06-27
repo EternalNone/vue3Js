@@ -6,7 +6,7 @@ const route = useRoute()
 // 监听路由变化
 watch(
   () => route.path,
-  async (newPath) => {
+  (newPath) => {
     // 根据路由应用不同的样式类
     const body = document.body
     if (newPath.includes('/backend')) {

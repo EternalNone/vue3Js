@@ -1,10 +1,31 @@
 // 管理后台样式表
+html {
+  .el-aside {
+    background: $theme-color;
+    .el-menu {
+      --el-menu-bg-color: $theme-color;
+      --el-menu-text-color: #fff;
+      --el-menu-active-color: var(--el-color-primary);
+    }
+  }
+  &.dark {
+    .el-header {
+      background: transparent !important;
+    }
+    .el-aside {
+      background: transparent;
+    }
+  }
+}
 body {
   &.backend {
     .app-main {
+      background: var(--el-fill-color);
       > div {
         width: 100%;
         height: 100%;
+        padding: $com-padding;
+        box-sizing: border-box;
       }
     }
   }

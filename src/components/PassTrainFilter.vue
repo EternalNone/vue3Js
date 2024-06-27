@@ -201,87 +201,102 @@ const toggleFilter = () => {
 </script>
 
 <template>
-  <div :class="expand ? 'filter-wrap' : 'filter-wrap filter-wrap-hidden'">
-    <div class="title">
-      <span>过车信息筛选</span>
-    </div>
-    <div class="search-form">
-      <CheckTypeToggle v-if="showCheckType" />
-      <div class="quick-search">
-        <div
-          v-for="item in quickSearchItems"
-          :key="item.value"
-          :class="item.value === type ? 'quick-search-item active' : 'quick-search-item'"
-          @click="quickSearchChange(item.value)"
-        >
-          {{ item.title }}
-        </div>
+  <Transition name="slide-fade">
+    <div v-show="expand" class="filter-wrap">
+      <div class="title">
+        <span>过车信息筛选</span>
       </div>
-      <el-date-picker
-        v-model="transDate"
-        type="daterange"
-        range-separator="~"
-        start-placeholder="开始日期"
-        end-placeholder="结束日期"
-        value-format="YYYY-MM-DD"
-        @change="dateChange"
-      />
-      <div class="train-type-no">
-        <el-input v-model="vehicleModel" placeholder="车型" clearable @keydown.enter="search" />
-        <el-input v-model="carNo" placeholder="车号" clearable @keydown.enter="search" />
-        <el-input v-model="gd" placeholder="股道" clearable @keydown.enter="search" />
-      </div>
-      <div class="btns">
-        <el-button type="primary" @click="search">搜索</el-button>
-        <el-button type="primary" plain @click="reset">重置</el-button>
-      </div>
-    </div>
-    <div class="search-list">
-      <div class="list-title">
-        <div class="status"></div>
-        <div class="checkInDate">库检时间</div>
-        <div class="vehicleModel">车型车号</div>
-        <div class="trackNo">股道</div>
-      </div>
-      <div
-        class="list-content"
-        v-infinite-scroll="loadTrain"
-        :infinite-scroll-disabled="disabled"
-        :infinite-scroll-distance="30"
-        :infinite-scroll-immediate="false"
-      >
-        <div
-          v-for="(item, indx) in transList"
-          :key="indx"
-          :class="{ active: currentData && item.trainNo === currentData?.trainNo }"
-          @click="selectTransItem(item)"
-        >
-          <i
-            class="status"
-            :style="{
-              background:
-                moduleType === 'OUTSIDE' || item.checkEndDate
-                  ? 'var(--el-color-success)'
-                  : 'var(--el-color-danger)'
-            }"
-          />
-          <div class="checkInDate">
-            {{ item.checkInDate ? dayjs(item.checkInDate).format('YYYY-MM-DD HH:mm') : '--' }}
+      <div class="search-form">
+        <CheckTypeToggle v-if="showCheckType" />
+        <div class="quick-search">
+          <div
+            v-for="item in quickSearchItems"
+            :key="item.value"
+            :class="item.value === type ? 'quick-search-item active' : 'quick-search-item'"
+            @click="quickSearchChange(item.value)"
+          >
+            {{ item.title }}
           </div>
-          <div class="vehicleModel">{{ item.vehicleModel ?? '--' }}-{{ item.carNo ?? '--' }}</div>
-          <div class="trackNo">{{ item.trackNo || '--' }}</div>
         </div>
-        <p v-show="loading" class="text_center border">加载中...</p>
-        <p v-show="noMore" class="text_center border">{{ `共${pageInfo.total}条数据` }}</p>
+        <el-date-picker
+          v-model="transDate"
+          type="daterange"
+          range-separator="~"
+          start-placeholder="开始日期"
+          end-placeholder="结束日期"
+          value-format="YYYY-MM-DD"
+          @change="dateChange"
+        />
+        <div class="train-type-no">
+          <el-input v-model="vehicleModel" placeholder="车型" clearable @keydown.enter="search" />
+          <el-input v-model="carNo" placeholder="车号" clearable @keydown.enter="search" />
+          <el-input v-model="gd" placeholder="股道" clearable @keydown.enter="search" />
+        </div>
+        <div class="btns">
+          <el-button type="info" @click="reset">重置</el-button>
+          <el-button type="primary" @click="search">搜索</el-button>
+        </div>
+      </div>
+      <div class="search-list">
+        <div class="list-title">
+          <div class="status"></div>
+          <div class="checkInDate">库检时间</div>
+          <div class="vehicleModel">车型车号</div>
+          <div class="trackNo">股道</div>
+        </div>
+        <div
+          class="list-content"
+          v-infinite-scroll="loadTrain"
+          :infinite-scroll-disabled="disabled"
+          :infinite-scroll-distance="30"
+          :infinite-scroll-immediate="false"
+        >
+          <div
+            v-for="(item, indx) in transList"
+            :key="indx"
+            :class="{ active: currentData && item.trainNo === currentData?.trainNo }"
+            @click="selectTransItem(item)"
+          >
+            <i
+              class="status"
+              :style="{
+                background:
+                  moduleType === 'OUTSIDE' || item.checkEndDate
+                    ? 'var(--el-color-success)'
+                    : 'var(--el-color-danger)'
+              }"
+            />
+            <div class="checkInDate">
+              {{ item.checkInDate ? dayjs(item.checkInDate).format('YYYY-MM-DD HH:mm') : '--' }}
+            </div>
+            <div class="vehicleModel">{{ item.vehicleModel ?? '--' }}-{{ item.carNo ?? '--' }}</div>
+            <div class="trackNo">{{ item.trackNo || '--' }}</div>
+          </div>
+          <p v-show="loading" class="text_center border">加载中...</p>
+          <p v-show="noMore" class="text_center border">{{ `共${pageInfo.total}条数据` }}</p>
+        </div>
       </div>
     </div>
-  </div>
+  </Transition>
+
   <div :class="expand ? 'toggle-btn' : 'toggle-btn expand-btn'" @click="toggleFilter">
     <SvgIcon :name="expand ? 'DArrowLeft' : 'DArrowRight'" />
   </div>
 </template>
 
 <style lang="scss" scoped>
+.slide-fade-enter-active {
+  transition: all 0.25s ease-in;
+}
+
+.slide-fade-leave-active {
+  transition: all 0.25s ease-out;
+}
+.slide-fade-enter-from,
+.slide-fade-leave-to {
+  transform: translateX(-40px);
+  opacity: 0;
+}
 .filter-wrap {
   @include flex($dir: column, $jc: flex-start, $al: center);
   width: 380px;
@@ -299,9 +314,6 @@ const toggleFilter = () => {
       rgb(17, 209, 251)
     )
     1 1;
-  &.filter-wrap-hidden {
-    display: none;
-  }
   .title {
     font-size: 16px;
     font-weight: 600;
@@ -348,9 +360,6 @@ const toggleFilter = () => {
       width: 100%;
       height: 34px;
       margin-top: 10px;
-      --el-input-bg-color: transparent;
-      --el-input-border-color: #fff;
-      --el-input-hover-border-color: #fff;
       .el-range__icon,
       .el-range-separator {
         color: #fff;
@@ -364,10 +373,6 @@ const toggleFilter = () => {
       @include flex;
       .el-input {
         height: 34px;
-        --el-input-bg-color: transparent;
-        --el-input-text-color: #fff;
-        --el-input-border-color: #fff;
-        --el-input-hover-border-color: #fff;
         &:nth-child(2) {
           margin: 0 10px;
         }
@@ -379,11 +384,6 @@ const toggleFilter = () => {
       .el-button {
         flex: 1;
         height: 34px;
-        &:last-child {
-          --el-button-bg-color: transparent;
-          --el-button-border-color: #fff;
-          --el-button-text-color: #fff;
-        }
       }
     }
   }
@@ -463,7 +463,7 @@ const toggleFilter = () => {
   height: 30px;
   @include flex;
   position: fixed;
-  left: 385px;
+  left: 380px;
   top: 50vh;
   z-index: 1000;
   cursor: pointer;

@@ -3,14 +3,9 @@
 <template>
   <div class="app-main">
     <router-view v-slot="{ Component, route }">
-      <transition v-if="!route.meta?.scrollbar" name="el-fade-in" mode="out-in">
+      <transition name="el-fade-in" mode="out-in">
         <component :is="Component" :key="route.path" />
       </transition>
-      <el-scrollbar v-else>
-        <transition name="el-fade-in" mode="out-in">
-          <component :is="Component" :key="route.path" />
-        </transition>
-      </el-scrollbar>
     </router-view>
   </div>
 </template>

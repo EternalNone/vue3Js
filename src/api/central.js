@@ -6,7 +6,7 @@ import request from '@/utils/request'
  */
 export const getTrainTrackApi = (params) => {
   return request({
-    url: '/api/centralize/track',
+    url: '/api/robot/centralize/track/train',
     method: 'get',
     params
   })
@@ -17,7 +17,7 @@ export const getTrainTrackApi = (params) => {
  */
 export const robotOperate = (command, data) => {
   return request({
-    url: '/api/centralize/' + command,
+    url: `/api/robot/centralize/${command}`,
     method: 'post',
     data
   })
@@ -29,7 +29,7 @@ export const robotOperate = (command, data) => {
  */
 export const workValid = (params) => {
   return request({
-    url: '/api/centralize/work/valid',
+    url: '/api/robot/centralize/work/valid',
     method: 'get',
     params
   })
@@ -41,7 +41,7 @@ export const workValid = (params) => {
  */
 export const checkout = (data) => {
   return request({
-    url: '/api/centralize/train/checkout',
+    url: '/api/robot/centralize/train/checkout',
     method: 'post',
     data
   })
@@ -53,8 +53,19 @@ export const checkout = (data) => {
  */
 export const checkin = (data) => {
   return request({
-    url: '/api/centralize/train/checkin',
+    url: '/api/robot/centralize/train/checkin',
     method: 'post',
     data
+  })
+}
+/** 获取股道配置信息
+ * @param {*} params
+ * @returns
+ */
+export const getTrackSetting = (params = {}) => {
+  return request({
+    url: '/api/robot/centralize/track/settting',
+    method: 'get',
+    params
   })
 }

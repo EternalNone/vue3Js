@@ -2,18 +2,159 @@
 
 body {
   &.cockpit {
+    .app-main {
+      > div {
+        width: 100%;
+        height: 100%;
+        padding: $com-padding;
+        box-sizing: border-box;
+      }
+    }
     // 表单组件
+    .el-form {
+      .el-form-item {
+        .el-form-item__label {
+          color: #fff;
+        }
+      }
+    }
+    .el-input {
+      --el-input-text-color: #fff;
+      --el-input-placeholder-color: rgba(255, 255, 255, 0.6);
+      --el-input-bg-color: transparent;
+      --el-disabled-bg-color: transparent;
+      --el-input-border-color: #fff;
+      --el-disabled-text-color: rgba(255, 255, 255, 0.6);
+      --el-input-hover-border-color: var(--el-color-primary);
+      --el-input-icon-color: #fff;
+      --el-input-clear-hover-color: #fff;
+    }
     .el-select {
+      --el-input-text-color: #fff;
       --el-fill-color-blank: transparent;
-      --el-select-border-color-hover: #fff;
-      --el-select-input-focus-border-color: #fff;
       --el-select-input-color: #fff;
-      .el-select__placeholder {
+      --el-select-border-color-hover: var(--el-color-primary);
+      --el-text-color-placeholder: rgba(255, 255, 255, 0.6);
+      --el-input-icon-color: rgba(255, 255, 255, 0.6);
+      --el-input-clear-hover-color: #fff;
+      .el-select__wrapper {
+        &.is-disabled {
+          background-color: transparent;
+        }
+        .el-select__suffix {
+          .el-icon {
+            color: #fff;
+          }
+          &:hover {
+            .el-icon {
+              color: #fff;
+            }
+          }
+        }
+      }
+    }
+    .el-select__popper.el-popper {
+      background: $theme-color;
+      border: 1px solid #fff;
+      .el-select-dropdown {
+        .el-select-dropdown__item {
+          color: #fff;
+          &.is-hovering {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: #fff;
+          }
+        }
+      }
+      .el-popper__arrow {
+        &::before {
+          background: $theme-color;
+        }
+      }
+    }
+    .el-radio-group {
+      .el-radio-button {
+        --el-button-bg-color: rgba(255, 255, 255, 0.3);
+        --el-button-text-color: #fff;
+        --el-radio-button-checked-border-color: #fff;
+      }
+    }
+    .el-date-editor {
+      --el-input-text-color: #fff;
+      --el-input-bg-color: transparent;
+      --el-input-icon-color: #fff;
+      --el-input-border-color: #fff;
+      --el-input-placeholder-color: rgba(255, 255, 255, 0.6);
+      --el-input-hover-border-color: var(--el-color-primary);
+      --el-input-clear-hover-color: #fff;
+      --el-disabled-bg-color: transparent;
+      --el-disabled-border-color: #fff;
+      --el-disabled-text-color: #fff;
+      .el-range__close-icon {
         color: #fff;
       }
     }
-    .el-select-dropdown {
-      // background-color: var(--el-color-primary);
+    .el-date-range-picker {
+      --el-datepicker-border-color: rgba(255, 255, 255, 0.6);
+      --el-datepicker-icon-color: #fff;
+      --el-datepicker-inrange-bg-color: rgba(255, 255, 255, 0.2);
+      --el-datepicker-inrange-hover-bg-color: rgba(255, 255, 255, 0.2);
+      background: $theme-color;
+      color: #fff;
+      .el-date-table th {
+        color: #fff;
+      }
+    }
+    .el-picker__popper.el-popper {
+      background: $theme-color;
+
+      .el-popper__arrow {
+        &::before {
+          background: $theme-color;
+        }
+      }
+    }
+    // 数据展示组件
+    .el-scrollbar {
+      --el-scrollbar-opacity: 1;
+      --el-scrollbar-bg-color: var(--el-color-primary-light-5);
+      --el-scrollbar-hover-opacity: 1;
+      --el-scrollbar-hover-bg-color: var(--el-color-primary);
+    }
+    .el-table {
+      --el-table-header-bg-color: transparent;
+      --el-table-bg-color: transparent;
+      --el-table-tr-bg-color: transparent;
+      --el-table-expanded-cell-bg-color: transparent;
+      --el-table-border-color: rgba(225, 255, 255, 0.3);
+      --el-table-border: 1px dashed var(--el-table-border-color);
+      --el-table-text-color: rgba(255, 255, 255, 0.85);
+      --el-table-header-text-color: rgba(255, 255, 255, 1);
+      --el-fill-color-lighter: rgba(186, 208, 241, 0.1);
+      --el-table-row-hover-bg-color: rgba(255, 255, 255, 0.5);
+      --el-table-current-row-bg-color: rgba(255, 255, 255, 0.5);
+      .el-table__cell {
+        backdrop-filter: blur(5px);
+      }
+      .el-table__header {
+        thead {
+          th {
+            background: linear-gradient(
+              180deg,
+              rgba(16, 137, 205, 0.8) 0%,
+              rgba(16, 137, 205, 0) 100%
+            );
+          }
+        }
+      }
+      .el-table__empty-text {
+        color: rgba(255, 255, 255, 0.85);
+      }
+    }
+    .el-pagination {
+      .el-pagination__sizes,
+      .el-pagination__total {
+        color: rgba(255, 255, 255, 0.85);
+      }
     }
     // 反馈组件
     .el-overlay {
@@ -22,14 +163,15 @@ body {
       .el-dialog {
         --el-dialog-bg-color: rgba(255, 255, 255, 0.08);
         padding: 0;
-        border: 1px solid;
-        border-image: linear-gradient(
-            45deg,
-            rgba(17, 209, 251, 1),
-            rgba(17, 209, 251, 0.1),
-            rgba(17, 209, 251, 1)
-          )
-          1 1;
+        overflow: hidden;
+        // border: 1px solid;
+        // border-image: linear-gradient(
+        //     45deg,
+        //     rgba(17, 209, 251, 1),
+        //     rgba(17, 209, 251, 0.1),
+        //     rgba(17, 209, 251, 1)
+        //   )
+        //   1 1;
         .el-dialog__header {
           height: 48px;
           padding: 0 var(--el-dialog-padding-primary);
@@ -50,6 +192,26 @@ body {
         .el-dialog__footer {
           padding: var(--el-dialog-padding-primary);
         }
+      }
+    }
+    .el-message-box {
+      --el-bg-color: rgba(255, 255, 255, 0.08);
+      --el-messagebox-title-color: #fff;
+      --el-messagebox-content-color: #fff;
+      --el-messagebox-font-line-height: 40px;
+      padding: 0;
+      .el-message-box__header {
+        background: #1379b5;
+        padding: 0 var(--el-messagebox-padding-primary);
+        .el-message-box__close {
+          color: #fff;
+        }
+      }
+      .el-message-box__content {
+        padding: var(--el-messagebox-padding-primary) var(--el-messagebox-padding-primary) 0;
+      }
+      .el-message-box__btns {
+        padding: var(--el-messagebox-padding-primary);
       }
     }
   }

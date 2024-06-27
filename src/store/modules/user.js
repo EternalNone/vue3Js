@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { useStorage } from '@vueuse/core'
 import store from '@/store'
 import { STORAGE_KEY } from '@/constants/index'
-import { loginApi } from '@/api/user'
+import { loginApi, logOutApi } from '@/api/user'
 
 export const useUserStore = defineStore('user', () => {
   const token = useStorage(STORAGE_KEY.USER_TOKEN, '')
@@ -20,7 +20,8 @@ export const useUserStore = defineStore('user', () => {
     userInfo.value = data?.user || {}
     roles.value = []
   }
-  const logout = () => {
+  const logout = async () => {
+    await logOutApi()
     token.value = ''
     userInfo.value = {}
     roles.value = []

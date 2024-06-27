@@ -1,4 +1,6 @@
 @import 'element-plus/theme-chalk/index.css';
+@import 'element-plus/theme-chalk/dark/css-vars.css';
+
 :root {
   /** color-primary */
   /* --el-color-primary: #1770F6;
@@ -8,4 +10,10 @@
   --el-color-primary-light-8: #D1E2FD;
   --el-color-primary-light-9: #E7F0FE;
   --el-color-primary-dark-2: #125AC5; */
+}
+.el-dialog {
+  --el-dialog-border-radius:6px;
+}
+.el-message-box {
+  --el-messagebox-border-radius:6px;
 }

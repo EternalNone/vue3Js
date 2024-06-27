@@ -1,7 +1,5 @@
-<script setup name="RoleDetail">
+<script setup name="TrackDetail">
 import { watchImmediate } from '@vueuse/core'
-import DescriptionItem from '@/components/DescriptionItem.vue'
-
 const props = defineProps({
   /**
    * @type 'new' | 'edit' | 'view'
@@ -16,15 +14,16 @@ const props = defineProps({
     default: () => ({})
   }
 })
-const { act, info } = toRefs(props)
+
 const formRef = ref(null)
 const formRules = {
-  roleName: [{ required: true, message: '请输入', trigger: 'blur' }]
+  gdmc: [{ required: true, message: '请输入', trigger: 'blur' }],
+  gdbh: [{ required: true, message: '请输入', trigger: 'blur' }]
 }
 const state = reactive({
   formData: {
-    roleName: '',
-    status: 1
+    gdmc: '',
+    gdbh: ''
   }
 })
 const { formData } = toRefs(state)
@@ -32,8 +31,8 @@ watchImmediate(
   () => props.info,
   (newVal) => {
     formData.value = {
-      roleName: newVal?.roleName || '',
-      status: newVal?.status ?? 1
+      gdmc: newVal?.gdmc || '',
+      gdbh: newVal?.gdbh || ''
     }
   }
 )
@@ -66,16 +65,17 @@ defineExpose({ confirm, reset })
 
 <template>
   <div v-if="act === 'view'">
-    <DescriptionItem label="角色名称">
-      {{ info?.roleName || '' }}
+    <DescriptionItem label="股道名称">
+      {{ info?.gdmc || '' }}
     </DescriptionItem>
-    <DescriptionItem label="角色状态">
-      <el-tag :type="info?.status ? 'success' : 'danger'">
-        {{ info?.status ? '启用' : '禁用' }}
-      </el-tag>
+    <DescriptionItem label="股道编号">
+      {{ info?.gdbh || '' }}
     </DescriptionItem>
-    <DescriptionItem label="创建时间">
-      {{ info?.createTime || '' }}
+    <DescriptionItem label="操作人">
+      {{ info?.operator || '' }}
+    </DescriptionItem>
+    <DescriptionItem label="操作时间">
+      {{ info?.operateTime || '' }}
     </DescriptionItem>
   </div>
   <el-form
@@ -87,14 +87,11 @@ defineExpose({ confirm, reset })
     label-position="right"
     status-icon
   >
-    <el-form-item label="角色名称" prop="roleName">
-      <el-input v-model="formData.roleName" placeholder="请输入" clearable />
+    <el-form-item label="股道名称" prop="gdmc">
+      <el-input v-model="formData.gdmc" placeholder="请输入" clearable />
     </el-form-item>
-    <el-form-item label="角色状态" prop="status">
-      <el-radio-group v-model="formData.status">
-        <el-radio-button label="启用" :value="1" />
-        <el-radio-button label="禁用" :value="0" />
-      </el-radio-group>
+    <el-form-item label="股道编号" prop="gdbh">
+      <el-input v-model="formData.gdbh" placeholder="请输入" clearable />
     </el-form-item>
   </el-form>
 </template>

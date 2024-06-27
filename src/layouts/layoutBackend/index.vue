@@ -1,18 +1,13 @@
 <script setup>
-import { useCssVar } from '@vueuse/core'
 import { useAppStore } from '@/store/modules/app'
 import AppMain from '../AppMain.vue'
 import BackendMenu from './BackendMenu.vue'
 import HeaderToolsBar from '../HeaderToolsBar.vue'
 
-const elMainRef = ref(null)
 const route = useRoute()
 const appStore = useAppStore()
 const { isCollapse } = storeToRefs(appStore)
-const defaultPadding = useCssVar('--el-main-padding', elMainRef)
-const elMainPadding = computed(() => {
-  return route.meta?.noPadding ? '0' : defaultPadding.value
-})
+
 const matchedRoutes = computed(() => {
   return route.matched.filter((item) => item.meta?.title) || []
 })
@@ -34,7 +29,7 @@ const matchedRoutes = computed(() => {
         <div class="header-right">
           <div class="breadcrumb-wrap">
             <div class="side-toggle-btn" @click="appStore.toggleSideBar">
-              <SvgIcon :name="isCollapse ? 'Expand' : 'Fold'" color="#fff" :size="24" />
+              <SvgIcon :name="isCollapse ? 'Expand' : 'Fold'" color="#fff" :size="22" />
             </div>
             <el-breadcrumb separator="/">
               <el-breadcrumb-item
@@ -55,7 +50,7 @@ const matchedRoutes = computed(() => {
             <BackendMenu />
           </el-scrollbar>
         </el-aside>
-        <el-main ref="elMainRef">
+        <el-main>
           <AppMain />
         </el-main>
       </el-container>
@@ -123,14 +118,13 @@ const matchedRoutes = computed(() => {
     }
     .el-aside {
       height: 100%;
-      background: $theme-color;
       transition: width 0.3s;
       .el-scrollbar {
         height: 100%;
       }
     }
     .el-main {
-      padding: v-bind(elMainPadding);
+      padding: 0;
     }
   }
 }

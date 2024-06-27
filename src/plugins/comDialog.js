@@ -7,13 +7,21 @@ document.body.appendChild(mountNode)
 
 const plugin = {
   install(app) {
-    const appInstance = createApp(ComDialog, { mountNode })
-    const vm = appInstance.mount(mountNode)
+    let appInstance = createApp(ComDialog, { mountNode })
+    let vm = appInstance.mount(mountNode)
     loadIcons(appInstance)
     app.config.globalProperties.$dialog = {
       show(component, diaProps = {}, comProps = {}, cb = null) {
         vm.show(markRaw(component), diaProps, comProps, cb)
       }
+    }
+    // 热更新后重新加载弹框组件
+    if (import.meta.hot) {
+      import.meta.hot.accept(() => {
+        appInstance.unmount()
+        appInstance = createApp(markRaw(ComDialog), { mountNode })
+        vm = appInstance.mount(mountNode)
+      })
     }
   }
 }

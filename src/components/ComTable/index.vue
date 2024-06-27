@@ -1,9 +1,11 @@
 <script setup name="ComTable">
-import { useElementSize } from '@vueuse/core'
-import { useMultiSelection, useSingleSelection, usePagination } from './hooks'
+import { useElementBounding, useFullscreen } from '@vueuse/core'
+import { useMultiSelection, useSingleSelection, usePagination, useColsSelected } from './hooks'
 import '@/components/types'
 import ComTableFilter from './ComTableFilter.vue'
+import ColumnsSet from './ColumnsSet.vue'
 
+const comTableContainerRef = ref(null)
 const comTableRef = ref(null)
 const filterActRef = ref(null)
 const props = defineProps({
@@ -43,10 +45,12 @@ const _ops = computed(() => {
     options.value
   )
 })
-const { height } = useElementSize(filterActRef)
+const { height } = useElementBounding(filterActRef)
+const { isFullscreen, toggle } = useFullscreen(comTableContainerRef)
 const { rowSelections, selectionChange } = useMultiSelection(comTableRef)
 const { singleSelectionKey, singleSelect } = useSingleSelection(_ops.value.rowKey)
 const { page, pageSize, total, pagiChange, totalChange } = usePagination()
+const { colsOps, selColsKeys, updateSelColsKeys } = useColsSelected(columns)
 
 // 表格高度
 const tableH = computed(() => {
@@ -55,7 +59,7 @@ const tableH = computed(() => {
 })
 // 展示的列
 const showColumns = computed(() => {
-  return columns.value.filter((col) => !col.hideInTable)
+  return columns.value.filter((col) => selColsKeys.value.includes(col.prop))
 })
 // 搜索的列
 const searchColumns = computed(() => {
@@ -111,6 +115,7 @@ const reset = () => {
 onMounted(() => {
   getData()
 })
+
 defineExpose({
   rowSelections: readonly(rowSelections),
   singleSelectionKey: readonly(singleSelectionKey),
@@ -120,8 +125,8 @@ defineExpose({
 </script>
 
 <template>
-  <div class="com-table" v-loading="loading" element-loading-background="transparent">
-    <div ref="filterActRef">
+  <div ref="comTableContainerRef" class="com-table" v-loading="loading" element-loading-background="transparent">
+    <div class="com-table-header" ref="filterActRef">
       <!-- 筛选功能 -->
       <ComTableFilter
         v-model="queryData"
@@ -131,7 +136,17 @@ defineExpose({
       />
       <!-- 工具栏 -->
       <div class="tools-bar">
-        <slot name="tools"></slot>
+        <div>
+          <slot name="tools"></slot>
+        </div>
+        <div>
+          <el-button circle @click="toggle">
+            <template #icon>
+              <SvgIcon :name="isFullscreen ? 'fullscreen-exit' : 'fullscreen'" :size="30" color="inherit" />
+            </template>
+          </el-button>
+          <ColumnsSet :selColsKeys="selColsKeys" :ops="colsOps" @change="updateSelColsKeys" />
+        </div>
       </div>
     </div>
     <div class="com-table-inner">
@@ -141,6 +156,7 @@ defineExpose({
         v-bind="_ops"
         :data="tableData"
         height="100%"
+        :header-cell-style="{ backgroundColor: 'var(--el-fill-color)', fontWeight: 600 }"
         @selection-change="selectionChange"
         @row-click="singleSelect"
       >
@@ -284,20 +300,43 @@ defineExpose({
 .com-table {
   width: 100%;
   height: 100%;
-  .tools-bar {
+  .com-table-header {
     margin-bottom: 10px;
-    @include flex($jc: flex-start) {
-      gap: 10px;
-    }
-    :deep(.el-button) {
-      & + .el-button {
-        margin-left: 0;
+    background: var(--el-bg-color);
+    border-radius: 8px;
+    padding: $com-padding;
+    .tools-bar {
+      @include flex($jc: space-between) {
+        gap: 10px;
+      }
+      > div {
+        &:first-child {
+          flex: 1;
+          .el-button {
+            & + .el-button {
+              margin-left: 0;
+            }
+          }
+        }
+        &:last-child {
+          flex-shrink: 0;
+          @include flex($jc: flex-end);
+          :deep(.el-button) {
+            & + .el-button {
+              margin-left: 10px;
+            }
+          }
+        }
       }
     }
   }
+
   .com-table-inner {
     width: 100%;
     height: v-bind(tableH);
+    background: var(--el-bg-color);
+    border-radius: 8px;
+    padding: $com-padding;
     :deep(.el-table) {
       width: 100%;
     }

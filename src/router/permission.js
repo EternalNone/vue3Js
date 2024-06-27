@@ -4,6 +4,7 @@ import { useUserStoreHook } from '@/store/modules/user'
 import { STORAGE_KEY } from '@/constants/index'
 import NProgress from 'nprogress'
 import 'nprogress/nprogress.css'
+import request from '@/utils/request'
 
 const WHITELIST = ['login']
 
@@ -13,6 +14,7 @@ router.beforeEach(async (to, _from, next) => {
   NProgress.start()
   const userStore = useUserStoreHook()
   const token = localStorage.getItem(STORAGE_KEY.USER_TOKEN) || ''
+  request.abortAllRequests()
   // 如果没有登陆
   if (!token) {
     // 如果在免登录的白名单中，则直接进入

@@ -1,17 +1,22 @@
 <script setup>
-import { useCssVar } from '@vueuse/core'
 import AppMain from '../AppMain.vue'
 import CockpitMenu from './CockpitMenu.vue'
 import HeaderToolsBar from '../HeaderToolsBar.vue'
 
-const elMainRef = ref(null)
 const route = useRoute()
 const title = computed(() => {
-  return route.meta?.fullTitle || ''
-})
-const defaultPadding = useCssVar('--el-main-padding', elMainRef)
-const elMainPadding = computed(() => {
-  return route.meta?.noPadding ? '0' : defaultPadding.value
+  switch (route.name) {
+    case 'cockpit':
+      return '集控中心驾驶舱'
+    case 'central':
+      return '集中控制平台'
+    case 'checkData':
+      return '检测数据中心'
+    case 'statistics':
+      return '数据统计分析'
+    default:
+      return ''
+  }
 })
 </script>
 
@@ -27,7 +32,7 @@ const elMainPadding = computed(() => {
         <h1>{{ title }}</h1>
         <HeaderToolsBar />
       </el-header>
-      <el-main ref="elMainRef">
+      <el-main>
         <AppMain />
       </el-main>
       <el-footer height="60px">
@@ -69,7 +74,7 @@ const elMainPadding = computed(() => {
         font-size: 30px;
         color: #fff;
         font-weight: 600;
-        letter-spacing: 4px;
+        letter-spacing: 0.3em;
         margin: 0;
         line-height: 65px;
       }
@@ -81,7 +86,7 @@ const elMainPadding = computed(() => {
       }
     }
     .el-main {
-      padding: v-bind(elMainPadding);
+      padding: 0;
     }
     .el-footer {
       background: $theme-color;

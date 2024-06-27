@@ -5,7 +5,7 @@ import { ElMessage } from 'element-plus'
 import { useUserStoreHook } from '@/store/modules/user'
 
 let instance = null
-
+let abortControllers = []
 const createInstance = () => {
   if (!instance) {
     instance = axios.create({
@@ -16,10 +16,12 @@ const createInstance = () => {
     // 请求拦截器
     instance.interceptors.request.use(
       (config) => {
+        const controller = new AbortController()
+        config.signal = controller.signal
+        abortControllers.push(controller)
         // 在发送请求之前做些什么
         config.headers['Content-Type'] = 'application/json'
-        config.headers['Authorization'] = localStorage.getItem(STORAGE_KEY.USER_TOKEN) || ''
-        config.headers['Token'] = localStorage.getItem(STORAGE_KEY.USER_TOKEN) || ''
+        config.headers['token'] = localStorage.getItem(STORAGE_KEY.USER_TOKEN) || ''
         return config
       },
       (error) => {
@@ -57,6 +59,14 @@ const createInstance = () => {
         return Promise.reject(error)
       }
     )
+    // 取消请求
+    instance.abortAllRequests = () => {
+      if (abortControllers.length) {
+        console.log('cancel requests')
+        abortControllers.forEach((controller) => controller.abort())
+        abortControllers = []
+      }
+    }
   }
 
   return instance

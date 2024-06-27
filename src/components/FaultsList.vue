@@ -2,10 +2,10 @@
 import { ElMessage } from 'element-plus'
 import { download } from '@/utils/file.js'
 import { useGlobalStore } from '@/store/modules/global'
+import { useWebWorker } from '@/hooks/index'
 import { getFaultsList, deleteFault, exportFaultSingle } from '@/api/checkData'
 import FaultViewer from '@/components/FaultViewer.vue'
 
-const worker = new Worker(new URL('@/worker/handleFaultList.js', import.meta.url)) // 创建Web Worker
 const imgBaseUrl = import.meta.env.VITE_IMAGE_BASE_URL // 对应环境的图片域名及端口
 
 const props = defineProps({
@@ -99,25 +99,77 @@ const state = reactive({
     pageSize: 10,
     total: 0
   },
-  handledList: [] // 处理完成的列表数据
+  handledList: [
+    {
+      lcxxBh: '1',
+      groupName: '1',
+      lw: '1',
+      doFault: '1',
+      faultAffirm: '1',
+      checkItem: '1',
+      faultDescribe: '1',
+      doUser: '1',
+      doStartTime: '1',
+      doResult: '1'
+    },
+    {
+      lcxxBh: '2',
+      groupName: '2',
+      lw: '2',
+      doFault: '2',
+      faultAffirm: '2',
+      checkItem: '2',
+      faultDescribe: '2',
+      doUser: '2',
+      doStartTime: '2',
+      doResult: '2'
+    },
+    {
+      lcxxBh: '3',
+      groupName: '3',
+      lw: '3',
+      doFault: '3',
+      faultAffirm: '3',
+      checkItem: '3',
+      faultDescribe: '3',
+      doUser: '3',
+      doStartTime: '3',
+      doResult: '3'
+    },
+    {
+      lcxxBh: '4',
+      groupName: '4',
+      lw: '4',
+      doFault: '4',
+      faultAffirm: '4',
+      checkItem: '4',
+      faultDescribe: '4',
+      doUser: '4',
+      doStartTime: '4',
+      doResult: '4'
+    }
+  ] // 处理完成的列表数据
 })
 const { visible, trainNo, pagination, loading, handledList } = toRefs(state)
+// web worker
+const { post, workerData, terminate } = useWebWorker(
+  new URL('@/worker/handleFaultList.js', import.meta.url)
+)
 const globalStore = useGlobalStore()
 const { moduleType } = storeToRefs(globalStore)
 const faultViewerRef = ref(null)
 const isVertical = computed(() => moduleType.value === 'INSIDE') // 拼图方式，接口里未返回，暂时先按库内竖向、库外横向处理
 
-// 监听Web Worker消息
-worker.onmessage = function (event) {
-  const { processedList } = event.data
+// 监听web worker数据变化
+watch(workerData, (newVal) => {
+  const { processedList } = newVal
   handledList.value = processedList
-}
-onUnmounted(() => {
-  worker.terminate()
 })
+
 // 打开弹框
 const show = (trainNoStr) => {
   trainNo.value = trainNoStr
+  handledList.value = []
   visible.value = true
   pagination.value = {
     pageNum: 1,
@@ -128,11 +180,11 @@ const show = (trainNoStr) => {
 }
 // 关闭弹框
 const close = () => {
-  // workers?.terminate()
+  terminate()
+  visible.value = false
 }
 // 获取列表数据
 const getData = () => {
-  handledList.value = []
   if (!trainNo.value) {
     pagination.value.total = 0
     return
@@ -150,7 +202,7 @@ const getData = () => {
     .then(async (res) => {
       pagination.value.total = res.total || 0
       if (res?.records?.length) {
-        worker?.postMessage({
+        post({
           list: res.records,
           imgBaseUrl,
           isVertical: isVertical.value
@@ -236,7 +288,12 @@ defineExpose({
     @close="close"
   >
     <div class="fault-list-wrap">
-      <el-table :data="handledList" stripe :border="true" v-loading="loading" element-loading-background="transparent">
+      <el-table
+        :data="handledList"
+        stripe
+        v-loading="loading"
+        element-loading-background="transparent"
+      >
         <el-table-column
           v-for="item in columns"
           :key="item.prop"

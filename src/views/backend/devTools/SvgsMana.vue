@@ -45,22 +45,18 @@ const clickSvg = async (name) => {
 
 <style lang="scss" scoped>
 .icons-show {
-  width: 100%;
-  height: 100%;
-  padding: 20px;
   overflow: auto;
   @include scrollBar;
   .svgs-list {
     padding: 20px 0;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
     gap: 10px;
     .svg-item {
       width: 100px;
-      background-color: #fff;
+      background-color: var(--el-bg-color);
       padding: 10px;
       border-radius: 8px;
-      box-shadow: var(--el-box-shadow-light);
       text-align: center;
       cursor: pointer;
       transition: all 0.3s linear;

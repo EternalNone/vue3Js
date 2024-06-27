@@ -34,7 +34,7 @@ const columns = [
   {
     label: '菜单图标',
     prop: 'icon',
-    minWidth: 80,
+    minWidth: 100,
     slot: 'icon'
   },
   {
@@ -394,9 +394,9 @@ const openDialog = (act, obj = {}) => {
         </el-tag>
       </template>
       <template #action="{ row }">
-        <el-button type="success" link size="small" @click="openDialog('view', row)"
-          >详情</el-button
-        >
+        <el-button type="success" link size="small" @click="openDialog('view', row)">
+          详情
+        </el-button>
         <el-button
           v-if="row.path !== '/' && row.path !== '/backend'"
           type="primary"

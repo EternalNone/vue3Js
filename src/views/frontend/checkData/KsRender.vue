@@ -627,7 +627,10 @@ const showRightMenu = (idx, e) => {
       height: 100%;
       overflow: auto;
       @include flex($jc: flex-start, $al: flex-start);
-      @include scrollBar($color: rgba(17, 209, 251, 0.5), $activeColor: rgba(17, 209, 251, 1));
+      @include scrollBar(
+        $color: var(--el-color-primary-light-5),
+        $activeColor: var(--el-color-primary)
+      );
       > div {
         width: 100%;
         height: auto;
@@ -684,7 +687,10 @@ const showRightMenu = (idx, e) => {
       height: 100%;
       overflow: auto;
       @include flex($dir: column, $jc: flex-start, $al: flex-start);
-      @include scrollBar($color: rgba(17, 209, 251, 0.5), $activeColor: rgba(17, 209, 251, 1));
+      @include scrollBar(
+        $color: var(--el-color-primary-light-5),
+        $activeColor: var(--el-color-primary)
+      );
       > div {
         width: auto;
         height: 100%;

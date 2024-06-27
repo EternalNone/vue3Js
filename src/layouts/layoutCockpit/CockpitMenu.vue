@@ -15,7 +15,11 @@ const activeMenu = computed(() => route.path)
     :ellipsis="false"
     router
   >
-    <el-menu-item v-for="item in menuList" :index="`${item.path}`" :key="item.path">
+    <el-menu-item
+      v-for="item in menuList"
+      :index="item.path?.startsWith('/') ? item.path : `/${item.path}`"
+      :key="item.path"
+    >
       <SvgIcon v-if="item.meta.icon" :name="item.meta.icon" :size="20" />
       <span>{{ item.meta.title }}</span>
     </el-menu-item>

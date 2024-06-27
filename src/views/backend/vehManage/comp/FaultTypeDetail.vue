@@ -1,7 +1,5 @@
-<script setup name="RoleDetail">
+<script setup name="FaultTypeDetail">
 import { watchImmediate } from '@vueuse/core'
-import DescriptionItem from '@/components/DescriptionItem.vue'
-
 const props = defineProps({
   /**
    * @type 'new' | 'edit' | 'view'
@@ -16,15 +14,16 @@ const props = defineProps({
     default: () => ({})
   }
 })
-const { act, info } = toRefs(props)
+
 const formRef = ref(null)
 const formRules = {
-  roleName: [{ required: true, message: '请输入', trigger: 'blur' }]
+  gzlx: [{ required: true, message: '请输入', trigger: 'blur' }],
+  gzdm: [{ required: true, message: '请输入', trigger: 'blur' }]
 }
 const state = reactive({
   formData: {
-    roleName: '',
-    status: 1
+    gzlx: '',
+    gzdm: ''
   }
 })
 const { formData } = toRefs(state)
@@ -32,8 +31,8 @@ watchImmediate(
   () => props.info,
   (newVal) => {
     formData.value = {
-      roleName: newVal?.roleName || '',
-      status: newVal?.status ?? 1
+      gzlx: newVal?.gzlx || '',
+      gzdm: newVal?.gzdm || ''
     }
   }
 )
@@ -66,16 +65,17 @@ defineExpose({ confirm, reset })
 
 <template>
   <div v-if="act === 'view'">
-    <DescriptionItem label="角色名称">
-      {{ info?.roleName || '' }}
+    <DescriptionItem label="故障类型">
+      {{ info?.gzlx || '' }}
     </DescriptionItem>
-    <DescriptionItem label="角色状态">
-      <el-tag :type="info?.status ? 'success' : 'danger'">
-        {{ info?.status ? '启用' : '禁用' }}
-      </el-tag>
+    <DescriptionItem label="故障代码">
+      {{ info?.gzdm || '' }}
     </DescriptionItem>
-    <DescriptionItem label="创建时间">
-      {{ info?.createTime || '' }}
+    <DescriptionItem label="操作人">
+      {{ info?.operator || '' }}
+    </DescriptionItem>
+    <DescriptionItem label="操作时间">
+      {{ info?.operateTime || '' }}
     </DescriptionItem>
   </div>
   <el-form
@@ -87,14 +87,11 @@ defineExpose({ confirm, reset })
     label-position="right"
     status-icon
   >
-    <el-form-item label="角色名称" prop="roleName">
-      <el-input v-model="formData.roleName" placeholder="请输入" clearable />
+    <el-form-item label="故障类型" prop="gzlx">
+      <el-input v-model="formData.gzlx" placeholder="请输入" clearable />
     </el-form-item>
-    <el-form-item label="角色状态" prop="status">
-      <el-radio-group v-model="formData.status">
-        <el-radio-button label="启用" :value="1" />
-        <el-radio-button label="禁用" :value="0" />
-      </el-radio-group>
+    <el-form-item label="故障代码" prop="gzdm">
+      <el-input v-model="formData.gzdm" placeholder="请输入" clearable />
     </el-form-item>
   </el-form>
 </template>

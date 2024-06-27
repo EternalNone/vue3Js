@@ -3,6 +3,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { ROBOT_STATUS_CN, ROBOT_ORDER, ACTIONS_VOICE_NOTICE } from '@/constants/index'
 import { useSpeech } from '@/hooks/index'
 import { robotOperate } from '@/api/central.js'
+import CheckPwd from './CheckPwd.vue'
 
 const props = defineProps({
   status: {
@@ -24,8 +25,7 @@ const props = defineProps({
 const { lw, gd, train } = toRefs(props)
 
 const refresh = inject('refresh')
-const checkPwdRef = inject('checkPwdRef')
-
+const { proxy } = getCurrentInstance()
 // 未知状态
 const unknown = computed(() => props.status === '')
 // 关机状态
@@ -61,39 +61,32 @@ const operation = async (cmd, password = '') => {
   } else if (lw.value === 2 && password) {
     params.validCodeTwo = password
   }
-  play(`确定执行${track}股道${lw.value}列位 ${ROBOT_ORDER[cmd]}操作吗？`)
+  play(`您确认要对${track}股道${lw.value}列位机器人执行${ROBOT_ORDER[cmd]}操作吗?`)
   try {
     await ElMessageBox.confirm(
-      `确定执行[${ROBOT_ORDER[cmd]}]操作吗？`,
-      (train.value?.type || '') +
-        (train.value?.trainNo || '') +
-        '  [' +
-        garage +
-        '_' +
-        track +
-        '_' +
-        lw.value +
-        ']',
+      `您确认要对<span style="color:var(--el-color-warning)">${track}股道${lw.value}列位机器人</span>执行${ROBOT_ORDER[cmd]}操作吗?`,
+      `${ROBOT_ORDER[cmd]}`,
       {
         confirmButtonText: '确认',
         cancelButtonText: '取消',
-        type: 'warning',
-        customStyle: { width: '350px' }
+        cancelButtonClass: 'el-button--info',
+        type: '',
+        dangerouslyUseHTMLString: true,
+        customStyle: { width: '500px' }
       }
     )
     const msg = ACTIONS_VOICE_NOTICE[cmd] || ''
     play(msg, 3)
     // 操作
-    robotOperate(cmd, params).then((res) => {
-      if (res.code === 200) {
+    robotOperate(cmd, params)
+      .then((res) => {
         ElMessage.success(res.describe)
         play(`${res.describe || '操作成功！'}`, true)
         refresh()
-      } else {
-        ElMessage.error(res.describe)
-        play(`${res.describe || '操作失败！'}`)
-      }
-    })
+      })
+      .catch((err) => {
+        play(err || '操作失败！')
+      })
   } catch {
     play(`取消执行${ROBOT_ORDER[cmd]}操作！`)
     console.log(`取消执行${ROBOT_ORDER[cmd]}操作！`)
@@ -101,7 +94,17 @@ const operation = async (cmd, password = '') => {
 }
 // 开始作业
 const startWork = () => {
-  checkPwdRef.value?.show({ gd: gd.value, lw: lw.value, cb: operation })
+  play('请输入操作密码')
+  proxy.$dialog.show(
+    CheckPwd,
+    {
+      width: 400,
+      title: '操作密码',
+      showConfirm: true
+    },
+    { gd: gd.value, lw: lw.value },
+    operation
+  )
 }
 </script>
 

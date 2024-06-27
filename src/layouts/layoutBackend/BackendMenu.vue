@@ -14,9 +14,6 @@ const { isCollapse } = storeToRefs(appStore)
     :default-active="activeMenu"
     class="el-menu-vertical-backend"
     :collapse="isCollapse"
-    background-color="#02245b"
-    text-color="#ffffff"
-    active-text-color="#ffffff"
     unique-opened
     router
   >
@@ -37,22 +34,22 @@ const { isCollapse } = storeToRefs(appStore)
   border: none;
   background-color: transparent;
   border-radius: 4px;
-  color: #fff;
 }
+$activeColor: rgba(255, 255, 255, 0.1);
+
 .el-menu-vertical-backend {
   width: 100%;
-  height: calc(100% - $el-header-height);
   border: none;
   user-select: none;
   :deep(.el-menu-item) {
     margin-bottom: 8px;
     @extend %item-style;
     &:hover {
-      background-color: rgba(255, 255, 255, 0.2);
+      background-color: $activeColor;
     }
     &.el-menu-item.is-active {
       border: none;
-      background-color: rgba(255, 255, 255, 0.2);
+      background-color: $activeColor;
     }
   }
   :deep(.el-sub-menu) {
@@ -61,7 +58,7 @@ const { isCollapse } = storeToRefs(appStore)
       @extend %item-style;
       margin-bottom: 8px;
       &:hover {
-        background-color: rgba(255, 255, 255, 0.2);
+        background-color: $activeColor;
       }
     }
     .el-menu {

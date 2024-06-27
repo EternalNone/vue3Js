@@ -4,5 +4,7 @@ export const STORAGE_KEY = {
   // 用户token
   USER_TOKEN: 'user_token',
   // 用户角色
-  USER_ROLES: 'user_roles'
+  USER_ROLES: 'user_roles',
+  // 是否是暗黑主题
+  IS_DARK_THEME: 'is_dark_theme',
 }

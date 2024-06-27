@@ -2,9 +2,9 @@
 @import './element-plus.css';
 @import './backend.scss';
 @import './cockpit.scss';
+@import './theme-transition.scss';
 
 #app {
   width: 100vw;
   height: 100vh;
 }
-

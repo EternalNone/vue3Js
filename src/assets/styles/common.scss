@@ -1,8 +1,7 @@
 // variables
-$color: #ec0fec;
 $theme-color: #02245b;
-
 $el-header-height: 70px;
+$com-padding: 15px;
 $robotStatus: (
   CLOSE: #fff,
   STANDBY: #eb35ce,
@@ -12,10 +11,10 @@ $robotStatus: (
   IN_OPERATION: var(--el-color-primary)
 );
 // mixins
-@mixin scrollBar($color: rgba(144, 147, 153, 0.3), $activeColor: rgba(144, 147, 153, 1)) {
+@mixin scrollBar($color: rgba(144, 147, 153, 0.3), $activeColor: rgba(144, 147, 153, .5)) {
   &::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
   &::-webkit-scrollbar-thumb {
     background: $color;

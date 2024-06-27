@@ -49,7 +49,7 @@ const resolvePath = (routePath) => {
     <el-tooltip
       v-if="menu.meta.icon"
       :disabled="!isCollapse"
-      effect="dark"
+      effect="light"
       :content="isCollapse ? menu.meta.title : null"
       placement="right"
     >
@@ -58,4 +58,25 @@ const resolvePath = (routePath) => {
     <span class="menu-title-wrap">{{ menu.meta.title }}</span>
   </el-menu-item>
 </template>
-<style lang="scss" scoped></style>
+<style lang="scss" scoped>
+.el-menu-item,
+.el-sub-menu__title {
+  .svg-icon {
+    color: var(--el-menu-text-color);
+  }
+  &.is-active {
+    .svg-icon {
+      color: var(--el-menu-active-color);
+    }
+  }
+}
+.el-menu--collapse {
+  .el-sub-menu {
+    &.is-active {
+      .svg-icon {
+        color: var(--el-menu-active-color);
+      }
+    }
+  }
+}
+</style>

@@ -69,7 +69,7 @@ export default defineConfig({
     /** 接口代理 */
     proxy: {
       '/api': {
-        target: 'http://192.168.21.125:8500/',
+        target: 'http://192.168.40.143:8500/',
         ws: true,
         /** 是否允许跨域 */
         changeOrigin: true

@@ -1,3 +1,5 @@
+import { watchImmediate } from '@vueuse/core'
+
 export const useMultiSelection = (comTableRef) => {
   const rowSelections = ref([])
   const selectionChange = (val) => {
@@ -28,4 +30,17 @@ export const usePagination = () => {
     total.value = val
   }
   return { page, pageSize, total, pagiChange, totalChange }
+}
+export const useColsSelected = (columns) => {
+  const selColsKeys = ref([])
+  const colsOps = computed(() => {
+    return columns.value.filter((col) => !col.hideInTable)
+  })
+  watchImmediate(colsOps, (newVal) => {
+    selColsKeys.value = newVal.map((col) => col.prop)
+  })
+  const updateSelColsKeys = (val) => {
+    selColsKeys.value = val
+  }
+  return { colsOps, selColsKeys, updateSelColsKeys }
 }

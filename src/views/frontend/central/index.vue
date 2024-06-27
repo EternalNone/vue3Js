@@ -6,11 +6,9 @@ import { ROBOT_STATUS_LIST } from '@/constants/index'
 import TrackItem from './comp/TrackItem.vue'
 import CheckInModal from './comp/CheckInModal.vue'
 import Monitor from './comp/Monitor.vue'
-import CheckPwd from './comp/CheckPwd.vue'
 
 const wsBaseUrl = import.meta.env.VITE_WEBSOCKET_BASE_URL // 对应环境的websocket地址
 const monitorRef = ref(null)
-const checkPwdRef = ref(null)
 
 const state = reactive({
   trackList: [
@@ -224,10 +222,8 @@ onMounted(() => {
 
 // 获取股道列表
 const getTrainTrack = async () => {
-  const res = await getTrainTrackApi()
-  console.log(res)
-  const data = res?.data || []
-  initData(data)
+  const data = await getTrainTrackApi()
+  initData(data || [])
 }
 // 初始化股道列表
 const initData = (gdData) => {
@@ -249,6 +245,9 @@ const initData = (gdData) => {
       item.trainInfoOne = null
       item.trainInfoTwo = null
       item.hasTrain = false
+    }
+    for (const key in item.robotStatus) {
+      robotStatus.value[`${key}-status`] = item.robotStatus[key]
     }
   })
   trackList.value = gdData
@@ -285,13 +284,15 @@ const removeTrain = async () => {
   const { trainId, type, trainNo, garage, track, parking, marshallingType } = currentTrain.value
   try {
     await ElMessageBox.confirm(
-      '确定执行手动出车操作吗？',
-      (type || '') + (trainNo || '') + '  [' + garage + '_' + track + '_' + parking + ']',
+      `您确认要对<span style="color:var(--el-color-warning)">${track}股道${parking}列位${type}-${trainNo}车</span>进行出车操作吗?`,
+      '手动出车',
       {
         confirmButtonText: '确认',
         cancelButtonText: '取消',
-        type: 'warning',
-        customStyle: { width: '350px' }
+        cancelButtonClass: 'el-button--info',
+        type: '',
+        dangerouslyUseHTMLString: true,
+        customStyle: { width: '520px' }
       }
     )
     checkout({
@@ -301,19 +302,15 @@ const removeTrain = async () => {
       parking,
       marshallingType
     }).then((res) => {
-      if (res.code === 200) {
-        ElMessage.success('出车成功！')
-        getTrainTrack()
-      } else {
-        ElMessage.error(res.describe || '出车失败！')
-      }
+      console.log('res', res)
+      ElMessage.success('出车成功！')
+      getTrainTrack()
     })
   } catch {
     console.log('取消手动出车操作！')
   }
 }
 provide('refresh', getTrainTrack)
-provide('checkPwdRef', checkPwdRef)
 </script>
 <template>
   <div class="central">
@@ -365,7 +362,6 @@ provide('checkPwdRef', checkPwdRef)
       </div>
     </div>
     <Monitor ref="monitorRef" :trackOps="trackOps" />
-    <CheckPwd ref="checkPwdRef" />
   </div>
 </template>
 
@@ -373,15 +369,21 @@ provide('checkPwdRef', checkPwdRef)
 .central {
   width: 100%;
   height: 100%;
+  padding: var(--el-main-padding) 0 !important;
   .track-list {
     width: 100%;
+    padding: 0 var(--el-main-padding);
     height: calc(100% - 30px);
     overflow-y: auto;
-    @include scrollBar($color: rgba(17, 209, 251, 0.5), $activeColor: rgba(17, 209, 251, 1));
+    @include scrollBar(
+      $color: var(--el-color-primary-light-5),
+      $activeColor: var(--el-color-primary)
+    );
   }
   .bot-bar {
     width: 100%;
     height: 30px;
+    padding: 0 var(--el-main-padding);
     @include flex;
     .robot-lengend {
       flex: 1;
